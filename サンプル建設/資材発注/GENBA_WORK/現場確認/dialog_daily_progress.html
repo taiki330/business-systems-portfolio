@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <base target="_top">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 500px;
+            margin: 0 auto;
+        }
+
+        h2 {
+            color: #1976D2;
+            margin-bottom: 20px;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+
+        input[type="text"],
+        input[type="date"],
+        select {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+
+        .checkbox-group {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+
+        .checkbox-item {
+            padding: 10px;
+            border: 2px solid #e0e0e0;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        .checkbox-item:hover {
+            border-color: #1976D2;
+            background: #f0f7ff;
+        }
+
+        .checkbox-item.checked {
+            border-color: #1976D2;
+            background: #e3f2fd;
+        }
+
+        .progress-input {
+            margin-top: 15px;
+            padding: 15px;
+            background: #f9f9f9;
+            border-radius: 4px;
+            display: none;
+        }
+
+        .progress-input.show {
+            display: block;
+        }
+
+        .slider-value {
+            text-align: center;
+            font-size: 24px;
+            font-weight: bold;
+            color: #1976D2;
+        }
+
+        input[type="range"] {
+            width: 100%;
+        }
+
+        .buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        button {
+            flex: 1;
+            padding: 12px;
+            border: none;
+            border-radius: 4px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .btn-primary {
+            background: #1976D2;
+            color: white;
+        }
+
+        .btn-secondary {
+            background: #f5f5f5;
+            color: #666;
+        }
+
+        .page {
+            display: none;
+        }
+
+        .page.active {
+            display: block;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div id="page1" class="page active">
+            <h2>📝 今日の実績を入力</h2>
+            <div class="form-group">
+                <label>現場名 *</label>
+                <input type="text" id="siteName" placeholder="現場名を入力...">
+            </div>
+            <div class="form-group" id="zoneGroup" style="display:none;">
+                <label>工区名</label>
+                <select id="zoneName">
+                    <option value="">（工区なし）</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>報告日</label>
+                <input type="date" id="reportDate">
+            </div>
+            <div class="buttons">
+                <button class="btn-primary" onclick="nextPage()">次へ →</button>
+            </div>
+        </div>
+        <div id="page2" class="page">
+            <h2>作業内容を選択</h2>
+            <div class="form-group">
+                <label>今日実施した作業</label>
+                <div class="checkbox-group">
+                    <div class="checkbox-item" onclick="toggleCheckbox('assemblyStart')">
+                        <input type="checkbox" id="assemblyStart" value="組立開始"> 組立開始
+                    </div>
+                    <div class="checkbox-item" onclick="toggleCheckbox('assemblyProgress')">
+                        <input type="checkbox" id="assemblyProgress" value="組立中"> 組立中
+                    </div>
+                    <div class="checkbox-item" onclick="toggleCheckbox('assemblyEnd')">
+                        <input type="checkbox" id="assemblyEnd" value="組立終了"> 組立終了
+                    </div>
+                    <div class="checkbox-item" onclick="toggleCheckbox('dismantleStart')">
+                        <input type="checkbox" id="dismantleStart" value="解体開始"> 解体開始
+                    </div>
+                    <div class="checkbox-item" onclick="toggleCheckbox('dismantleProgress')">
+                        <input type="checkbox" id="dismantleProgress" value="解体中"> 解体中
+                    </div>
+                    <div class="checkbox-item" onclick="toggleCheckbox('dismantleEnd')">
+                        <input type="checkbox" id="dismantleEnd" value="解体終了"> 解体終了
+                    </div>
+                </div>
+            </div>
+            <div id="assemblyProgressInput" class="progress-input">
+                <label>組立の達成度</label>
+                <div class="slider-value" id="assemblyValue">50%</div>
+                <input type="range" id="assemblySlider" min="10" max="100" step="10" value="50"
+                    oninput="updateSlider('assembly',this.value)">
+            </div>
+            <div id="dismantleProgressInput" class="progress-input">
+                <label>解体の達成度</label>
+                <div class="slider-value" id="dismantleValue">50%</div>
+                <input type="range" id="dismantleSlider" min="10" max="100" step="10" value="50"
+                    oninput="updateSlider('dismantle',this.value)">
+            </div>
+            <div class="buttons">
+                <button class="btn-secondary" onclick="prevPage()">← 戻る</button>
+                <button class="btn-primary" onclick="submitProgress()">登録</button>
+            </div>
+        </div>
+    </div>
+    <script>
+        let siteList = {};
+        window.onload = function () {
+            document.getElementById('reportDate').value = new Date().toISOString().split('T')[0];
+            google.script.run.withSuccessHandler(function (sites) { siteList = sites; }).getSiteList();
+        };
+        function toggleCheckbox(id) {
+            const cb = document.getElementById(id);
+            cb.checked = !cb.checked;
+            cb.parentElement.classList.toggle('checked', cb.checked);
+            if (id === 'assemblyProgress') document.getElementById('assemblyProgressInput').classList.toggle('show', cb.checked);
+            if (id === 'dismantleProgress') document.getElementById('dismantleProgressInput').classList.toggle('show', cb.checked);
+        }
+        function updateSlider(type, val) { document.getElementById(type + 'Value').textContent = val + '%'; }
+        function nextPage() {
+            if (!document.getElementById('siteName').value.trim()) { alert('現場名を入力してください'); return; }
+            document.getElementById('page1').classList.remove('active');
+            document.getElementById('page2').classList.add('active');
+        }
+        function prevPage() {
+            document.getElementById('page2').classList.remove('active');
+            document.getElementById('page1').classList.add('active');
+        }
+        function submitProgress() {
+            const items = [];
+            ['assemblyStart', 'assemblyProgress', 'assemblyEnd', 'dismantleStart', 'dismantleProgress', 'dismantleEnd'].forEach(id => {
+                const cb = document.getElementById(id);
+                if (cb.checked) {
+                    const item = { type: cb.value, completion: 0 };
+                    if (id === 'assemblyProgress') item.completion = parseInt(document.getElementById('assemblySlider').value);
+                    if (id === 'dismantleProgress') item.completion = parseInt(document.getElementById('dismantleSlider').value);
+                    items.push(item);
+                }
+            });
+            if (items.length === 0) { alert('作業内容を1つ以上選択してください'); return; }
+            google.script.run.withSuccessHandler(function () { alert('登録しました！'); google.script.host.close(); })
+                .withFailureHandler(function (e) { alert('エラー: ' + e.message); })
+                .logDailyProgress({
+                    siteName: document.getElementById('siteName').value.trim(),
+                    zoneName: document.getElementById('zoneName').value,
+                    reportDate: new Date(document.getElementById('reportDate').value),
+                    progressItems: items
+                });
+        }
+    </script>
+</body>
+
+</html>

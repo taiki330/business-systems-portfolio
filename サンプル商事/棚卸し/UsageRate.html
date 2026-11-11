@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<base target="_top">
+<style>
+  :root{ --line:#d8dde5; --ink:#1a1a1a; --sub:#5a6270; --accent:#1e5aa8;
+         --soft:#f4f6f9; --ok:#1e7a4d; --warn:#b3541e; --err:#c0392b; --na:#8a90a0; }
+  *{box-sizing:border-box;}
+  body{margin:0;font-family:"Yu Gothic",YuGothic,"Hiragino Kaku Gothic ProN","Meiryo",sans-serif;
+       color:var(--ink);background:#eef1f5;font-size:14px;}
+  header{background:#fff;border-bottom:2px solid var(--accent);padding:16px;
+         box-shadow:0 1px 6px rgba(0,0,0,.06);}
+  h1{font-size:18px;margin:0;}
+  .sub{font-size:12.5px;color:var(--sub);margin-top:4px;line-height:1.6;}
+  main{max-width:1100px;margin:0 auto;padding:16px;}
+  a{color:var(--accent);}
+
+  .bar{background:#fff;border:1px solid var(--line);border-radius:10px;padding:12px 14px;
+       margin-bottom:14px;display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end;}
+  .fld{display:flex;flex-direction:column;gap:4px;}
+  .fld label{font-size:11.5px;color:var(--sub);font-weight:700;}
+  select,input[type=search]{font:inherit;padding:7px 9px;border:1px solid var(--line);border-radius:6px;background:#fff;}
+  input[type=search]{min-width:220px;}
+  .bar .grow{flex:1;}
+  button.go{font:inherit;font-weight:700;padding:8px 16px;border:none;border-radius:6px;
+            background:var(--accent);color:#fff;cursor:pointer;}
+  button.go:disabled{opacity:.5;cursor:default;}
+
+  .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px;margin-bottom:14px;}
+  .kpi{background:#fff;border:1px solid var(--line);border-radius:10px;padding:13px 15px;}
+  .kpi .k{font-size:11.5px;color:var(--sub);}
+  .kpi .v{font-size:22px;font-weight:800;margin-top:2px;}
+  .kpi .v small{font-size:12px;font-weight:400;color:var(--sub);}
+  .kpi.alert .v{color:var(--err);}
+
+  .panel{background:#fff;border:1px solid var(--line);border-radius:10px;overflow:hidden;}
+  .panel .hd{padding:11px 14px;border-bottom:1px solid var(--line);font-weight:700;
+             display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;}
+  .panel .hd .cnt{font-weight:400;font-size:12.5px;color:var(--sub);}
+
+  /* 表は横に長いので、狭い画面ではこの枠の中だけ横スクロールさせる */
+  .scroll{overflow-x:auto;}
+  table{border-collapse:collapse;width:100%;min-width:820px;}
+  th,td{padding:8px 10px;border-bottom:1px solid var(--line);text-align:left;white-space:nowrap;}
+  th{background:var(--soft);font-size:12px;color:var(--sub);position:sticky;top:0;}
+  td.num,th.num{text-align:right;font-variant-numeric:tabular-nums;}
+  tbody tr:hover{background:#f7f9fc;}
+  td.nm{white-space:normal;min-width:230px;}
+  td .cat{display:block;font-size:11px;color:var(--sub);}
+
+  /* 稼働率はバー＋％で出す。数字だけより「動いていない」が目で分かる。 */
+  .rate{display:flex;align-items:center;gap:8px;min-width:120px;}
+  .rate .track{flex:1;height:8px;border-radius:4px;background:#e8ebf0;overflow:hidden;}
+  .rate .fill{height:100%;border-radius:4px;background:var(--ok);}
+  .rate .fill.mid{background:var(--warn);}
+  .rate .fill.low{background:var(--err);}
+  .rate .pct{font-variant-numeric:tabular-nums;font-weight:700;width:42px;text-align:right;}
+  .rate .pct.zero{color:var(--err);}
+
+  button.chartBtn{font:inherit;font-size:12px;font-weight:700;padding:5px 12px;border-radius:6px;
+                  border:1px solid var(--accent);background:#fff;color:var(--accent);cursor:pointer;
+                  white-space:nowrap;}
+  button.chartBtn:hover{background:var(--accent);color:#fff;}
+
+  /* グラフは重ねて表示する。一覧の並びを崩さずに1商品だけをじっくり見るため。 */
+  .modal{position:fixed;inset:0;background:rgba(20,26,36,.55);display:none;
+         align-items:center;justify-content:center;padding:16px;z-index:50;}
+  .modal.open{display:flex;}
+  .modalBox{background:#fff;border-radius:12px;max-width:820px;width:100%;
+            max-height:92vh;overflow-y:auto;box-shadow:0 12px 40px rgba(0,0,0,.3);}
+  .modalHd{padding:14px 16px;border-bottom:1px solid var(--line);
+           display:flex;justify-content:space-between;align-items:flex-start;gap:12px;}
+  .modalHd .ct{font-weight:800;font-size:16px;}
+  .modalHd .cs{font-size:12.5px;color:var(--sub);margin-top:4px;line-height:1.6;}
+  .modalHd .close{font:inherit;font-size:20px;line-height:1;padding:2px 9px;border:none;
+                  border-radius:6px;background:var(--soft);color:var(--sub);cursor:pointer;}
+  .modalBd{padding:14px 16px 18px;}
+  /* viewBox の比率のまま拡縮させる（height を固定すると目盛りの文字が横に潰れる） */
+  .modalBd svg{width:100%;height:auto;display:block;}
+
+  .spin,.empty{padding:36px;text-align:center;color:var(--sub);}
+  .foot{margin-top:16px;text-align:center;font-size:12.5px;}
+</style>
+</head>
+<body>
+<header>
+  <h1>資材の稼働率（直近1年）</h1>
+  <div class="sub">稼働率＝この1年のうち、その資材が使われた月の割合です。低い順に並びます。<br>
+    右の「グラフ」ボタンで、月ごとの使用数量を折れ線で確認できます。
+    在庫を減らしてよいか各医院に確認するときの資料としてお使いください。</div>
+</header>
+<main>
+  <div class="bar">
+    <div class="fld">
+      <label for="clinic">医院</label>
+      <select id="clinic"><option value="">全医院（合計）</option></select>
+    </div>
+    <div class="fld grow">
+      <label for="q">品名・発注先で絞り込み</label>
+      <input type="search" id="q" placeholder="例：グローブ">
+    </div>
+    <button class="go" id="reload">再集計</button>
+  </div>
+
+  <div id="app"><div class="spin">使用履歴を集計中…</div></div>
+
+  <div class="foot"><a id="backLink" href="#">← 理事長・事務ホームへ戻る</a></div>
+</main>
+
+<div class="modal" id="modal">
+  <div class="modalBox">
+    <div class="modalHd">
+      <div><div class="ct" id="mTitle"></div><div class="cs" id="mSub"></div></div>
+      <button class="close" id="mClose" aria-label="閉じる">×</button>
+    </div>
+    <div class="modalBd" id="mBody"></div>
+  </div>
+</div>
+
+<script>
+  var APP_URL = '<?= initParams && initParams.appUrl ? initParams.appUrl : "" ?>';
+  var $ = function(id){ return document.getElementById(id); };
+  var DATA = null;  // 直近の集計結果
+
+  $('backLink').href = APP_URL + '?page=adminhome';
+  $('reload').onclick = load;
+  $('clinic').onchange = load;
+  $('q').oninput = renderList;
+
+  // グラフは重ねて表示する。閉じ方は ×／背景クリック／Esc の3通りを用意する。
+  $('mClose').onclick = closeChart;
+  $('modal').onclick = function(e){ if (e.target === this) closeChart(); };
+  document.addEventListener('keydown', function(e){
+    if (e.key === 'Escape') closeChart();
+  });
+
+  google.script.run.withSuccessHandler(function(list){
+    list.forEach(function(c){
+      var o = document.createElement('option');
+      o.value = c; o.textContent = c;
+      $('clinic').appendChild(o);
+    });
+  }).getClinicList();
+
+  load();
+
+  function load(){
+    closeChart();
+    $('reload').disabled = true;
+    $('app').innerHTML = '<div class="spin">使用履歴を集計中…</div>';
+    google.script.run
+      .withSuccessHandler(function(res){
+        $('reload').disabled = false;
+        DATA = res;
+        renderAll();
+      })
+      .withFailureHandler(function(err){
+        $('reload').disabled = false;
+        $('app').innerHTML = '<div class="empty">集計に失敗しました：' + esc(err && err.message) + '</div>';
+      })
+      .getUsageRateOverview({ clinic: $('clinic').value });
+  }
+
+  function renderAll(){
+    $('app').innerHTML = kpiHtml()
+                       + '<div class="panel"><div class="hd"><span>資材一覧（稼働率の低い順）</span>'
+                       + '<span class="cnt" id="cnt"></span></div>'
+                       + '<div class="scroll"><table><thead>' + headHtml() + '</thead>'
+                       + '<tbody id="rows"></tbody></table></div></div>';
+    renderList();
+  }
+
+  function kpiHtml(){
+    var items = DATA.items;
+    var dead = items.filter(function(it){ return it.total === 0; });
+    var deadValue = dead.reduce(function(s, it){ return s + (it.idleValuation || 0); }, 0);
+    return '<div class="kpis">'
+      + kpi('対象の資材', items.length + ' <small>品目</small>', false)
+      + kpi('1年間まったく使われていない', dead.length + ' <small>品目</small>', dead.length > 0)
+      + kpi('その在庫金額（税抜）', '￥' + deadValue.toLocaleString(), deadValue > 0)
+      + kpi('集計した使用履歴', DATA.historyRows.toLocaleString() + ' <small>件</small>', false)
+      + '</div>';
+  }
+
+  function kpi(k, v, alert){
+    return '<div class="kpi' + (alert ? ' alert' : '') + '">'
+         +   '<div class="k">' + esc(k) + '</div><div class="v">' + v + '</div></div>';
+  }
+
+  function headHtml(){
+    return '<tr><th>品名</th><th>稼働率</th><th class="num">年間使用数</th>'
+         + '<th>最終使用</th><th class="num">現在庫</th><th class="num">在庫金額</th>'
+         + '<th></th></tr>';
+  }
+
+  function renderList(){
+    if (!DATA) return;
+    var q = $('q').value.trim().toLowerCase();
+    var rows = DATA.items.filter(function(it){
+      if (!q) return true;
+      return (it.name + ' ' + it.supplier + ' ' + it.category).toLowerCase().indexOf(q) >= 0;
+    });
+
+    $('cnt').textContent = rows.length + ' 件を表示（全 ' + DATA.items.length + ' 件）／集計 ' + DATA.generatedAt;
+    if (!rows.length) {
+      $('rows').innerHTML = '<tr><td colspan="7" class="empty">該当する資材がありません。</td></tr>';
+      return;
+    }
+
+    var html = '';
+    rows.forEach(function(it){
+      html += '<tr>'
+        +   '<td class="nm">' + esc(it.name)
+        +     '<span class="cat">' + esc([it.category, it.supplier].filter(Boolean).join(' / ')) + '</span></td>'
+        +   '<td>' + rateCell(it) + '</td>'
+        +   '<td class="num">' + num(it.total) + '</td>'
+        +   '<td>' + (it.lastUsedMonth ? esc(it.lastUsedMonth) : '<span style="color:#8a90a0">使用なし</span>') + '</td>'
+        +   '<td class="num">' + num(it.stock) + '</td>'
+        +   '<td class="num">' + yen(it.idleValuation) + '</td>'
+        +   '<td><button class="chartBtn" data-pid="' + esc(it.productId) + '">グラフ</button></td>'
+        + '</tr>';
+    });
+    $('rows').innerHTML = html;
+
+    Array.prototype.forEach.call($('rows').querySelectorAll('button[data-pid]'), function(btn){
+      btn.onclick = function(){ openChart(btn.getAttribute('data-pid')); };
+    });
+  }
+
+  // 稼働率をバー＋％で描く。低いほど赤くして、目で追うだけで候補が拾えるようにする。
+  function rateCell(it){
+    var cls = it.activeRate === 0 ? 'low' : (it.activeRate < 50 ? 'mid' : '');
+    return '<div class="rate" title="' + DATA.months + 'ヶ月中 ' + it.activeMonths + 'ヶ月で使用">'
+      + '<span class="track"><span class="fill ' + cls + '" style="width:' + it.activeRate + '%"></span></span>'
+      + '<span class="pct' + (it.activeRate === 0 ? ' zero' : '') + '">' + it.activeRate + '%</span>'
+      + '</div>';
+  }
+
+  function openChart(pid){
+    var it = null;
+    DATA.items.forEach(function(x){ if (x.productId === pid) it = x; });
+    if (!it) return;
+
+    var scope = DATA.clinic ? DATA.clinic : '全医院合計';
+    $('mTitle').textContent = it.name;
+    $('mSub').innerHTML = esc(scope) + '／月ごとの使用数量（直近' + DATA.months + 'ヶ月）<br>'
+      + '稼働率 <b>' + it.activeRate + '%</b>（' + DATA.months + 'ヶ月中 ' + it.activeMonths + 'ヶ月で使用）'
+      + '　年間使用数 ' + num(it.total)
+      + '　月平均 ' + num(it.perMonth)
+      + (it.idleMonths ? '　<b>' + it.idleMonths + 'ヶ月動いていません</b>' : '');
+    $('mBody').innerHTML = lineChartSvg(it.series, DATA.monthKeys);
+    $('modal').classList.add('open');
+    $('mClose').focus();
+  }
+
+  function closeChart(){
+    $('modal').classList.remove('open');
+  }
+
+  /**
+   * 月別使用数量の折れ線グラフをSVGで描く。
+   * 外部ライブラリは読み込めない環境なので、座標を自前で計算して組み立てる。
+   */
+  function lineChartSvg(series, labels){
+    var W = 900, H = 220, padL = 46, padR = 12, padT = 14, padB = 34;
+    var innerW = W - padL - padR, innerH = H - padT - padB;
+    var max = Math.max.apply(null, series.concat([1]));
+    // 目盛りが半端にならないよう、最大値を切りのいい数まで引き上げる
+    var step = Math.pow(10, Math.max(0, String(Math.ceil(max)).length - 1));
+    var top = Math.ceil(max / step) * step;
+
+    function x(i){ return padL + (series.length === 1 ? innerW / 2 : innerW * i / (series.length - 1)); }
+    function y(v){ return padT + innerH - (innerH * v / top); }
+
+    var grid = '', ticks = 4;
+    for (var g = 0; g <= ticks; g++) {
+      var val = top * g / ticks, gy = y(val);
+      grid += '<line x1="' + padL + '" y1="' + gy + '" x2="' + (W - padR) + '" y2="' + gy
+           +  '" stroke="#e3e7ee" stroke-width="1"/>'
+           +  '<text x="' + (padL - 7) + '" y="' + (gy + 4) + '" text-anchor="end" font-size="11" fill="#5a6270">'
+           +  Math.round(val).toLocaleString() + '</text>';
+    }
+
+    var path = '', dots = '';
+    series.forEach(function(v, i){
+      path += (i === 0 ? 'M' : 'L') + x(i) + ' ' + y(v);
+      dots += '<circle cx="' + x(i) + '" cy="' + y(v) + '" r="3" fill="#1e5aa8"><title>'
+           +  esc(labels[i]) + '：' + v + '</title></circle>';
+    });
+
+    // ラベルが重ならないよう、月数が多いときは間引いて表示する
+    var everyN = Math.ceil(series.length / 12);
+    var xlabels = '';
+    labels.forEach(function(k, i){
+      if (i % everyN !== 0 && i !== labels.length - 1) return;
+      xlabels += '<text x="' + x(i) + '" y="' + (H - 12) + '" text-anchor="middle" font-size="10.5" fill="#5a6270">'
+              +  esc(k.replace('-', '/')) + '</text>';
+    });
+
+    return '<svg viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="月別の使用数量">'
+         +   grid
+         +   '<path d="' + path + '" fill="none" stroke="#1e5aa8" stroke-width="2.5" '
+         +     'stroke-linejoin="round" stroke-linecap="round"/>'
+         +   dots + xlabels
+         + '</svg>';
+  }
+
+  // 数値の表示ヘルパー。
+  // サーバーは「金額不明」「在庫を持たない」を null で返すが、google.script.run を通ると
+  // その項目が undefined になって届く（null がそのまま渡ってこない）。
+  // そのため null と undefined の両方を「—」として扱う。ここを === null だけで
+  // 判定していたため、値の無い資材に当たった時点で一覧の描画が例外で止まっていた。
+  function num(v){ return (v === null || v === undefined) ? '—' : v.toLocaleString(); }
+  function yen(v){ return (v === null || v === undefined) ? '—' : '￥' + v.toLocaleString(); }
+
+  function esc(s){
+    return String(s==null?'':s).replace(/[&<>"']/g,function(c){
+      return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];
+    });
+  }
+</script>
+</body>
+</html>

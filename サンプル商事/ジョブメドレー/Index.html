@@ -1,0 +1,1265 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <base target="_top">
+  <meta charset="utf-8">
+  <style>
+    :root {
+      --primary: #1e88e5;
+      --primary-dark: #1565c0;
+      --bg: #f4f6f8;
+      --card: #ffffff;
+      --border: #e0e0e0;
+      --text: #2b2f33;
+      --muted: #6b7280;
+      --danger: #d32f2f;
+      --ok: #2e7d32;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Hiragino Kaku Gothic ProN", "Yu Gothic", Meiryo, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+    }
+    header {
+      background: var(--primary);
+      color: #fff;
+      padding: 14px 20px;
+      font-size: 18px;
+      font-weight: bold;
+    }
+    .wrap { max-width: 880px; margin: 0 auto; padding: 16px; }
+    .tabs { display: flex; gap: 6px; margin-bottom: 16px; flex-wrap: wrap; }
+    .tab {
+      flex: 1 1 auto;
+      padding: 10px 12px;
+      text-align: center;
+      background: #e7ebef;
+      border: none;
+      border-radius: 8px 8px 0 0;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: bold;
+      color: var(--muted);
+    }
+    .tab.active { background: var(--card); color: var(--primary-dark); box-shadow: 0 -2px 0 var(--primary) inset; }
+    .panel { display: none; background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 18px; }
+    .panel.active { display: block; }
+    .panel h2 { margin: 0 0 14px; font-size: 16px; }
+    label { display: block; font-size: 13px; font-weight: bold; margin: 12px 0 4px; }
+    select, input[type="text"], textarea {
+      width: 100%; padding: 9px 10px; border: 1px solid var(--border);
+      border-radius: 6px; font-size: 14px; font-family: inherit; background: #fff;
+    }
+    textarea { resize: vertical; min-height: 64px; }
+    .btn-row { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 14px; }
+    button.action {
+      padding: 10px 16px; border: none; border-radius: 6px; cursor: pointer;
+      font-size: 14px; font-weight: bold; background: var(--primary); color: #fff;
+    }
+    button.action.secondary { background: #607d8b; }
+    button.action.accent { background: #00897b; }
+    button.action:disabled { opacity: .5; cursor: default; }
+    .status { margin-top: 12px; font-size: 14px; min-height: 20px; }
+    .status.loading { color: var(--primary-dark); }
+    .status.error { color: var(--danger); font-weight: bold; white-space: pre-wrap; }
+    .status.ok { color: var(--ok); font-weight: bold; }
+    .cards { margin-top: 14px; display: grid; gap: 12px; }
+    .card { border: 1px solid var(--border); border-radius: 10px; padding: 14px; background: #fafbfc; }
+    .card .axis { display: inline-block; background: var(--primary); color: #fff; font-size: 12px;
+      font-weight: bold; padding: 2px 10px; border-radius: 999px; margin-bottom: 8px; }
+    .card .main { font-size: 17px; font-weight: bold; margin: 2px 0; }
+    .card .sub { color: var(--muted); margin-bottom: 8px; }
+    .field { font-size: 13px; margin: 3px 0; }
+    .field b { color: var(--primary-dark); }
+    .scout-block { margin: 10px 0; }
+    .scout-block .ttl { font-size: 13px; font-weight: bold; color: var(--primary-dark); margin-bottom: 2px; }
+    .scout-block .body { white-space: pre-wrap; background: #fafbfc; border: 1px solid var(--border);
+      border-radius: 8px; padding: 10px; }
+    .hint { font-size: 12px; color: var(--muted); margin-top: 2px; }
+    .prompt-head { font-size: 15px; font-weight: bold; color: var(--primary-dark); margin: 14px 0 6px; }
+    .prompt-body { width: 100%; min-height: 320px; font-family: "SFMono-Regular", Consolas, "Courier New", monospace;
+      font-size: 12.5px; line-height: 1.5; white-space: pre; overflow: auto; background: #fafbfc;
+      border: 1px solid var(--border); border-radius: 8px; padding: 12px; }
+    .details-box { margin: 6px 0 4px; border: 1px solid var(--border); border-radius: 8px; padding: 6px 10px; background: #fafbfc; }
+    .details-box summary { cursor: pointer; font-size: 13px; color: var(--muted); user-select: none; }
+    .details-box label { margin-top: 8px; }
+    .gen-result { margin-top: 12px; padding-top: 12px; border-top: 1px dashed var(--border); }
+    .gen-label { font-size: 13px; font-weight: bold; color: var(--primary-dark); margin-bottom: 8px; }
+    .generated-image { display: block; max-width: 100%; border-radius: 8px; border: 1px solid var(--border); }
+    .card.generating { opacity: .85; }
+    .photo-preview-box {
+      margin-top: 10px; padding: 12px; border: 1px solid var(--border);
+      border-radius: 10px; background: #fafbfc;
+    }
+    .photo-preview-box .preview-title {
+      font-size: 13px; font-weight: bold; color: var(--primary-dark); margin-bottom: 8px;
+    }
+    .photo-preview-img {
+      display: block; max-width: 100%; max-height: 280px; margin: 0 auto 10px;
+      border-radius: 8px; border: 1px solid var(--border); object-fit: contain;
+    }
+    .photo-preview-fallback {
+      font-size: 12px; color: var(--muted); margin-bottom: 8px;
+    }
+    .manual-prompt-block { margin-top: 16px; padding-top: 14px; border-top: 1px dashed var(--border); }
+    .manual-prompt-block:first-of-type { border-top: none; padding-top: 0; }
+    .manual-all-row { margin-top: 12px; }
+    .img-gen-confirm-box {
+      margin-top: 14px; padding: 16px; border: 2px solid var(--primary);
+      border-radius: 10px; background: #fff;
+    }
+    .img-gen-confirm-box .confirm-title {
+      font-size: 16px; font-weight: bold; color: var(--primary-dark); margin-bottom: 12px;
+    }
+    .img-gen-confirm-photo {
+      display: block; max-width: 100%; max-height: 220px; margin: 0 auto 12px;
+      border-radius: 8px; border: 1px solid var(--border); object-fit: contain;
+    }
+    .img-gen-confirm-grid { display: grid; gap: 4px; margin-bottom: 12px; }
+    .dev-area { margin-top: 20px; border-color: #90a4ae; background: #f8f9fa; }
+    .dev-area summary { color: #455a64; font-weight: bold; }
+    .dev-area h3 { font-size: 14px; margin: 14px 0 6px; color: #455a64; }
+    .dev-area ol { margin: 0 0 12px 18px; padding: 0; font-size: 13px; color: var(--text); }
+    .dev-area ol li { margin: 4px 0; }
+    .verify-note {
+      margin: 10px 0 12px; padding: 10px 12px; font-size: 13px; line-height: 1.6;
+      border: 1px solid #ffe0a3; border-left: 4px solid #f0a020;
+      border-radius: 0 6px 6px 0; background: #fff8ea; color: #7a5200;
+    }
+    .install-check-result {
+      white-space: pre-wrap; font-size: 13px; line-height: 1.55;
+      background: #fff; border: 1px solid var(--border); border-radius: 8px;
+      padding: 12px; margin-top: 10px;
+    }
+    .workflow-box {
+      margin-top: 12px; padding: 12px 14px; border: 1px solid var(--border);
+      border-radius: 8px; background: #f0f7ff; font-size: 13px;
+    }
+    .workflow-box .workflow-title {
+      font-weight: bold; color: var(--primary-dark); margin-bottom: 8px;
+    }
+    .workflow-box ol { margin: 0 0 0 18px; padding: 0; }
+    .workflow-box li { margin: 4px 0; }
+    .manual-prompt-block textarea.prompt-body { min-height: 200px; }
+  </style>
+</head>
+<body>
+  <header>JobMedley 制作支援ツール</header>
+  <div class="wrap">
+    <div class="tabs">
+      <button class="tab active" data-tab="image">画像生成</button>
+      <button class="tab" data-tab="jobtext">求人文生成</button>
+      <button class="tab" data-tab="scout">スカウト文生成</button>
+    </div>
+
+    <!-- ========== 画像生成（ChatGPT手動） ========== -->
+    <section id="panel-image" class="panel active">
+      <h2>画像生成プロンプト（ChatGPT手動・3案）</h2>
+      <label>求人ID</label>
+      <select id="img-job"></select>
+      <label>使用写真（写真マスターから選択）</label>
+      <select id="img-photo"></select>
+      <div id="img-photo-preview" class="photo-preview-box" style="display:none;"></div>
+      <label>訴求軸</label>
+      <select id="img-axis"></select>
+      <label>雰囲気（デザイン方向の参考・任意）</label>
+      <input type="text" id="img-mood" placeholder="例: 明るく清潔感">
+      <div class="btn-row">
+        <button class="action accent" id="img-manual-bundle">ChatGPT用 画像生成プロンプトを3案出力</button>
+      </div>
+      <div class="workflow-box">
+        <div class="workflow-title">ChatGPTでの画像生成手順</div>
+        <ol>
+          <li>上のボタンで3案のプロンプトを出力する</li>
+          <li>3案を見比べ、使いたい1案だけ「コピーする」を押す</li>
+          <li>ChatGPTを開き、<b>写真マスターの実写写真</b>（または上のプレビュー画像のスクリーンショット）を添付する</li>
+          <li>コピーしたプロンプトをChatGPTに貼り付け、求人サムネイルを<b>1枚だけ</b>生成する</li>
+          <li>完成した画像をダウンロードし、必要に応じてジョブメドレーへ掲載する</li>
+        </ol>
+      </div>
+      <p class="hint">API不要で利用できます。写真は1枚のみ添付し、プロンプトも1案だけ使ってください。</p>
+      <div class="status" id="img-status"></div>
+      <div id="img-prompt"></div>
+    </section>
+
+    <!-- ========== 求人文生成 ========== -->
+    <section id="panel-jobtext" class="panel">
+      <h2>求人文生成（冒頭文3案）</h2>
+      <label>求人ID</label>
+      <select id="jt-job"></select>
+      <label>訴求軸</label>
+      <select id="jt-axis"></select>
+      <label>現在求人文（参考・任意）</label>
+      <textarea id="jt-current" placeholder="現在掲載中の求人文があれば貼り付け（トーンの参考に使用。内容の根拠は求人マスターを優先）"></textarea>
+      <label>補足</label>
+      <input type="text" id="jt-note" placeholder="任意">
+      <div class="btn-row">
+        <button class="action accent" id="jt-generate">求人文を生成（API・3案）</button>
+      </div>
+      <p class="hint">求人IDと訴求軸を選んで「求人文を生成」→ 気に入った案を「この案を採用」で効果記録に保存できます。</p>
+      <div class="status" id="jt-status"></div>
+      <div id="jt-prompt"></div>
+      <div class="cards" id="jt-cards"></div>
+    </section>
+
+    <!-- ========== スカウト文生成 ========== -->
+    <section id="panel-scout" class="panel">
+      <h2>スカウト文生成（1案）</h2>
+      <label>求人ID</label>
+      <select id="sc-job"></select>
+      <label>候補者プロフィール</label>
+      <textarea id="sc-profile" placeholder="候補者のプロフィールを貼り付け"></textarea>
+      <p class="hint">求人IDとプロフィールだけで生成できます。未入力の項目はAIが自動で補完します。</p>
+      <details class="details-box">
+        <summary>詳細設定（任意）</summary>
+        <label>候補者の気になった点（任意）</label>
+        <input type="text" id="sc-point" placeholder="未入力ならAIが自動抽出">
+        <label>今回特に訴求したい内容（任意）</label>
+        <input type="text" id="sc-appeal" placeholder="未入力ならAIが自動選定">
+      </details>
+      <div class="btn-row">
+        <button class="action accent" id="sc-generate">スカウト文を生成（API）</button>
+      </div>
+      <div class="status" id="sc-status"></div>
+      <div id="sc-prompt"></div>
+      <div class="cards" id="sc-cards"></div>
+    </section>
+
+    <!-- ========== 開発者用（移行・テスト） ========== -->
+    <details class="details-box dev-area" id="dev-area">
+      <summary>開発者用（移行・テスト）</summary>
+
+      <h3>納品前チェックリスト</h3>
+      <ol>
+        <li>スプレッドシートをクライアントWorkspace内でコピー</li>
+        <li>GASコードをコピー（clasp push またはエディタ貼り付け）</li>
+        <li>スクリプトプロパティを設定（OPENAI_API_KEY など）</li>
+        <li>初期設定チェックを実行</li>
+        <li>Webアプリを新規デプロイ</li>
+        <li>求人文生成テスト</li>
+        <li>スカウト文生成テスト</li>
+        <li>画像生成プロンプト出力テスト（ChatGPT手動）</li>
+        <li>画像案・画像生成APIテスト（開発者用）</li>
+        <li>採用保存・効果記録確認</li>
+      </ol>
+
+      <div class="btn-row">
+        <button class="action secondary" id="dev-install-check">初期設定チェック</button>
+      </div>
+      <div class="status" id="dev-status"></div>
+      <div id="dev-install-result" class="install-check-result" style="display:none;"></div>
+
+      <h3>補助機能：APIで直接画像生成</h3>
+      <p class="hint">通常は上の「ChatGPT用 画像生成プロンプト」を使用してください。こちらはOpenAI APIで直接生成したい場合だけ使用します。API利用料が発生します。</p>
+      <div class="btn-row">
+        <button class="action secondary" id="img-generate-api">画像案を生成（API）</button>
+        <button class="action secondary" id="img-generate">画像案プロンプトを生成（3案考えさせる）</button>
+        <button class="action secondary" id="img-dummy">ダミー画像案を生成（テスト用）</button>
+      </div>
+      <div class="status" id="dev-img-status"></div>
+      <div id="img-gen-confirm" class="img-gen-confirm-box" style="display:none;"></div>
+      <div class="cards" id="img-cards"></div>
+
+      <h3>その他（プロンプト出力のみ）</h3>
+      <div class="btn-row">
+        <button class="action secondary" id="jt-prompt-only">求人文プロンプトを出力（ChatGPT貼り付け用）</button>
+        <button class="action secondary" id="sc-prompt-only">スカウト文プロンプトを出力（ChatGPT貼り付け用）</button>
+      </div>
+    </details>
+  </div>
+
+  <script>
+    // ---- 状態 ----
+    var imageIdeas = [];   // 現在表示中の画像案3案
+    var currentImageJob = '';
+    var currentImagePhoto = '';
+    var generatedImages = {};  // カードindex → 生成結果
+    var manualPromptIdeas = {}; // 手動プロンプトの案番号 → 効果記録へ保存する案データ
+    var generatingImageIndex = null;
+    var pendingImageGenIndex = null;
+    var IMAGE_BTN_IDS = ['img-generate-api', 'img-generate', 'img-dummy'];
+    var CLIENT_IMAGE_BTN_IDS = ['img-manual-bundle'];
+
+    // ---- 共通ユーティリティ ----
+    function $(id) { return document.getElementById(id); }
+    function esc(s) {
+      return String(s == null ? '' : s)
+        .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    }
+    function setStatus(id, msg, kind) {
+      var el = $(id);
+      el.className = 'status' + (kind ? ' ' + kind : '');
+      el.textContent = msg || '';
+    }
+    function setButtons(disabled, ids) {
+      ids.forEach(function (id) { $(id).disabled = disabled; });
+    }
+
+    // ---- タブ切替 ----
+    var tabs = document.querySelectorAll('.tab');
+    tabs.forEach(function (t) {
+      t.addEventListener('click', function () {
+        tabs.forEach(function (x) { x.classList.remove('active'); });
+        t.classList.add('active');
+        document.querySelectorAll('.panel').forEach(function (p) { p.classList.remove('active'); });
+        $('panel-' + t.dataset.tab).classList.add('active');
+      });
+    });
+
+    // ---- 求人ID選択肢の読み込み ----
+    function loadJobOptions() {
+      google.script.run
+        .withSuccessHandler(function (options) {
+          var selects = ['img-job', 'jt-job', 'sc-job'];
+          selects.forEach(function (selId) {
+            var sel = $(selId);
+            sel.innerHTML = '';
+            if (!options || !options.length) {
+              var o = document.createElement('option');
+              o.value = ''; o.textContent = '（求人マスターに行がありません）';
+              sel.appendChild(o);
+              return;
+            }
+            options.forEach(function (opt) {
+              var o = document.createElement('option');
+              o.value = opt.jobId;
+              o.textContent = opt.label;
+              sel.appendChild(o);
+            });
+          });
+          // 画像案タブの写真候補は選択中の求人(医院)に合わせて読み込む
+          loadPhotoOptions($('img-job').value);
+        })
+        .withFailureHandler(function (err) {
+          ['img-status', 'jt-status', 'sc-status'].forEach(function (id) {
+            setStatus(id, '求人ID一覧の取得に失敗しました: ' + err.message, 'error');
+          });
+        })
+        .getJobOptionsForWeb();
+    }
+
+    // ---- 使用写真の選択肢を読み込む (写真マスター) ----
+    function loadPhotoOptions(jobId) {
+      var sel = $('img-photo');
+      if (!sel) return;
+      google.script.run
+        .withSuccessHandler(function (photos) {
+          sel.innerHTML = '';
+          var empty = document.createElement('option');
+          empty.value = ''; empty.textContent = '（写真を選択／指定なし）';
+          sel.appendChild(empty);
+          (photos || []).forEach(function (p) {
+            var o = document.createElement('option');
+            o.value = p.photoId;       // サーバー側はIDで照合
+            o.textContent = p.label;   // 例: PHOTO001｜笑顔のスタッフ集合写真｜働きやすさ
+            sel.appendChild(o);
+          });
+          loadPhotoPreview(sel.value);
+        })
+        .withFailureHandler(function (err) {
+          setStatus('img-status', '写真一覧の取得に失敗しました: ' + err.message, 'error');
+        })
+        .getPhotoOptionsForWeb(jobId || '');
+    }
+
+    // ---- 選択写真のプレビュー・詳細表示 ----
+    function loadPhotoPreview(photoId) {
+      var box = $('img-photo-preview');
+      if (!box) return;
+      if (!photoId) {
+        box.style.display = 'none';
+        box.innerHTML = '';
+        return;
+      }
+      box.style.display = 'block';
+      box.innerHTML = '<div class="preview-title">写真情報を読み込み中...</div>';
+      google.script.run
+        .withSuccessHandler(renderPhotoPreview)
+        .withFailureHandler(function (err) {
+          box.innerHTML = '<div class="photo-preview-fallback">写真情報の取得に失敗しました: '
+            + esc(err.message) + '</div>';
+        })
+        .getPhotoDetailForWeb(photoId);
+    }
+
+    function hidePhotoPreviewImage(imgId) {
+      var img = $(imgId);
+      if (img) img.style.display = 'none';
+      var note = $(imgId + '-fallback');
+      if (note) note.style.display = 'block';
+    }
+
+    function renderPhotoPreview(detail) {
+      var box = $('img-photo-preview');
+      if (!box) return;
+      if (!detail) {
+        box.style.display = 'none';
+        box.innerHTML = '';
+        return;
+      }
+      box.style.display = 'block';
+      var imgId = 'img-photo-preview-img';
+      var html = '<div class="preview-title">選択中の写真</div>';
+      if (detail.previewUrl) {
+        html += '<img class="photo-preview-img" id="' + imgId + '" src="' + esc(detail.previewUrl) + '"'
+          + ' alt="写真プレビュー" onerror="hidePhotoPreviewImage(\'' + imgId + '\')">';
+        html += '<div class="photo-preview-fallback" id="' + imgId + '-fallback" style="display:none;">'
+          + 'プレビューを表示できませんでした。下の「画像を開く」から確認してください。</div>';
+      } else if (detail.imageUrl) {
+        html += '<div class="photo-preview-fallback">プレビューURLを生成できませんでした。「画像を開く」から確認してください。</div>';
+      }
+      html += '<div class="field"><b>写真ID：</b>' + esc(detail.photoId) + '</div>'
+        + '<div class="field"><b>写真内容：</b>' + esc(detail.content) + '</div>'
+        + '<div class="field"><b>写真種別：</b>' + esc(detail.photoType) + '</div>'
+        + '<div class="field"><b>写真の印象：</b>' + esc(detail.impression) + '</div>'
+        + '<div class="field"><b>使えそうな訴求軸：</b>' + esc(detail.appeal) + '</div>'
+        + '<div class="field"><b>注意点：</b>' + esc(detail.note) + '</div>';
+      if (detail.openUrl || detail.imageUrl) {
+        html += '<div class="btn-row"><a class="action secondary" href="' + esc(detail.openUrl || detail.imageUrl)
+          + '" target="_blank" rel="noopener noreferrer" style="text-decoration:none;display:inline-block;">画像を開く</a></div>';
+      }
+      box.innerHTML = html;
+    }
+
+    function loadAxisOptions() {
+      google.script.run
+        .withSuccessHandler(function (axes) {
+          ['jt-axis', 'img-axis'].forEach(function (selId) {
+            var sel = $(selId);
+            if (!sel) return;
+            sel.innerHTML = '';
+            (axes || []).forEach(function (ax) {
+              var o = document.createElement('option');
+              o.value = ax;
+              o.textContent = ax;
+              sel.appendChild(o);
+            });
+          });
+        })
+        .withFailureHandler(function (err) {
+          setStatus('jt-status', '訴求軸一覧の取得に失敗しました: ' + err.message, 'error');
+        })
+        .getJobAxisOptionsForWeb();
+    }
+
+    // ---- プロンプト表示（共通） ----
+    function renderPrompt(containerId, text) {
+      var taId = containerId + '-ta';
+      var html = '<div class="prompt-head">ChatGPTに貼り付けるプロンプト</div>'
+        + '<textarea class="prompt-body" id="' + taId + '" readonly></textarea>'
+        + '<div class="btn-row"><button class="action" onclick="copyPrompt(\'' + taId + '\', this)">コピーする</button></div>'
+        + '<div class="hint">コピー後、ChatGPTに貼り付けて出力結果を確認してください。</div>';
+      $(containerId).innerHTML = html;
+      $(taId).value = text; // value経由でセット（エスケープ不要・改行保持）
+    }
+    function copyPrompt(taId, btn) {
+      var ta = $(taId);
+      ta.focus();
+      ta.select();
+      var done = false;
+      try { done = document.execCommand('copy'); } catch (e) { done = false; }
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(ta.value).catch(function () {});
+        done = true;
+      }
+      if (btn) {
+        var orig = btn.textContent;
+        btn.textContent = done ? 'コピーしました' : '手動でコピーしてください';
+        setTimeout(function () { btn.textContent = orig; }, 1800);
+      }
+    }
+
+    function renderAllManualImagePrompts(items) {
+      items = items || [];
+      manualPromptIdeas = {};
+      var html = '<div class="prompt-head">画像生成用プロンプト（' + items.length + '件）</div>'
+        + '<div class="workflow-box">'
+        + '<div class="workflow-title">このあとChatGPTで行うこと</div>'
+        + '<ol>'
+        + '<li>気に入った1案だけ「コピーする」を押す</li>'
+        + '<li>ChatGPTに<b>実写写真</b>（写真マスターの画像、または上のプレビューのスクリーンショット）を添付</li>'
+        + '<li>コピーしたプロンプトを貼り付け、サムネイルを<b>1枚だけ</b>生成</li>'
+        + '</ol></div>'
+        + '<div class="verify-note">生成された画像の文字が、求人マスターの記載どおりか確認してください。'
+        + '画像生成AIは文字を崩すことがあります。</div>';
+      items.forEach(function (item) {
+        var taId = 'img-manual-ta-' + item.ideaNo;
+        var adoptButton = '';
+        if (item.idea) {
+          manualPromptIdeas[item.ideaNo] = item.idea;
+          adoptButton = '<button class="action" onclick="adoptManualImageIdea(' + item.ideaNo + ')">この案を採用して記録</button>';
+        }
+        html += '<div class="manual-prompt-block">'
+          + '<div class="gen-label">【案' + item.ideaNo + '：' + esc(item.idea ? item.idea.axis : '画像生成用プロンプト') + '】</div>'
+          + (item.idea
+            ? '<div class="field"><b>メインコピー：</b>' + esc(item.idea.main_copy) + '</div>'
+              + '<div class="field"><b>サブコピー：</b>' + esc(item.idea.sub_copy) + '</div>'
+            : '')
+          + '<textarea class="prompt-body" id="' + taId + '" readonly></textarea>'
+          + '<div class="btn-row">'
+          + '<button class="action secondary" onclick="copyPrompt(\'' + taId + '\', this)">コピーする</button>'
+          + adoptButton
+          + '</div>'
+          + '</div>';
+      });
+      $('img-prompt').innerHTML = html;
+      items.forEach(function (item) {
+        var ta = $('img-manual-ta-' + item.ideaNo);
+        if (ta) ta.value = item.prompt;
+      });
+    }
+
+    function adoptManualImageIdea(ideaNo) {
+      var idea = manualPromptIdeas[ideaNo];
+      if (!idea || !currentImageJob) return;
+      setStatus('img-status', '効果記録へ保存中...', 'loading');
+      google.script.run
+        .withSuccessHandler(function (res) {
+          setStatus('img-status', res.message || '保存しました。', 'ok');
+        })
+        .withFailureHandler(function (err) {
+          setStatus('img-status', '保存に失敗しました：\n' + err.message, 'error');
+        })
+        .adoptImageIdeaForWeb({
+          jobId: currentImageJob,
+          ideaNo: ideaNo,
+          idea: idea
+        });
+    }
+
+    function renderManualImagePrompt(containerId, text, ideaNo) {
+      var taId = containerId + '-ta';
+      var html = '<div class="prompt-head">【案' + ideaNo + '：画像生成用プロンプト】</div>'
+        + '<textarea class="prompt-body" id="' + taId + '" readonly></textarea>'
+        + '<div class="btn-row"><button class="action" onclick="copyPrompt(\'' + taId + '\', this)">コピーする</button></div>'
+        + '<div class="hint">このプロンプトをChatGPTに貼り付け、写真マスターの実写写真を添付して、画像を1枚だけ生成してください。</div>';
+      $(containerId).innerHTML = html;
+      $(taId).value = text;
+    }
+
+    // =================== 画像案 ===================
+    function renderImageCards(ideas, jobId, photoId) {
+      imageIdeas = ideas || [];
+      currentImageJob = jobId || '';
+      currentImagePhoto = photoId || $('img-photo').value || '';
+      generatedImages = {};
+      generatingImageIndex = null;
+      pendingImageGenIndex = null;
+      closeImageGenConfirm();
+      var html = imageIdeas.map(function (idea, i) {
+        return '<div class="card" id="img-card-' + i + '">'
+          + '<span class="axis">案' + (i + 1) + '：' + esc(idea.axis) + '</span>'
+          + '<div class="main">' + esc(idea.main_copy) + '</div>'
+          + '<div class="sub">' + esc(idea.sub_copy) + '</div>'
+          + '<div class="field"><b>強調情報：</b>' + esc(idea.emphasis) + '</div>'
+          + '<div class="field"><b>デザイン指示：</b>' + esc(idea.design_instruction) + '</div>'
+          + '<div class="field"><b>狙い：</b>' + esc(idea.aim) + '</div>'
+          + '<div class="btn-row">'
+          + '<button class="action secondary" onclick="adoptImage(' + i + ')">この案を採用</button>'
+          + '<button class="action" id="img-gen-btn-' + i + '" onclick="openImageGenConfirm(' + i + ')">この案で画像生成</button>'
+          + '</div>'
+          + '<div class="btn-row">'
+          + '<button class="action secondary" onclick="showManualImagePrompt(' + i + ')">この案の画像生成プロンプトを出力</button>'
+          + '</div>'
+          + '<div class="gen-result" id="img-gen-result-' + i + '"></div>'
+          + '</div>';
+      }).join('');
+      if (imageIdeas.length) {
+        html += '<div class="btn-row manual-all-row">'
+          + '<button class="action secondary" onclick="showAllManualImagePrompts()">画像生成用プロンプトを3件まとめて出力</button>'
+          + '</div>';
+      }
+      $('img-cards').innerHTML = html;
+    }
+
+    function disableAllGenButtons(disabled) {
+      imageIdeas.forEach(function (_, i) {
+        var btn = $('img-gen-btn-' + i);
+        if (btn) btn.disabled = disabled;
+      });
+    }
+
+    function showGeneratedImage(index, result) {
+      generatedImages[index] = result;
+      var el = $('img-gen-result-' + index);
+      if (!el) return;
+      var src = 'data:' + result.mimeType + ';base64,' + result.imageBase64;
+      el.innerHTML = '<div class="gen-label">生成画像プレビュー</div>'
+        + '<img class="generated-image" src="' + src + '" alt="生成画像 案' + (index + 1) + '">'
+        + '<div class="btn-row">'
+        + '<button class="action secondary" onclick="downloadGeneratedImage(' + index + ')">ダウンロード</button>'
+        + '<button class="action" onclick="adoptGeneratedImage(' + index + ')">生成画像を採用保存</button>'
+        + '</div>';
+    }
+
+    function downloadGeneratedImage(index) {
+      var result = generatedImages[index];
+      if (!result) return;
+      var a = document.createElement('a');
+      a.href = 'data:' + result.mimeType + ';base64,' + result.imageBase64;
+      a.download = 'thumbnail_案' + (index + 1) + '.png';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+    }
+
+    function finishImageGenUi(index) {
+      generatingImageIndex = null;
+      disableAllGenButtons(false);
+      var card = $('img-card-' + index);
+      if (card) card.classList.remove('generating');
+    }
+
+    function handleImageGenError(result) {
+      var msg = (result && result.message)
+        ? result.message
+        : '画像生成に失敗しました。';
+      if (result && result.detail && result.errorCode === 'UNKNOWN') {
+        console.log('ImageGen detail:', result.detail);
+      } else if (result && result.detail) {
+        console.log('ImageGen [' + (result.errorCode || '') + ']:', result.detail);
+      }
+      setStatus('dev-img-status', msg, 'error');
+    }
+
+    function openImageGenConfirm(index) {
+      if (generatingImageIndex !== null) return;
+      var idea = imageIdeas[index];
+      if (!idea) return;
+      if (!currentImageJob) {
+        setStatus('dev-img-status', '求人IDを選択してください。', 'error');
+        return;
+      }
+      if (!currentImagePhoto) {
+        setStatus('dev-img-status', '使用写真を選択してください。画像生成には写真URLが必要です。', 'error');
+        return;
+      }
+
+      pendingImageGenIndex = index;
+      closeImageGenConfirm();
+      setStatus('dev-img-status', '確認内容を読み込み中...', 'loading');
+
+      google.script.run
+        .withSuccessHandler(function (data) {
+          setStatus('dev-img-status', '', '');
+          renderImageGenConfirm(data);
+          var el = $('img-gen-confirm');
+          if (el && el.scrollIntoView) el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+          var devArea = $('dev-area');
+          if (devArea && !devArea.open) devArea.open = true;
+        })
+        .withFailureHandler(function (err) {
+          pendingImageGenIndex = null;
+          setStatus('dev-img-status', '確認画面の表示に失敗しました：\n' + err.message, 'error');
+        })
+        .getImageGenConfirmDataForWeb({
+          jobId: currentImageJob,
+          photo: currentImagePhoto,
+          idea: idea,
+          ideaNo: index + 1,
+          axis: $('img-axis').value
+        });
+    }
+
+    function renderImageGenConfirm(data) {
+      var box = $('img-gen-confirm');
+      if (!box || !data) return;
+      var html = '<div class="confirm-title">画像生成の最終確認（案' + esc(data.ideaNo) + '）</div>'
+        + '<div class="img-gen-confirm-grid">'
+        + '<div class="field"><b>求人ID：</b>' + esc(data.jobId) + '</div>'
+        + '<div class="field"><b>医院名：</b>' + esc(data.clinic) + '</div>'
+        + '<div class="field"><b>職種：</b>' + esc(data.position) + '</div>'
+        + '<div class="field"><b>写真ID：</b>' + esc(data.photoId) + '</div>'
+        + '<div class="field"><b>訴求軸：</b>' + esc(data.axis) + '</div>'
+        + '<div class="field"><b>案番号：</b>案' + esc(data.ideaNo) + '</div>'
+        + '<div class="field"><b>メインコピー：</b>' + esc(data.mainCopy) + '</div>'
+        + '<div class="field"><b>サブコピー：</b>' + esc(data.subCopy) + '</div>'
+        + '<div class="field"><b>強調情報：</b>' + esc(data.emphasis) + '</div>'
+        + '<div class="field"><b>デザイン指示：</b>' + esc(data.designInstruction) + '</div>'
+        + '</div>';
+      if (data.photoPreviewUrl) {
+        html += '<img class="img-gen-confirm-photo" src="' + esc(data.photoPreviewUrl) + '" alt="生成に使う写真">'
+          + '<div class="hint">上記の写真をベースに画像を1枚生成します。</div>';
+      } else {
+        html += '<div class="hint">写真プレビューを表示できませんでした。写真ID「' + esc(data.photoId) + '」の画像URLをご確認ください。</div>';
+      }
+      html += '<div class="btn-row">'
+        + '<button class="action" onclick="executeThumbnailImageGeneration()">この内容で画像生成する</button>'
+        + '<button class="action secondary" onclick="cancelImageGenConfirm()">キャンセル</button>'
+        + '</div>';
+      box.innerHTML = html;
+      box.style.display = 'block';
+    }
+
+    function closeImageGenConfirm() {
+      var box = $('img-gen-confirm');
+      if (box) {
+        box.style.display = 'none';
+        box.innerHTML = '';
+      }
+    }
+
+    function executeThumbnailImageGeneration() {
+      var index = pendingImageGenIndex;
+      if (index === null || index === undefined) return;
+      if (generatingImageIndex !== null) return;
+      var idea = imageIdeas[index];
+      if (!idea) return;
+
+      closeImageGenConfirm();
+      generatingImageIndex = index;
+      var card = $('img-card-' + index);
+      if (card) card.classList.add('generating');
+      setStatus('dev-img-status', '写真を分析して画像を生成中...（1〜3分かかる場合があります）', 'loading');
+      disableAllGenButtons(true);
+
+      google.script.run
+        .withSuccessHandler(function (result) {
+          finishImageGenUi(index);
+          pendingImageGenIndex = null;
+          if (!result || result.ok === false) {
+            handleImageGenError(result || {});
+            return;
+          }
+          showGeneratedImage(index, result.data);
+          var statusMsg = result.data.visionAnalysisUsed
+            ? '画像を生成しました（写真分析を反映）。'
+            : '画像を生成しました。';
+          setStatus('dev-img-status', statusMsg, 'ok');
+        })
+        .withFailureHandler(function (err) {
+          finishImageGenUi(index);
+          pendingImageGenIndex = null;
+          handleImageGenError({ errorCode: 'UNKNOWN', message: err.message, detail: err.message });
+        })
+        .generateJobThumbnailImageForWeb({
+          jobId: currentImageJob,
+          photo: currentImagePhoto,
+          idea: idea,
+          ideaNo: index + 1
+        });
+    }
+
+    function generateThumbnailImage(index) {
+      openImageGenConfirm(index);
+    }
+
+    function showAllManualImagePrompts() {
+      if (!imageIdeas.length) {
+        setStatus('dev-img-status', '先に画像案を表示してください。', 'error');
+        return;
+      }
+      if (!currentImageJob) {
+        setStatus('dev-img-status', '求人IDを選択してください。', 'error');
+        return;
+      }
+      setStatus('dev-img-status', 'プロンプト生成中...', 'loading');
+      google.script.run
+        .withSuccessHandler(function (items) {
+          renderAllManualImagePrompts(items);
+          setStatus('dev-img-status', '画像生成用プロンプト' + items.length + '件を表示しました。', 'ok');
+          var promptEl = $('img-prompt');
+          if (promptEl && promptEl.scrollIntoView) {
+            promptEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+          }
+        })
+        .withFailureHandler(function (err) {
+          setStatus('dev-img-status', 'プロンプト生成に失敗しました：\n' + err.message, 'error');
+        })
+        .generateManualImagePromptsForWeb({
+          jobId: currentImageJob,
+          photo: currentImagePhoto,
+          ideas: imageIdeas,
+          selectedAxis: $('img-axis').value
+        });
+    }
+
+    function showManualImagePromptBundle() {
+      var input = {
+        jobId: $('img-job').value,
+        photo: $('img-photo').value,
+        axis: $('img-axis').value,
+        mood: $('img-mood').value
+      };
+      if (!input.jobId) {
+        setStatus('img-status', '求人IDを選択してください。', 'error');
+        return;
+      }
+      currentImageJob = input.jobId;
+      currentImagePhoto = input.photo || '';
+      $('img-prompt').innerHTML = '';
+      setStatus('img-status', 'プロンプト生成中...', 'loading');
+      setButtons(true, CLIENT_IMAGE_BTN_IDS);
+      google.script.run
+        .withSuccessHandler(function (items) {
+          setButtons(false, CLIENT_IMAGE_BTN_IDS);
+          renderAllManualImagePrompts(items);
+          setStatus('img-status', '画像生成用プロンプト3件を表示しました。', 'ok');
+          var promptEl = $('img-prompt');
+          if (promptEl && promptEl.scrollIntoView) {
+            promptEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+          }
+        })
+        .withFailureHandler(function (err) {
+          setButtons(false, CLIENT_IMAGE_BTN_IDS);
+          setStatus('img-status', 'プロンプト生成に失敗しました：\n' + err.message, 'error');
+        })
+        .generateManualImagePromptBundleForWeb(input);
+    }
+
+    function showManualImagePrompt(index) {
+      var idea = imageIdeas[index];
+      if (!idea) return;
+      if (!currentImageJob) {
+        setStatus('dev-img-status', '求人IDを選択してください。', 'error');
+        return;
+      }
+      setStatus('dev-img-status', 'プロンプト生成中...', 'loading');
+      google.script.run
+        .withSuccessHandler(function (text) {
+          renderManualImagePrompt('img-prompt', text, index + 1);
+          setStatus('dev-img-status', '案' + (index + 1) + 'の画像生成プロンプトを表示しました。', 'ok');
+          var promptEl = $('img-prompt');
+          if (promptEl && promptEl.scrollIntoView) {
+            promptEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+          }
+        })
+        .withFailureHandler(function (err) {
+          setStatus('dev-img-status', 'プロンプト生成に失敗しました：\n' + err.message, 'error');
+        })
+        .generateManualImagePromptForWeb({
+          jobId: currentImageJob,
+          photo: currentImagePhoto,
+          idea: idea,
+          ideaNo: index + 1,
+          selectedAxis: $('img-axis').value
+        });
+    }
+
+    function adoptGeneratedImage(index) {
+      var idea = imageIdeas[index];
+      var result = generatedImages[index];
+      if (!idea || !result) return;
+      setStatus('dev-img-status', '保存中...', 'loading');
+      google.script.run
+        .withSuccessHandler(function (res) {
+          setStatus('dev-img-status', res.message || '保存しました。', 'ok');
+        })
+        .withFailureHandler(function (err) {
+          setStatus('dev-img-status', '保存に失敗しました：\n' + err.message, 'error');
+        })
+        .adoptImageIdeaForWeb({
+          jobId: currentImageJob,
+          ideaNo: index + 1,
+          idea: idea,
+          generatedImageUrl: result.driveUrl || '',
+          imageGenPromptSummary: result.promptSummary || ''
+        });
+    }
+
+    // 画像案3案をAPIで生成（開発者用）
+    function generateImageIdeasApi() {
+      var input = {
+        jobId: $('img-job').value,
+        photo: $('img-photo').value,
+        axis: $('img-axis').value,
+        mood: $('img-mood').value
+      };
+      if (!input.jobId) {
+        setStatus('dev-img-status', '求人IDを選択してください。', 'error');
+        return;
+      }
+      $('img-cards').innerHTML = '';
+      $('img-prompt').innerHTML = '';
+      closeImageGenConfirm();
+      setStatus('dev-img-status', '画像案を生成中...', 'loading');
+      setButtons(true, IMAGE_BTN_IDS);
+      var devArea = $('dev-area');
+      if (devArea && !devArea.open) devArea.open = true;
+      google.script.run
+        .withSuccessHandler(function (ideas) {
+          setButtons(false, IMAGE_BTN_IDS);
+          setStatus('dev-img-status', '画像案3案を生成しました。', 'ok');
+          renderImageCards(ideas, input.jobId, input.photo);
+        })
+        .withFailureHandler(function (err) {
+          setButtons(false, IMAGE_BTN_IDS);
+          setStatus('dev-img-status', '生成に失敗しました：\n' + err.message, 'error');
+        })
+        .generateThumbnailIdeasForWeb(input);
+    }
+
+    // 画像案プロンプトを生成（API未接続・開発者用）
+    function generateImagePrompt() {
+      var input = {
+        jobId: $('img-job').value,
+        photo: $('img-photo').value,
+        axis: $('img-axis').value,
+        mood: $('img-mood').value
+      };
+      $('img-cards').innerHTML = '';
+      $('img-prompt').innerHTML = '';
+      setStatus('dev-img-status', '生成中...', 'loading');
+      setButtons(true, IMAGE_BTN_IDS);
+      var devArea = $('dev-area');
+      if (devArea && !devArea.open) devArea.open = true;
+      google.script.run
+        .withSuccessHandler(function (text) {
+          setButtons(false, IMAGE_BTN_IDS);
+          setStatus('dev-img-status', 'プロンプトを生成しました。', 'ok');
+          renderPrompt('img-prompt', text);
+        })
+        .withFailureHandler(function (err) {
+          setButtons(false, IMAGE_BTN_IDS);
+          setStatus('dev-img-status', '生成に失敗しました：\n' + err.message, 'error');
+        })
+        .generateThumbnailPromptForWeb(input);
+    }
+
+    // ダミー画像案（開発者用・画面確認）
+    function generateDummyImage() {
+      var jobId = $('img-job').value;
+      var photoId = $('img-photo').value;
+      var input = { jobId: jobId };
+      $('img-prompt').innerHTML = '';
+      $('img-cards').innerHTML = '';
+      closeImageGenConfirm();
+      setStatus('dev-img-status', '生成中...', 'loading');
+      setButtons(true, IMAGE_BTN_IDS);
+      var devArea = $('dev-area');
+      if (devArea && !devArea.open) devArea.open = true;
+      google.script.run
+        .withSuccessHandler(function (ideas) {
+          setButtons(false, IMAGE_BTN_IDS);
+          setStatus('dev-img-status', 'ダミー案を表示しました。', 'ok');
+          renderImageCards(ideas, jobId, photoId);
+        })
+        .withFailureHandler(function (err) {
+          setButtons(false, IMAGE_BTN_IDS);
+          setStatus('dev-img-status', '生成に失敗しました：\n' + err.message, 'error');
+        })
+        .createDummyIdeasForWeb(input);
+    }
+
+    // ダミーカードからの採用（開発者用・効果記録保存）
+    function adoptImage(index) {
+      var idea = imageIdeas[index];
+      if (!idea) return;
+      setStatus('dev-img-status', '保存中...', 'loading');
+      google.script.run
+        .withSuccessHandler(function (res) {
+          setStatus('dev-img-status', res.message || '保存しました。', 'ok');
+        })
+        .withFailureHandler(function (err) {
+          setStatus('dev-img-status', '保存に失敗しました：\n' + err.message, 'error');
+        })
+        .adoptImageIdeaForWeb({ jobId: currentImageJob, ideaNo: index + 1, idea: idea });
+    }
+
+    function cancelImageGenConfirm() {
+      pendingImageGenIndex = null;
+      closeImageGenConfirm();
+      setStatus('dev-img-status', '画像生成をキャンセルしました。', '');
+    }
+
+    $('img-manual-bundle').addEventListener('click', showManualImagePromptBundle);
+    $('img-generate-api').addEventListener('click', generateImageIdeasApi);
+    $('img-generate').addEventListener('click', generateImagePrompt);
+    $('img-dummy').addEventListener('click', generateDummyImage);
+    $('img-job').addEventListener('change', function () { loadPhotoOptions(this.value); });
+    $('img-photo').addEventListener('change', function () {
+      currentImagePhoto = this.value || '';
+      loadPhotoPreview(this.value);
+    });
+
+    // =================== 求人文 ===================
+    var jobTextIdeas = [];       // 現在表示中の求人文3案
+    var currentJobTextJob = '';
+    var currentJobTextAxis = '';
+
+    // 求人文3案をAPIで生成し、カード表示する
+    function generateJobTextApi() {
+      var input = {
+        jobId: $('jt-job').value,
+        currentText: $('jt-current').value,
+        axis: $('jt-axis').value,
+        note: $('jt-note').value
+      };
+      if (!input.jobId) {
+        setStatus('jt-status', '求人IDを選択してください。', 'error');
+        return;
+      }
+      $('jt-prompt').innerHTML = '';
+      $('jt-cards').innerHTML = '';
+      setStatus('jt-status', '求人文を生成中...（30秒ほどかかる場合があります）', 'loading');
+      setButtons(true, ['jt-generate']);
+      google.script.run
+        .withSuccessHandler(function (result) {
+          setButtons(false, ['jt-generate']);
+          setStatus('jt-status', '求人文3案を生成しました。', 'ok');
+          renderJobTextCards((result && result.ideas) || [], input.jobId, input.axis);
+        })
+        .withFailureHandler(function (err) {
+          setButtons(false, ['jt-generate']);
+          setStatus('jt-status', '生成に失敗しました：\n' + err.message, 'error');
+        })
+        .generateJobTextForWeb(input);
+    }
+
+    function renderJobTextCards(ideas, jobId, axis) {
+      jobTextIdeas = ideas || [];
+      currentJobTextJob = jobId || '';
+      currentJobTextAxis = axis || '';
+      var html = jobTextIdeas.map(function (idea, i) {
+        return '<div class="card">'
+          + '<span class="axis">求人案' + (i + 1) + '</span>'
+          + '<div class="main">' + esc(idea.title) + '</div>'
+          + '<div class="scout-block"><div class="ttl">本文</div>'
+          + '<div class="body">' + esc(idea.body) + '</div></div>'
+          + '<div class="btn-row">'
+          + '<button class="action" onclick="adoptJobText(' + i + ')">この案を採用（効果記録へ保存）</button>'
+          + '<button class="action secondary" onclick="copyJobText(' + i + ', this)">タイトル+本文をコピー</button>'
+          + '</div>'
+          + '</div>';
+      }).join('');
+      $('jt-cards').innerHTML = html
+        ? '<div class="verify-note">掲載前に、給与・休日・待遇などの数値が求人マスターの記載と一致しているか確認してください。</div>' + html
+        : '';
+    }
+
+    function copyJobText(index, btn) {
+      var idea = jobTextIdeas[index];
+      if (!idea) return;
+      copyTextToClipboard(String(idea.title || '') + '\n\n' + String(idea.body || ''), btn);
+    }
+
+    function adoptJobText(index) {
+      var idea = jobTextIdeas[index];
+      if (!idea) return;
+      setStatus('jt-status', '保存中...', 'loading');
+      google.script.run
+        .withSuccessHandler(function (res) {
+          setStatus('jt-status', res.message || '保存しました。', 'ok');
+        })
+        .withFailureHandler(function (err) {
+          setStatus('jt-status', '保存に失敗しました：\n' + err.message, 'error');
+        })
+        .adoptJobTextForWeb({
+          jobId: currentJobTextJob,
+          ideaNo: index + 1,
+          axis: currentJobTextAxis,
+          title: idea.title || '',
+          body: idea.body || ''
+        });
+    }
+
+    // テキストをクリップボードにコピーし、ボタン表示で結果を知らせる（カード用共通）
+    function copyTextToClipboard(text, btn) {
+      var done = false;
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).catch(function () {});
+        done = true;
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        document.body.appendChild(ta);
+        ta.select();
+        try { done = document.execCommand('copy'); } catch (e) { done = false; }
+        document.body.removeChild(ta);
+      }
+      if (btn) {
+        var orig = btn.textContent;
+        btn.textContent = done ? 'コピーしました' : '手動でコピーしてください';
+        setTimeout(function () { btn.textContent = orig; }, 1800);
+      }
+    }
+
+    // 開発者用: プロンプトのみ出力（ChatGPT手動運用向け）
+    function generateJobTextPrompt() {
+      var input = {
+        jobId: $('jt-job').value,
+        currentText: $('jt-current').value,
+        axis: $('jt-axis').value,
+        note: $('jt-note').value
+      };
+      $('jt-prompt').innerHTML = '';
+      $('jt-cards').innerHTML = '';
+      setStatus('jt-status', '生成中...', 'loading');
+      setButtons(true, ['jt-prompt-only']);
+      google.script.run
+        .withSuccessHandler(function (text) {
+          setButtons(false, ['jt-prompt-only']);
+          setStatus('jt-status', 'プロンプトを生成しました。（求人文生成タブに表示）', 'ok');
+          renderPrompt('jt-prompt', text);
+        })
+        .withFailureHandler(function (err) {
+          setButtons(false, ['jt-prompt-only']);
+          setStatus('jt-status', '生成に失敗しました：\n' + err.message, 'error');
+        })
+        .generateJobTextPromptForWeb(input);
+    }
+
+    $('jt-generate').addEventListener('click', generateJobTextApi);
+    $('jt-prompt-only').addEventListener('click', generateJobTextPrompt);
+
+    // =================== スカウト文 ===================
+    var scoutResult = null;      // 現在表示中のスカウト文
+    var currentScoutJob = '';
+
+    // スカウト文をAPIで生成し、カード表示する
+    function generateScoutTextApi() {
+      var input = {
+        jobId: $('sc-job').value,
+        profile: $('sc-profile').value,
+        candidatePoint: $('sc-point').value,
+        appeal: $('sc-appeal').value
+      };
+      if (!input.jobId) {
+        setStatus('sc-status', '求人IDを選択してください。', 'error');
+        return;
+      }
+      if (!input.profile) {
+        setStatus('sc-status', '候補者プロフィールを入力してください。', 'error');
+        return;
+      }
+      $('sc-prompt').innerHTML = '';
+      $('sc-cards').innerHTML = '';
+      setStatus('sc-status', 'スカウト文を生成中...（30秒ほどかかる場合があります）', 'loading');
+      setButtons(true, ['sc-generate']);
+      google.script.run
+        .withSuccessHandler(function (result) {
+          setButtons(false, ['sc-generate']);
+          setStatus('sc-status', 'スカウト文を生成しました。', 'ok');
+          renderScoutCard(result, input.jobId);
+        })
+        .withFailureHandler(function (err) {
+          setButtons(false, ['sc-generate']);
+          setStatus('sc-status', '生成に失敗しました：\n' + err.message, 'error');
+        })
+        .generateScoutTextForWeb(input);
+    }
+
+    function renderScoutCard(result, jobId) {
+      scoutResult = result || {};
+      currentScoutJob = jobId || '';
+      var summary = scoutResult.candidate_summary || {};
+      var html = '<div class="card">'
+        + '<span class="axis">スカウト文</span>'
+        + '<div class="scout-block"><div class="ttl">件名</div>'
+        + '<div class="body">' + esc(scoutResult.subject) + '</div></div>'
+        + '<div class="scout-block"><div class="ttl">本文</div>'
+        + '<div class="body">' + esc(scoutResult.body) + '</div></div>'
+        + '<div class="field"><b>候補者要約（興味）：</b>' + esc(summary.interest) + '</div>'
+        + '<div class="field"><b>候補者要約（強み）：</b>' + esc(summary.strength) + '</div>'
+        + '<div class="field"><b>候補者要約（志向性）：</b>' + esc(summary.orientation) + '</div>'
+        + '<div class="field"><b>AIが注目したポイント：</b>' + esc(scoutResult.appeal_point) + '</div>'
+        + '<div class="field"><b>訴求した強み：</b>' + esc(scoutResult.used_strength) + '</div>'
+        + '<div class="btn-row">'
+        + '<button class="action" onclick="adoptScoutText()">このスカウト文を採用（効果記録へ保存）</button>'
+        + '<button class="action secondary" onclick="copyScoutText(this)">件名+本文をコピー</button>'
+        + '</div>'
+        + '</div>';
+      $('sc-cards').innerHTML =
+        '<div class="verify-note">送信前に、勤務条件・待遇の数値が求人マスターの記載と一致しているか、'
+        + '候補者プロフィールに触れた一文が入っているか確認してください。</div>' + html;
+    }
+
+    function copyScoutText(btn) {
+      if (!scoutResult) return;
+      copyTextToClipboard(
+        '件名：' + String(scoutResult.subject || '') + '\n\n' + String(scoutResult.body || ''), btn
+      );
+    }
+
+    function adoptScoutText() {
+      if (!scoutResult) return;
+      setStatus('sc-status', '保存中...', 'loading');
+      google.script.run
+        .withSuccessHandler(function (res) {
+          setStatus('sc-status', res.message || '保存しました。', 'ok');
+        })
+        .withFailureHandler(function (err) {
+          setStatus('sc-status', '保存に失敗しました：\n' + err.message, 'error');
+        })
+        .adoptScoutTextForWeb({
+          jobId: currentScoutJob,
+          subject: scoutResult.subject || '',
+          body: scoutResult.body || '',
+          appealPoint: scoutResult.appeal_point || '',
+          usedStrength: scoutResult.used_strength || ''
+        });
+    }
+
+    // 開発者用: プロンプトのみ出力（ChatGPT手動運用向け）
+    function generateScoutPrompt() {
+      var input = {
+        jobId: $('sc-job').value,
+        profile: $('sc-profile').value,
+        candidatePoint: $('sc-point').value,
+        appeal: $('sc-appeal').value
+      };
+      $('sc-prompt').innerHTML = '';
+      $('sc-cards').innerHTML = '';
+      setStatus('sc-status', '生成中...', 'loading');
+      setButtons(true, ['sc-prompt-only']);
+      google.script.run
+        .withSuccessHandler(function (text) {
+          setButtons(false, ['sc-prompt-only']);
+          setStatus('sc-status', 'プロンプトを生成しました。（スカウト文生成タブに表示）', 'ok');
+          renderPrompt('sc-prompt', text);
+        })
+        .withFailureHandler(function (err) {
+          setButtons(false, ['sc-prompt-only']);
+          setStatus('sc-status', '生成に失敗しました：\n' + err.message, 'error');
+        })
+        .generateScoutPromptForWeb(input);
+    }
+
+    $('sc-generate').addEventListener('click', generateScoutTextApi);
+    $('sc-prompt-only').addEventListener('click', generateScoutPrompt);
+
+    // =================== 開発者用：初期設定チェック ===================
+    function runInstallCheck() {
+      setStatus('dev-status', 'チェック中...', 'loading');
+      var resultEl = $('dev-install-result');
+      if (resultEl) {
+        resultEl.style.display = 'none';
+        resultEl.textContent = '';
+      }
+      google.script.run
+        .withSuccessHandler(function (result) {
+          if (resultEl) {
+            resultEl.textContent = result.report || '';
+            resultEl.style.display = 'block';
+          }
+          if (result && result.summary) {
+            if (result.summary.ng > 0) {
+              setStatus('dev-status', 'NGが ' + result.summary.ng + ' 件あります。下記を確認してください。', 'error');
+            } else if (result.summary.warn > 0) {
+              setStatus('dev-status', 'WARNが ' + result.summary.warn + ' 件あります（運用可能な場合あり）。', 'ok');
+            } else {
+              setStatus('dev-status', 'すべてOKです。', 'ok');
+            }
+          } else {
+            setStatus('dev-status', 'チェック完了', 'ok');
+          }
+          var devArea = $('dev-area');
+          if (devArea && !devArea.open) devArea.open = true;
+        })
+        .withFailureHandler(function (err) {
+          setStatus('dev-status', 'チェックに失敗しました：\n' + err.message, 'error');
+        })
+        .checkInstallStatusForWeb();
+    }
+
+    $('dev-install-check').addEventListener('click', runInstallCheck);
+
+    // ---- 初期化 ----
+    loadJobOptions();
+    loadAxisOptions();
+  </script>
+</body>
+</html>

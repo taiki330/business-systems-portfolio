@@ -1,0 +1,3023 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+    <meta http-equiv="Pragma" content="no-cache" />
+    <meta http-equiv="Expires" content="0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>現場進捗報告</title>
+    <!-- GAS が ?team=… の括弧付き値で doGet の引数を落とすことがある。ブラウザが正しく解釈したクエリで view=viewer を付けて再 GET する。 -->
+    <script>
+      (function () {
+        try {
+          var search = window.location.search;
+          if (!search || search.length < 2) return;
+          var params = new URLSearchParams(search);
+          var view = (params.get('view') || '').toLowerCase();
+          if (view === 'viewer' || view === 'site') return;
+          var team = (params.get('team') || params.get('請負業者') || '').trim();
+          var site = (params.get('site') || params.get('siteId') || '').trim();
+          if (!team && !site) return;
+          params.set('view', 'viewer');
+          var next =
+            window.location.pathname +
+            '?' +
+            params.toString() +
+            (window.location.hash || '');
+          if (next === window.location.pathname + search + (window.location.hash || '')) return;
+          window.location.replace(next);
+        } catch (e) {}
+      })();
+    </script>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        html,
+        body {
+            width: 100%;
+            height: 100%;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans JP", sans-serif;
+            font-size: 16px;
+            background: #ffffff;
+            color: #1e293b;
+            overflow-x: hidden;
+        }
+
+        .header {
+            position: sticky;
+            top: 0;
+            width: 100%;
+            background: #ffffff;
+            border-bottom: 2px solid #e2e8f0;
+            padding: 14px 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            z-index: 100;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .btn-back-header {
+            background: transparent;
+            border: none;
+            color: #0ea5e9;
+            font-size: clamp(28px, 7vw, 34px);
+            cursor: pointer;
+            padding: 0;
+            line-height: 1;
+            display: none;
+        }
+
+        .btn-back-header.visible {
+            display: block;
+        }
+
+        .header-title {
+            font-size: clamp(40px, 11vw, 56px);
+            font-weight: 700;
+            color: #0f172a;
+        }
+
+        .header-version {
+            font-size: clamp(18px, 5vw, 22px);
+            color: #64748b;
+            margin-left: 8px;
+        }
+
+        /* Header Actions & Logo */
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .logo-icon {
+            width: 48px;
+            height: 48px;
+            background: #0ea5e9;
+            color: #fff;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 28px;
+            font-weight: 900;
+        }
+
+        .logo-text {
+            font-size: clamp(16px, 4.5vw, 20px);
+            font-weight: 700;
+            color: #1e293b;
+            line-height: 1.2;
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 16px;
+        }
+
+        .btn-header-icon {
+            background: #f1f5f9;
+            border: 4px solid #cbd5e1;
+            color: #475569;
+            width: clamp(80px, 15vw, 100px);
+            /* Even larger for accessibility */
+            height: clamp(80px, 15vw, 100px);
+            border-radius: 20px;
+            font-size: clamp(40px, 8vw, 50px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            padding: 0;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            flex-shrink: 0;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .btn-header-icon:active {
+            background: #e2e8f0;
+            transform: scale(0.95);
+            box-shadow: none;
+        }
+
+
+        .main {
+            width: 100%;
+            padding: 0;
+        }
+
+        .screen {
+            display: none;
+        }
+
+        .screen.active {
+            display: block;
+        }
+
+        .section {
+            width: 100%;
+            background: #f8f9fa;
+            border-bottom: 12px solid #e2e8f0;
+            padding: 28px 20px;
+        }
+
+        .section-header {
+            font-size: clamp(24px, 6.5vw, 30px);
+            font-weight: 700;
+            color: #0f172a;
+            margin-bottom: 24px;
+            border-left: 6px solid #0ea5e9;
+            padding-left: 16px;
+        }
+
+        .form-group {
+            margin-bottom: 28px;
+        }
+
+        .form-label {
+            display: block;
+            font-size: clamp(34px, 9vw, 42px);
+            font-weight: 600;
+            color: #334155;
+            margin-bottom: 18px;
+        }
+
+        .form-required {
+            color: #ef4444;
+            margin-left: 12px;
+            font-size: clamp(34px, 9vw, 42px);
+        }
+
+        .form-input,
+        .form-select {
+            width: 100%;
+            padding: 32px;
+            font-size: clamp(36px, 10vw, 48px);
+            background: #ffffff;
+            border: 5px solid #cbd5e1;
+            border-radius: 20px;
+            color: #0f172a;
+        }
+
+        .form-input:focus,
+        .form-select:focus {
+            outline: none;
+            border-color: #0ea5e9;
+            box-shadow: 0 0 0 4px rgba(14, 165, 233, 0.15);
+        }
+
+        /* Repeatable Group (工区) */
+        .repeatable-group {
+            background: #fff;
+            border: 3px solid #cbd5e1;
+            border-radius: 14px;
+            padding: 20px;
+            margin-bottom: 16px;
+            position: relative;
+        }
+
+        .repeatable-remove {
+            position: absolute;
+            top: 14px;
+            right: 14px;
+            background: #ef4444;
+            color: #fff;
+            border: none;
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            font-size: 26px;
+            font-weight: 700;
+            cursor: pointer;
+        }
+
+        .btn-add-group {
+            width: 100%;
+            background: #f0f9ff;
+            border: 4px dashed #0ea5e9;
+            color: #0ea5e9;
+            padding: 24px;
+            font-size: clamp(24px, 6vw, 32px);
+            font-weight: 700;
+            border-radius: 16px;
+            cursor: pointer;
+            margin-top: 16px;
+        }
+
+        .btn-add-group:active {
+            background: #e0f2fe;
+        }
+
+
+        /* 進捗％（数値入力） */
+        .input-percent-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        .input-percent-row .form-input {
+            flex: 1 1 auto;
+            min-width: 5em;
+            max-width: 12rem;
+            font-size: clamp(26px, 7vw, 36px);
+            font-weight: 700;
+            text-align: center;
+        }
+        .input-percent-suffix {
+            font-size: clamp(26px, 7vw, 36px);
+            font-weight: 700;
+            color: #64748b;
+        }
+
+        /* 3-Way Switch */
+        .switch-group {
+            display: flex;
+            gap: 12px;
+        }
+
+        .switch-btn {
+            flex: 1;
+            padding: 24px 10px;
+            font-size: clamp(28px, 7vw, 34px);
+            font-weight: 700;
+            background: #f1f5f9;
+            border: 4px solid #cbd5e1;
+            color: #64748b;
+            border-radius: 16px;
+            cursor: pointer;
+            text-align: center;
+            transition: all 0.2s;
+        }
+
+        .switch-btn.active {
+            border-color: #0ea5e9 !important;
+            background: #e0f2fe !important;
+            color: #0ea5e9 !important;
+            box-shadow: 0 4px 12px rgba(14, 165, 233, 0.2);
+        }
+
+        .switch-btn.active-off {
+            border-color: #ef4444 !important;
+            background: #fee2e2 !important;
+            color: #ef4444 !important;
+            box-shadow: 0 4px 12px rgba(239, 68, 68, 0.2);
+        }
+
+        .switch-btn.active-done {
+            border-color: #22c55e !important;
+            background: #dcfce7 !important;
+            color: #16a34a !important;
+            box-shadow: 0 4px 12px rgba(34, 197, 94, 0.2);
+        }
+
+        /* Skip Button (Not Applicable) */
+        .btn-skip {
+            width: 100%;
+            margin-top: 12px;
+            padding: 16px;
+            font-size: clamp(24px, 6vw, 28px);
+            font-weight: 700;
+            background: #f1f5f9;
+            border: 3px solid #cbd5e1;
+            color: #64748b;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-skip.active {
+            background: #475569;
+            border-color: #475569;
+            color: #ffffff;
+        }
+
+        /* Checkbox */
+        .checkbox-container {
+            display: flex;
+            align-items: center;
+            padding: 16px;
+            background: #ffffff;
+            border: 2px solid #cbd5e1;
+            border-radius: 10px;
+            cursor: pointer;
+        }
+
+        .checkbox {
+            width: 28px;
+            height: 28px;
+            margin-right: 12px;
+            cursor: pointer;
+        }
+
+        /* Checkbox + Text Group */
+        .check-text-row {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 8px;
+            margin-bottom: 16px;
+            background: #f8fafc;
+            padding: 16px;
+            border-radius: 12px;
+            border: 2px solid #e2e8f0;
+            transition: all 0.2s;
+        }
+
+        .check-text-row.is-checked {
+            border-color: #0ea5e9;
+            background: #f0f9ff;
+            box-shadow: 0 4px 12px rgba(14, 165, 233, 0.1);
+        }
+
+        /* Fallback for browsers that support :has() */
+        .check-text-row:has(input[type="checkbox"]:checked) {
+            border-color: #0ea5e9;
+            background: #f0f9ff;
+            box-shadow: 0 4px 12px rgba(14, 165, 233, 0.1);
+        }
+
+        .check-text-input {
+            width: 100%;
+            padding: 20px;
+            font-size: clamp(24px, 6vw, 28px);
+            border: 3px solid #cbd5e1;
+            border-radius: 12px;
+            display: none;
+            /* Hidden by default */
+            background: #ffffff;
+            margin-top: 8px;
+        }
+
+        .check-text-row.is-checked .check-text-input,
+        .check-text-row:has(input[type="checkbox"]:checked) .check-text-input {
+            display: block;
+            /* Show when checked */
+            animation: slideDown 0.2s ease-out;
+        }
+
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Locked state when Not Applicable */
+        .question-item.is-disabled {
+            opacity: 0.35 !important;
+            pointer-events: none !important;
+            filter: grayscale(0.8);
+            position: relative;
+            border: 3px dashed #cbd5e1 !important;
+            background: #f1f5f9 !important;
+        }
+
+        .question-item.is-disabled::after {
+            content: "未選択（利用不可）";
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: #64748b;
+            color: #fff;
+            padding: 6px 16px;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 700;
+            z-index: 10;
+        }
+
+        /* Image Grid */
+        .img-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-top: 12px;
+        }
+
+        .img-upload-area {
+            width: 100%;
+            padding: 40px;
+            background: #ffffff;
+            border: 3px dashed #cbd5e1;
+            border-radius: 14px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .img-upload-area:active {
+            border-color: #0ea5e9;
+            background: #f0f9ff;
+        }
+
+        .img-upload-icon {
+            font-size: 48px;
+            margin-bottom: 12px;
+        }
+
+        .img-upload-text {
+            font-size: clamp(16px, 4.5vw, 19px);
+            color: #64748b;
+        }
+
+        .img-preview-item {
+            position: relative;
+            aspect-ratio: 1;
+            background: #f1f5f9;
+            border-radius: 12px;
+            background-size: cover;
+            background-position: center;
+        }
+
+        .img-remove {
+            position: absolute;
+            top: 6px;
+            right: 6px;
+            background: #ef4444;
+            color: #fff;
+            border: none;
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 700;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+        }
+
+        .img-remarks {
+            width: 100%;
+            margin-top: 12px;
+            padding: 14px;
+            border: 2px solid #e2e8f0;
+            border-radius: 12px;
+            font-size: clamp(16px, 4vw, 18px);
+            resize: none;
+            box-sizing: border-box;
+            font-family: inherit;
+        }
+
+        .img-remarks:focus {
+            outline: none;
+            border-color: #3b82f6;
+        }
+
+        /* Buttons */
+        .btn-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+
+        .btn-report {
+            background: #ffffff;
+            border: 2px solid #cbd5e1;
+            padding: 24px 12px;
+            border-radius: 14px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+        }
+
+        .btn-report:active {
+            transform: scale(0.97);
+            border-color: #0ea5e9;
+        }
+
+        .btn-report-icon {
+            font-size: 40px;
+            margin-bottom: 10px;
+        }
+
+        .btn-report-label {
+            font-size: clamp(34px, 9vw, 42px);
+            font-weight: 700;
+            color: #0f172a;
+        }
+
+        .btn-report-time {
+            font-size: clamp(26px, 7vw, 30px);
+            color: #64748b;
+            margin-top: 14px;
+        }
+
+        .btn-primary {
+            width: 100%;
+            background: #0ea5e9;
+            color: #fff;
+            border: none;
+            padding: 40px;
+            font-size: clamp(40px, 11vw, 52px);
+            font-weight: 700;
+            border-radius: 24px;
+            cursor: pointer;
+            margin-top: 40px;
+            box-shadow: 0 12px 28px rgba(14, 165, 233, 0.45);
+        }
+
+        .btn-primary:active {
+            transform: scale(0.98);
+        }
+
+        .btn-secondary {
+            width: 100%;
+            background: transparent;
+            color: #475569;
+            border: 3px solid #cbd5e1;
+            padding: 24px;
+            font-size: clamp(24px, 6.5vw, 28px);
+            font-weight: 600;
+            border-radius: 14px;
+            cursor: pointer;
+            margin-top: 16px;
+        }
+
+        .complete-screen {
+            text-align: center;
+            padding: 60px 20px;
+        }
+
+        .complete-icon {
+            font-size: 80px;
+            margin-bottom: 24px;
+            color: #10b981;
+        }
+
+        .complete-title {
+            font-size: clamp(26px, 7vw, 30px);
+            font-weight: 700;
+            color: #0f172a;
+            margin-bottom: 12px;
+        }
+
+        .complete-message {
+            font-size: clamp(17px, 4.5vw, 20px);
+            color: #64748b;
+            line-height: 1.6;
+        }
+
+        .toast {
+            position: fixed;
+            bottom: 24px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #0f172a;
+            color: #fff;
+            padding: 16px 28px;
+            border-radius: 999px;
+            font-size: clamp(16px, 4.5vw, 18px);
+            font-weight: 600;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+            display: none;
+            z-index: 1000;
+        }
+
+        .toast.show {
+            display: block;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        /* Custom suggestions list for mobile */
+        .suggestions-list {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: #ffffff;
+            border: 3px solid #0ea5e9;
+            border-top: none;
+            border-radius: 0 0 20px 20px;
+            max-height: 300px;
+            overflow-y: auto;
+            z-index: 1000;
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.15);
+            touch-action: pan-y;
+        }
+
+        .suggestion-item {
+            padding: 20px 24px;
+            font-size: clamp(32px, 8.5vw, 40px);
+            border-bottom: 1px solid #e2e8f0;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .suggestion-item:last-child {
+            border-bottom: none;
+        }
+
+        .suggestion-item:active,
+        .suggestion-item.highlighted {
+            background: #e0f2fe;
+        }
+
+        .btn-adjust {
+            background: #e2e8f0;
+            color: #334155;
+            font-size: 24px;
+            padding: 8px 16px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        .btn-adjust:active {
+            background: #cbd5e1;
+        }
+
+        /* Admin UI Styles */
+        .admin-card {
+            background: white;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .admin-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+
+        .admin-card.is-locked {
+            background: #f8fafc;
+            border-color: #cbd5e1;
+        }
+
+        .admin-card.is-inactive {
+            opacity: 0.6;
+            background: #f1f5f9;
+        }
+
+        .admin-card-handle {
+            cursor: grab;
+            color: #94a3b8;
+            padding: 4px;
+        }
+
+        .admin-card-content {
+            flex: 1;
+        }
+
+        .admin-card-title {
+            font-weight: bold;
+            font-size: 16px;
+            margin-bottom: 4px;
+        }
+
+        .admin-card-meta {
+            font-size: 12px;
+            color: #64748b;
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .admin-badge {
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 10px;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+
+        .badge-type {
+            background: #e0f2fe;
+            color: #0369a1;
+        }
+
+        .badge-req {
+            background: #fee2e2;
+            color: #b91c1c;
+        }
+
+        .badge-skip {
+            background: #f3f4f6;
+            color: #4b5563;
+        }
+
+        .admin-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .btn-icon {
+            background: none;
+            border: none;
+            cursor: pointer;
+            padding: 6px;
+            border-radius: 4px;
+            transition: background 0.2s;
+        }
+
+        .btn-icon:hover {
+            background: #f1f5f9;
+        }
+
+        .btn-icon.disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+        }
+
+        /* Modal Styles */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.2s;
+        }
+
+        .modal-overlay.is-visible {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: 12px;
+            width: 90%;
+            max-width: 500px;
+            max-height: 90vh;
+            overflow-y: auto;
+            padding: 24px;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+            transform: scale(0.95);
+            transition: transform 0.2s;
+        }
+
+        .modal-overlay.is-visible .modal-content {
+            transform: scale(1);
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .modal-title {
+            font-size: 20px;
+            font-weight: bold;
+            color: #1e293b;
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            color: #64748b;
+        }
+
+        .modal-body {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .modal-footer {
+            margin-top: 24px;
+            display: flex;
+            justify-content: flex-end;
+            gap: 12px;
+        }
+
+        /* Sortable ghost */
+        .sortable-ghost {
+            opacity: 0.4;
+            background: #e2e8f0;
+        }
+
+        /* ========== 送信中オーバーレイ（トビ丸） ========== */
+        .submit-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            z-index: 300;
+            background: rgba(0, 0, 0, 0.45);
+            align-items: center;
+            justify-content: center;
+        }
+
+        .submit-overlay.active {
+            display: flex;
+        }
+
+        .submit-overlay-card {
+            background: #fff;
+            border-radius: 20px;
+            padding: 32px 24px 28px;
+            text-align: center;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25);
+            max-width: 260px;
+            width: 85%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .submit-overlay .tobi-avatar-wrap {
+            width: 120px;
+            height: 120px;
+            position: relative;
+            flex-shrink: 0;
+        }
+
+        .tobimaru-svg {
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+
+        .tobi-face,
+        .tobi-fx {
+            display: none;
+        }
+
+        .tobi-state--idle .tobi-face--idle {
+            display: block;
+        }
+
+        .tobi-state--idle .tobimaru-svg {
+            animation: tobi-breathe 3s ease-in-out infinite;
+        }
+
+        @keyframes tobi-breathe {
+
+            0%,
+            100% {
+                transform: scale(1) translateY(0);
+            }
+
+            50% {
+                transform: scale(1.04) translateY(-3px);
+            }
+        }
+
+        .tobi-state--correct .tobi-face--correct,
+        .tobi-state--correct .tobi-fx--correct {
+            display: block;
+        }
+
+        .tobi-state--correct .tobimaru-svg {
+            animation: tobi-bounce 0.7s cubic-bezier(0.28, 0.84, 0.42, 1);
+        }
+
+        @keyframes tobi-bounce {
+            0% {
+                transform: scale(1);
+            }
+
+            30% {
+                transform: scale(1.25) translateY(-15px);
+            }
+
+            50% {
+                transform: scale(0.9) translateY(5px);
+            }
+
+            70% {
+                transform: scale(1.08) translateY(-3px);
+            }
+
+            100% {
+                transform: scale(1);
+            }
+        }
+
+        .tobi-state--correct .tobi-fx--correct circle {
+            animation: tobi-sparkle 0.8s ease-out forwards;
+        }
+
+        @keyframes tobi-sparkle {
+            0% {
+                opacity: 1;
+                transform: scale(0) translate(0, 0);
+            }
+
+            50% {
+                opacity: 1;
+            }
+
+            100% {
+                opacity: 0;
+                transform: scale(1.5) translate(var(--spark-x), var(--spark-y));
+            }
+        }
+
+        .complete-screen .tobi-avatar-wrap {
+            width: 150px;
+            height: 150px;
+            margin: 0 auto 16px;
+        }
+
+        .submit-overlay-bubble {
+            background: #2C3E50;
+            color: #fff;
+            padding: 12px 16px;
+            border-radius: 12px;
+            font-weight: 700;
+            font-size: 0.85rem;
+            text-align: center;
+            min-height: 48px;
+            width: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            line-height: 1.4;
+        }
+
+        /* 一時保存トースト通知 */
+        #draft-toast {
+            position: fixed;
+            bottom: 80px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(30, 30, 30, 0.88);
+            color: #fff;
+            padding: 10px 24px;
+            border-radius: 24px;
+            font-size: 15px;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s;
+            z-index: 9999;
+            white-space: nowrap;
+        }
+
+        #draft-toast.show {
+            opacity: 1;
+        }
+
+        #btn-save-draft {
+            margin-top: 8px;
+            width: 100%;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="header">
+        <div class="header-left">
+            <button class="btn-back-header" id="btn-back-header">←</button>
+            <div class="logo">
+                <div class="logo-icon">N</div>
+                <div class="logo-text">サンプル建設<br><span style="font-size: 12px; opacity: 0.9;">職人報告 <span
+                            class="header-version">v19</span></span></div>
+            </div>
+        </div>
+        <div class="header-actions">
+            <button class="btn-header-icon" onclick="showAdminAuth()" title="管理設定">⚙️</button>
+            <button class="btn-header-icon" onclick="location.reload()" title="更新">↻</button>
+        </div>
+    </div>
+
+    <div class="main">
+        <div id="screen-home" class="screen active">
+            <div class="section">
+                <div class="section-header">共通情報</div>
+                <div class="form-group">
+                    <label class="form-label">報告者名（フルネーム）<span class="form-required">*</span></label>
+                    <input type="text" id="worker-input" class="form-input" placeholder="名前を入力">
+                </div>
+                <div class="form-group" style="position: relative;">
+                    <label class="form-label">工事現場名<span class="form-required">*</span></label>
+                    <input type="text" id="site-input" class="form-input" placeholder="現場名を入力（候補から選択）" autocomplete="off">
+                    <div id="site-suggestions" class="suggestions-list" style="display: none;"></div>
+                </div>
+
+                <!-- 棟名入力セクション -->
+                <div class="form-group">
+                    <label class="form-label">棟名<span class="form-required">*</span></label>
+                    <div class="switch-group" style="flex-wrap: wrap; margin-bottom: 12px;">
+                        <button type="button" class="switch-btn" id="btn-bn-free"
+                            onclick="setBuildingNameMode('free')">自由入力</button>
+                        <button type="button" class="switch-btn" id="btn-bn-included"
+                            onclick="setBuildingNameMode('included')">現場名に含む</button>
+                        <button type="button" class="switch-btn" id="btn-bn-none"
+                            onclick="setBuildingNameMode('none')">該当なし</button>
+                    </div>
+                    <input type="text" id="building-name-input" class="form-input" placeholder="例: A棟、ポンプ室"
+                        style="display: none;">
+                    <input type="hidden" id="building-name-value" value="">
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">請負業者名（サンプル建設の直接の請負業者名）<span class="form-required">*</span></label>
+                    <select id="team-input" class="form-select">
+                        <option value="">選択してください</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">施工業者名（現場で実際に作業する会社名）<span class="form-required">*</span></label>
+                    <select id="company-input" class="form-select">
+                        <option value="">先に請負業者名を選択してください</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="section">
+                <div class="section-header">報告種別を選択</div>
+                <div class="btn-grid" id="report-type-actions"></div>
+                <button class="btn-secondary" id="btn-resend-start"
+                    style="margin-top: 24px; font-size: clamp(34px, 9vw, 42px); color: #0ea5e9; border-color: #0ea5e9; border-width: 4px;">🔄
+                    差し戻し写真再送</button>
+            </div>
+        </div>
+
+        <div id="screen-resend-type" class="screen">
+            <div class="section">
+                <div class="section-header">どの報告を再送しますか？</div>
+                <p class="form-helper" style="margin-bottom:16px;color:#64748b;">
+                    差し戻された報告の種類（始業前・午後・終業前・中間）を選んでください。
+                </p>
+                <div class="btn-grid" id="resend-type-actions"></div>
+                <button class="btn-secondary" id="btn-resend-back">戻る</button>
+            </div>
+        </div>
+
+        <div id="screen-form" class="screen">
+            <div class="section">
+                <div id="resend-mode-banner" class="form-helper" style="display:none;margin-bottom:16px;padding:12px 14px;background:#e0f2fe;border:2px solid #0ea5e9;border-radius:8px;color:#0c4a6e;font-weight:700;"></div>
+                <div id="form-questions"></div>
+                <button class="btn-primary" id="btn-submit">送信する</button>
+                <button class="btn-secondary" id="btn-save-draft">一時保存</button>
+                <button class="btn-secondary" id="btn-back">戻る</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Admin Auth Screen -->
+    <div id="screen-admin-auth" class="screen">
+        <div class="header">
+            <h1>管理者モード</h1>
+            <button type="button" class="btn-home" onclick="location.reload()">閉じる</button>
+        </div>
+        <div class="card">
+            <p style="margin-bottom: 16px;">パスワードを入力してください</p>
+            <div class="form-group">
+                <input type="password" id="admin-passcode" class="form-input" placeholder="パスワード">
+            </div>
+            <button type="button" class="btn-submit" onclick="handleAdminAuth()">ログイン</button>
+        </div>
+    </div>
+
+    <!-- Admin Report Type Selection -->
+    <div id="screen-admin-select" class="screen">
+        <div class="header">
+            <h1>設定を変更する報告</h1>
+            <button type="button" class="btn-home" onclick="show('screen-home')">戻る</button>
+        </div>
+        <div class="card" id="admin-report-types">
+            <!-- Javascript will populate this -->
+        </div>
+    </div>
+
+    <!-- Admin Question List -->
+    <div id="screen-admin-list" class="screen">
+        <div class="header">
+            <h1 id="admin-list-title">報告名</h1>
+            <div style="display:flex; gap:8px;">
+                <button type="button" class="btn-home" onclick="AdminApp.saveChanges()">保存</button>
+                <button type="button" class="btn-home" style="background:#64748b;"
+                    onclick="show('screen-admin-select')">戻る</button>
+            </div>
+        </div>
+
+        <div class="tabs" style="margin-bottom: 16px; display:flex; gap:12px; border-bottom: 2px solid #e2e8f0;">
+            <div class="tab active" id="tab-active" onclick="AdminApp.switchTab('active')"
+                style="padding:8px 16px; cursor:pointer; font-weight:bold; border-bottom: 2px solid #2563eb; color:#2563eb;">
+                表示中
+            </div>
+            <div class="tab" id="tab-inactive" onclick="AdminApp.switchTab('inactive')"
+                style="padding:8px 16px; cursor:pointer; color:#64748b;">お蔵入り（非表示）</div>
+        </div>
+
+        <div id="admin-questions-list" style="padding-bottom: 80px;">
+            <!-- Questions go here -->
+        </div>
+
+        <button type="button" class="btn-submit" onclick="AdminApp.openEditModal(null)"
+            style="position:fixed; bottom:24px; right:24px; width:auto; padding:16px 24px; border-radius:50px; box-shadow:0 4px 12px rgba(0,0,0,0.2); z-index:90;">＋
+            新しい項目</button>
+    </div>
+
+    <!-- Edit Modal -->
+    <div id="modal-question-edit" class="modal-overlay">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="modal-title">項目の編集</div>
+                <button class="modal-close" onclick="AdminApp.closeModal()">×</button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="edit-id">
+
+                <div class="form-group">
+                    <label class="form-label">項目名（表示ラベル）</label>
+                    <input type="text" id="edit-label" class="form-input" placeholder="例：資材置き場">
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">入力タイプ</label>
+                    <select id="edit-type" class="form-input" onchange="AdminApp.handleTypeChange()">
+                        <option value="text">文字入力</option>
+                        <option value="switch">はい・いいえ（スイッチ）</option>
+                        <option value="image">写真のみ</option>
+                        <option value="image_text">写真 ＋ コメント</option>
+                        <option value="select">選択式（ドロップダウン）</option>
+                        <option value="checkbox">複数選択チェック</option>
+                        <option value="check">チェックボックス（単一）</option>
+                        <option value="slider">スライダー（数値）</option>
+                        <option value="number">数値入力</option>
+                    </select>
+                    <p class="form-helper" id="edit-type-warning" style="display:none; color:#dc2626;">⚠️
+                        タイプを変更すると過去のデータと整合性が取れなくなる可能性があります。</p>
+                </div>
+
+                <div class="form-group" style="flex-direction:row; align-items:center; justify-content:space-between;">
+                    <label class="form-label" style="margin:0;">必須にする</label>
+                    <div class="switch-group" style="width:auto;">
+                        <button type="button" class="switch-btn" id="edit-req-true"
+                            onclick="AdminApp.setToggle('req', true)">ON</button>
+                        <button type="button" class="switch-btn" id="edit-req-false"
+                            onclick="AdminApp.setToggle('req', false)">OFF</button>
+                    </div>
+                    <input type="hidden" id="edit-req">
+                </div>
+
+                <div class="form-group" id="group-skip"
+                    style="flex-direction:row; align-items:center; justify-content:space-between;">
+                    <label class="form-label" style="margin:0;">「該当なし」ボタンを表示</label>
+                    <div class="switch-group" style="width:auto;">
+                        <button type="button" class="switch-btn" id="edit-skip-true"
+                            onclick="AdminApp.setToggle('skip', true)">ON</button>
+                        <button type="button" class="switch-btn" id="edit-skip-false"
+                            onclick="AdminApp.setToggle('skip', false)">OFF</button>
+                    </div>
+                    <input type="hidden" id="edit-skip">
+                    <input type="hidden" id="edit-skipLabel">
+                </div>
+
+                <div class="form-group" id="group-options">
+                    <label class="form-label">選択肢（1行に1つ入力）</label>
+                    <textarea id="edit-options" class="form-input" rows="4"
+                        placeholder="選択肢A&#13;&#10;選択肢B&#13;&#10;選択肢C"></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">補足テキスト</label>
+                    <input type="text" id="edit-helper" class="form-input" placeholder="入力時の注釈など">
+                </div>
+
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn-home" style="background:#f1f5f9; color:#64748b;"
+                    onclick="AdminApp.closeModal()">キャンセル</button>
+                <button type="button" class="btn-submit" style="width:auto; padding:0 32px;"
+                    onclick="AdminApp.saveModal()">OK</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="screen-complete" class="screen">
+        <div class="section">
+            <div class="complete-screen">
+                <div class="tobi-avatar-wrap tobi-state--idle" id="completeAvatar"></div>
+                <div class="complete-title">送信完了</div>
+                <div class="complete-message">報告ありがとうございます。<br>データは正常に保存されました。</div>
+                <button class="btn-primary" id="btn-home" style="max-width: 320px; margin: 40px auto 0;">ホームに戻る</button>
+            </div>
+        </div>
+    </div>
+    </div>
+
+    <div class="toast" id="toast"></div>
+
+    <!-- トビ丸 SVGテンプレート -->
+    <template id="tobimaruSvgTemplate">
+        <svg class="tobimaru-svg" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg" overflow="visible">
+            <path d="M62,72 L40,22 L80,58 Z" fill="#E8C49A" />
+            <path d="M62,66 L48,30 L76,56 Z" fill="#D4956B" />
+            <path d="M138,72 L160,22 L120,58 Z" fill="#E8C49A" />
+            <path d="M138,66 L152,30 L124,56 Z" fill="#D4956B" />
+            <ellipse cx="100" cy="100" rx="56" ry="50" fill="#F5D6B1" />
+            <ellipse cx="100" cy="112" rx="34" ry="24" fill="#FFF5E6" />
+            <path d="M46,68 Q46,28 100,24 Q154,28 154,68 Q154,72 100,70 Q46,72 46,68" fill="#FFD54F" />
+            <path d="M42,70 Q42,64 100,62 Q158,64 158,70 Q158,76 100,74 Q42,76 42,70" fill="#FFA000" />
+            <path d="M56,48 Q100,36 144,48" fill="none" stroke="#FF8F00" stroke-width="2.5" />
+            <circle cx="100" cy="36" r="6" fill="#FF6B35" />
+            <circle cx="100" cy="36" r="3.5" fill="#FFAB91" />
+            <ellipse cx="100" cy="108" rx="5.5" ry="4.5" fill="#4A3728" />
+            <ellipse cx="101" cy="107" rx="2" ry="1.5" fill="#6D4C41" opacity="0.5" />
+            <path d="M68,145 Q100,152 132,145 L138,188 Q100,198 62,188 Z" fill="#FF6B35" />
+            <path d="M70,156 Q100,162 130,156" fill="none" stroke="#FFD700" stroke-width="3.5" />
+            <path d="M66,168 Q100,174 134,168" fill="none" stroke="#FFD700" stroke-width="3.5" />
+            <line x1="100" y1="145" x2="100" y2="192" stroke="#FFD700" stroke-width="2.5" />
+            <g class="tobi-face tobi-face--idle">
+                <circle cx="78" cy="92" r="7" fill="#2C3E50" />
+                <circle cx="80" cy="90" r="2.5" fill="#FFF" />
+                <circle cx="122" cy="92" r="7" fill="#2C3E50" />
+                <circle cx="124" cy="90" r="2.5" fill="#FFF" />
+                <path d="M88,122 Q100,132 112,122" fill="none" stroke="#4A3728" stroke-width="2.5"
+                    stroke-linecap="round" />
+                <circle cx="63" cy="106" r="9" fill="#FFCDD2" opacity="0.35" />
+                <circle cx="137" cy="106" r="9" fill="#FFCDD2" opacity="0.35" />
+            </g>
+            <g class="tobi-face tobi-face--correct">
+                <polygon points="78,85 80,89 84,89 81,92 82,96 78,94 74,96 75,92 72,89 76,89" fill="#FFD700"
+                    stroke="#FFA000" stroke-width="0.5" />
+                <polygon points="122,85 124,89 128,89 125,92 126,96 122,94 118,96 119,92 116,89 120,89" fill="#FFD700"
+                    stroke="#FFA000" stroke-width="0.5" />
+                <circle cx="78" cy="91" r="1.5" fill="#FFF" />
+                <circle cx="122" cy="91" r="1.5" fill="#FFF" />
+                <path d="M80,119 Q100,140 120,119" fill="#FF8A80" stroke="#4A3728" stroke-width="2.5"
+                    stroke-linecap="round" />
+                <path d="M80,119 Q100,124 120,119" fill="#FFF" />
+                <circle cx="60" cy="106" r="11" fill="#FF8A80" opacity="0.5" />
+                <circle cx="140" cy="106" r="11" fill="#FF8A80" opacity="0.5" />
+            </g>
+            <g class="tobi-face tobi-face--wrong">
+                <path d="M68,90 Q78,85 88,90" fill="none" stroke="#2C3E50" stroke-width="4" stroke-linecap="round" />
+                <circle cx="78" cy="93" r="4" fill="#2C3E50" />
+                <circle cx="79.5" cy="91.5" r="1.5" fill="#FFF" />
+                <path d="M112,90 Q122,85 132,90" fill="none" stroke="#2C3E50" stroke-width="4" stroke-linecap="round" />
+                <circle cx="122" cy="93" r="4" fill="#2C3E50" />
+                <circle cx="123.5" cy="91.5" r="1.5" fill="#FFF" />
+                <path d="M86,124 Q96,128 106,124 Q114,120 120,116" fill="none" stroke="#4A3728" stroke-width="2.5"
+                    stroke-linecap="round" />
+            </g>
+            <g class="tobi-face tobi-face--perfect">
+                <g class="tobi-fire-eyes">
+                    <path d="M78,98 Q70,86 74,76 Q78,84 82,76 Q86,86 78,98 Z" fill="#FF6B35" />
+                    <path d="M78,96 Q72,88 75,80 Q78,86 81,80 Q84,88 78,96 Z" fill="#FFD54F" />
+                    <circle cx="78" cy="90" r="2" fill="#FFF" />
+                    <path d="M122,98 Q114,86 118,76 Q122,84 126,76 Q130,86 122,98 Z" fill="#FF6B35" />
+                    <path d="M122,96 Q116,88 119,80 Q122,86 125,80 Q128,88 122,96 Z" fill="#FFD54F" />
+                    <circle cx="122" cy="90" r="2" fill="#FFF" />
+                </g>
+                <path d="M76,118 Q100,148 124,118" fill="#FF8A80" stroke="#4A3728" stroke-width="2.5"
+                    stroke-linecap="round" />
+                <path d="M76,118 Q100,125 124,118" fill="#FFF" />
+                <circle cx="58" cy="106" r="13" fill="#FF5252" opacity="0.45" />
+                <circle cx="142" cy="106" r="13" fill="#FF5252" opacity="0.45" />
+            </g>
+            <g class="tobi-fx tobi-fx--correct">
+                <circle r="4" cx="100" cy="100" fill="#FFD700" style="--spark-x:-45px;--spark-y:-55px" />
+                <circle r="3.5" cx="100" cy="100" fill="#FF6B35" style="--spark-x:50px;--spark-y:-45px" />
+                <circle r="3" cx="100" cy="100" fill="#4CAF50" style="--spark-x:-55px;--spark-y:15px" />
+                <circle r="3.5" cx="100" cy="100" fill="#FF4081" style="--spark-x:55px;--spark-y:10px" />
+                <circle r="2.5" cx="100" cy="100" fill="#448AFF" style="--spark-x:-25px;--spark-y:-60px" />
+                <circle r="2.5" cx="100" cy="100" fill="#FFD700" style="--spark-x:30px;--spark-y:-58px" />
+            </g>
+        </svg>
+    </template>
+
+    <!-- 送信中オーバーレイ（トビ丸） -->
+    <div class="submit-overlay" id="submitOverlay">
+        <div class="submit-overlay-card">
+            <div class="tobi-avatar-wrap tobi-state--idle" id="submitOverlayAvatar"></div>
+            <div class="submit-overlay-bubble" id="submitOverlayText">送信中...</div>
+        </div>
+    </div>
+    <script>
+        (function () {
+            var tmpl = document.getElementById('tobimaruSvgTemplate');
+            ['submitOverlayAvatar', 'completeAvatar'].forEach(function (id) {
+                var el = document.getElementById(id);
+                if (tmpl && el) { el.appendChild(tmpl.content.cloneNode(true)); }
+            });
+        })();
+    </script>
+
+    <script>
+        console.log("UI v3.7 - 午後報告: ②⑤のみ該当なしなし（サーバ reapplySkipRules 依存）");
+        const BOOTSTRAP = JSON.parse(decodeURIComponent('<?= encodeURIComponent(JSON.stringify(bootstrap)) ?>') || '{}');
+    </script>
+    <script>
+        (() => {
+            const REPORT_TYPE_INFO = {
+                '始業前報告': { icon: '☀️', label: '始業前報告', time: '08:30-10:00' },
+                '午後報告': { icon: '🍱', label: '午後報告', time: '12:00-13:30' },
+                '終業前報告': { icon: '🌙', label: '終業前報告', time: '17:00-18:30' },
+                '中間報告': { icon: '🔍', label: '中間報告', time: '11:00 / 15:00' }
+            };
+
+            // 請負業者名 → 施工業者（下請け）の連動マッピング（業者マスタシートから動的構築）
+            const buildContractorMap = (rows) => {
+                const map = {};
+                (rows || []).forEach(row => {
+                    if (!row.contractor) return;
+                    if (!map[row.contractor]) map[row.contractor] = [];
+                    if (row.subcontractor) map[row.contractor].push(row.subcontractor);
+                });
+                return map;
+            };
+            const CONTRACTOR_MAP = buildContractorMap(BOOTSTRAP.contractors);
+
+            const state = {
+                bootstrap: BOOTSTRAP || {},
+                sites: [],
+                reportTypes: [],
+                formsByType: {},
+                selectedSite: '',
+                selectedWorker: '',
+                selectedReportType: '',
+                teamName: '',
+                companyName: '',
+                imageStore: {},
+                skippedStore: {},
+                imageRemarks: {},
+                repeatableData: {},
+                isSiteSelected: false,
+                isResendMode: false,
+                resendTargetType: '',
+                tsumeshoStatusCache: {}
+            };
+
+            window.$ = id => document.getElementById(id);
+            window.show = id => {
+                document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+                const el = window.$(id);
+                if (el) el.classList.add('active');
+                if (window.$('btn-back-header')) {
+                    if (id === 'screen-home') window.$('btn-back-header').classList.remove('visible');
+                    else window.$('btn-back-header').classList.add('visible');
+                }
+                window.scrollTo(0, 0);
+            };
+
+            // Also keep local aliases for convenience
+            const $ = window.$;
+            const show = window.show;
+            const toast = msg => {
+                $('toast').textContent = msg;
+                $('toast').classList.add('show');
+                setTimeout(() => $('toast').classList.remove('show'), 3000);
+            };
+
+            // Kana Normalization Helper
+            const hiraToKata = (str) => {
+                return str.replace(/[ぁ-ん]/g, (s) => String.fromCharCode(s.charCodeAt(0) + 0x60));
+            };
+
+            const normalizeKana = (str) => {
+                if (!str) return '';
+                // Convert Hiragana to Katakana, Full-width to Full-width
+                let res = hiraToKata(str);
+                // Half-width Katakana to Full-width Katakana (Standard mapping for search)
+                const kanaMap = {
+                    'ｱ': 'ア', 'ｲ': 'イ', 'ｳ': 'ウ', 'ｴ': 'エ', 'ｵ': 'オ',
+                    'ｶ': 'カ', 'ｷ': 'キ', 'ｸ': 'ク', 'ｹ': 'ケ', 'ｺ': 'コ',
+                    'ｻ': 'サ', 'ｼ': 'シ', 'ｽ': 'ス', 'ｾ': 'セ', 'ｿ': 'ソ',
+                    'ﾀ': 'タ', 'ﾁ': 'チ', 'ﾂ': 'ツ', 'ﾃ': 'テ', 'ﾄ': 'ト',
+                    'ﾅ': 'ナ', 'ﾆ': 'ニ', 'ﾇ': 'ヌ', 'ﾈ': 'ネ', 'ﾉ': 'ノ',
+                    'ﾊ': 'ハ', 'ﾋ': 'ヒ', 'ﾌ': 'フ', 'ﾍ': 'ヘ', 'ﾎ': 'ホ',
+                    'ﾏ': 'マ', 'ﾐ': 'ミ', 'ﾑ': 'ム', 'ﾒ': 'メ', 'ﾓ': 'モ',
+                    'ﾔ': 'ヤ', 'ﾕ': 'ユ', 'ﾖ': 'ヨ', 'ﾗ': 'ラ', 'ﾘ': 'リ',
+                    'ﾙ': 'ル', 'ﾚ': 'レ', 'ﾛ': 'ロ', 'ﾜ': 'ワ', 'ｦ': 'ヲ', 'ﾝ': 'ン'
+                };
+                const reg = new RegExp('(' + Object.keys(kanaMap).join('|') + ')', 'g');
+                return res.replace(reg, (match) => kanaMap[match]);
+            };
+
+            const normalizeValue = val => {
+                const s = String(val || '').trim().toUpperCase();
+                if (s === 'TRUE' || s === 'あり' || s === '1' || s === 'YES' || s === 'はい' || s === 'T' || s === 'ON') return 'TRUE';
+                if (s === 'FALSE' || s === 'なし' || s === '0' || s === 'NO' || s === 'いいえ' || s === 'F' || s === 'OFF') return 'FALSE';
+                return s;
+            };
+
+            const updateVisibility = () => {
+                const fs = state.formsByType[state.selectedReportType] || [];
+                fs.forEach(q => {
+                    if (!q.showWhen) return;
+                    const triggerId = q.showWhen.questionId;
+                    const targetValue = normalizeValue(q.showWhen.equals);
+                    const targetEl = document.querySelector(`.question-item[data-id="${q.id}"]`);
+                    if (!targetEl) return;
+
+                    let isMatch = false;
+                    const sw = $(`switch-${triggerId}`);
+                    if (sw) {
+                        isMatch = normalizeValue(sw.value) === targetValue;
+                    } else {
+                        // 複数選択チェックボックスの hidden input を優先的にチェック
+                        const checkVal = $(`check-val-${triggerId}`);
+                        if (checkVal) {
+                            const currentVal = String(checkVal.value || '');
+                            const normalizedTarget = normalizeValue(targetValue);
+                            isMatch = currentVal.split(',').map(v => normalizeValue(v)).includes(normalizedTarget);
+                        } else {
+                            // 通常の入力項目への対応
+                            const el = document.querySelector(`[id$="-${triggerId}"]`);
+                            if (el) {
+                                if (el.type === 'checkbox') {
+                                    isMatch = normalizeValue(el.checked ? 'TRUE' : 'FALSE') === targetValue;
+                                } else {
+                                    const currentVal = String(el.value || '');
+                                    const normalizedTarget = normalizeValue(targetValue);
+                                    if (normalizedTarget === 'TRUE' || normalizedTarget === 'FALSE') {
+                                        isMatch = normalizeValue(currentVal) === normalizedTarget;
+                                    } else {
+                                        isMatch = currentVal.split(',').map(v => normalizeValue(v)).includes(normalizedTarget);
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    if (q.inputType === 'check_text_group') {
+                        targetEl.classList.remove('hidden');
+                        targetEl.classList.toggle('is-disabled', !isMatch);
+                    } else {
+                        targetEl.classList.toggle('hidden', !isMatch);
+                    }
+                });
+
+                // --- Dynamic "Not Applicable" (該当なし) logic (Driven by JSON skipCondition) ---
+                // Find all questions with a skipCondition
+                // (fs is already defined above in this scope)
+                const workTypeRow = fs.find(x => String(x.label || '').replace(/\s/g, '').indexOf('作業種別') >= 0);
+                const workTypeQuestionId = workTypeRow ? workTypeRow.id : '';
+
+                fs.forEach(q => {
+                    if (!q.skipCondition || !q.skipCondition.dependsOn) return;
+                    // 午後報告で②⑤以外の画像は「該当なし」を常時表示（JSON に残った作業種別連動を無効化）
+                    if (state.selectedReportType === '午後報告' &&
+                        (q.inputType === 'image' || q.inputType === 'image_text')) {
+                        const sLab = String(q.label || '').trim();
+                        if (!(/^②/.test(sLab) || /^⑤/.test(sLab))) return;
+                    }
+
+                    let targetId = q.skipCondition.dependsOn;
+                    // JSON に WORK_TYPE が残っている／作業種別の項目IDが解決できなかった場合のフォールバック
+                    if (targetId === 'WORK_TYPE' && workTypeQuestionId) {
+                        targetId = workTypeQuestionId;
+                    }
+
+                    // 対象項目の現在値を取得
+                    const cbVal = $(`check-val-${targetId}`);
+                    const selectVal = $(`select-${targetId}`);
+                    const switchVal = $(`switch-${targetId}`);
+
+                    let currentValue = '';
+                    if (cbVal && cbVal.value.trim()) currentValue = cbVal.value.trim();
+                    else if (selectVal && selectVal.value.trim()) currentValue = selectVal.value.trim();
+                    else if (switchVal && switchVal.value.trim()) currentValue = switchVal.value.trim();
+
+                    let isMatch = false;
+                    if (q.skipCondition.showWhen === 'equals' && q.skipCondition.equals) {
+                        // 特定値の一致チェック（例: 資材搬出入）
+                        isMatch = currentValue === q.skipCondition.equals;
+                    } else {
+                        // デフォルト: 何かが選択されていれば表示
+                        isMatch = currentValue !== '';
+                    }
+
+                    // Apply visibility to the skip button
+                    const btn = document.getElementById(`btn-skip-${q.id}`);
+                    if (btn) {
+                        btn.style.setProperty('display', isMatch ? 'block' : 'none', 'important');
+                    }
+
+                    // 条件不一致時にスキップ状態をリセット（作業種別変更時の整合性担保）
+                    if (!isMatch && state.skippedStore[q.id]) {
+                        state.skippedStore[q.id] = false;
+                        updateSkipUI(q.id);
+                    }
+                });
+            };
+
+            const initData = () => {
+                state.sites = state.bootstrap.sites || [];
+                state.contractors = Object.keys(CONTRACTOR_MAP);
+                state.formsByType = (state.bootstrap.forms || []).reduce((acc, f) => {
+                    const t = f.reportType || 'その他';
+                    if (!acc[t]) acc[t] = [];
+                    acc[t].push(f);
+                    return acc;
+                }, {});
+                state.reportTypes = state.bootstrap.reportTypes || Object.keys(state.formsByType) || Object.keys(REPORT_TYPE_INFO);
+            };
+
+            const escapeHtmlAttr = (s) =>
+                String(s || '')
+                    .replace(/&/g, '&amp;')
+                    .replace(/"/g, '&quot;')
+                    .replace(/</g, '&lt;');
+
+            const escapeHtmlText = (s) =>
+                String(s || '')
+                    .replace(/&/g, '&amp;')
+                    .replace(/</g, '&lt;')
+                    .replace(/>/g, '&gt;');
+
+            const siteDisplayLabel = (s) => {
+                if (!s) return '';
+                if (s.displayLabel) return s.displayLabel;
+                const id = String(s.id || '').trim();
+                const name = String(s.name || '').trim();
+                if (id && name && /SITE-\d+/i.test(id)) return `${name} (${id.toUpperCase()})`;
+                return name || id;
+            };
+
+            const extractSiteIdFromInput = (t) => {
+                const m = String(t || '').match(/SITE-\d+/i);
+                return m ? m[0].toUpperCase() : '';
+            };
+
+            const resolveSiteFromInput = (inputVal) => {
+                const v = String(inputVal || '').trim();
+                if (!v) return null;
+                const list = state.bootstrap.sites || [];
+                const bid = extractSiteIdFromInput(v);
+                if (bid) {
+                    const hit = list.find(x => String(x.id || '').trim().toUpperCase() === bid);
+                    if (hit) return hit;
+                }
+                const labelOf = (s) => s.displayLabel || siteDisplayLabel(s);
+                return list.find(s => labelOf(s) === v) || list.find(s => s.name === v) || null;
+            };
+
+            // 現場の詰所使用ステータスをサーバーから取得してキャッシュする
+            const getSiteId = () => {
+                const hit = resolveSiteFromInput($('site-input').value);
+                return hit ? hit.id : null;
+            };
+
+            /** getBuildingName 定義前でも使えるよう棟名を読む（キャッシュキー用） */
+            const readBuildingNameForCache = () => {
+                const hidden = $('building-name-value');
+                const mode = hidden ? hidden.value : '';
+                if (mode === 'free') {
+                    const inp = $('building-name-input');
+                    return (inp && inp.value ? String(inp.value) : '').trim();
+                }
+                return String(mode || '').trim();
+            };
+
+            const getTsumeshoCacheKey = () => {
+                const sid = getSiteId();
+                if (!sid) return '';
+                return sid + '\t' + readBuildingNameForCache();
+            };
+
+            /** スイッチの FALSE / 列の「なし」両方で「詰所なし」扱い */
+            const isTsumeshoNashiValue = (val) => {
+                const s = String(val == null ? '' : val).trim();
+                if (s === 'なし') return true;
+                if (s === 'FALSE' || s === 'false') return true;
+                if (s === '0') return true;
+                return false;
+            };
+
+            const fetchTsumeshoStatus = () => {
+                const cacheKey = getTsumeshoCacheKey();
+                const siteId = getSiteId();
+                const building = readBuildingNameForCache();
+                return new Promise((resolve) => {
+                    google.script.run
+                        .withSuccessHandler(result => {
+                            state.tsumeshoStatusCache[cacheKey] = {
+                                checked: true,
+                                tsumeshoNashi: result.found && isTsumeshoNashiValue(result.value)
+                            };
+                            resolve(state.tsumeshoStatusCache[cacheKey]);
+                        })
+                        .withFailureHandler(() => {
+                            // エラー時はデフォルト（詰所を表示する）
+                            state.tsumeshoStatusCache[cacheKey] = { checked: true, tsumeshoNashi: false };
+                            resolve(state.tsumeshoStatusCache[cacheKey]);
+                        })
+                        .checkTsumeshoStatus(siteId, building);
+                });
+            };
+
+            // 詰所使用=なし のとき、ラベルに「詰所」を含む項目を非表示にすべきか判定
+            const shouldHideTsumesho = () => {
+                const reportType = state.selectedReportType;
+                if (reportType !== '午後報告' && reportType !== '終業前報告') return false;
+                const cacheKey = getTsumeshoCacheKey();
+                if (!cacheKey) return false;
+                const cache = state.tsumeshoStatusCache[cacheKey];
+                return cache && cache.tsumeshoNashi;
+            };
+
+            const renderHome = () => {
+                // 請負業者プルダウンを業者マスタから動的に生成
+                const teamSelect = $('team-input');
+                teamSelect.innerHTML = '<option value="">選択してください</option>'
+                    + (state.contractors || []).map(name =>
+                        `<option value="${name}">${name}</option>`).join('');
+
+                const siteInput = $('site-input');
+                const suggestionsList = $('site-suggestions');
+                let isComposing = false;
+
+                const updateSiteSuggestions = (val) => {
+                    if (!val || val.trim() === '') {
+                        suggestionsList.style.display = 'none';
+                        return;
+                    }
+                    const input = normalizeKana(val);
+                    const filtered = state.sites.filter(s => {
+                        const label = siteDisplayLabel(s);
+                        const idPart = String(s.id || '');
+                        const hay = normalizeKana(`${label} ${idPart}`);
+                        return hay.includes(input);
+                    }).slice(0, 20);
+
+                    if (filtered.length === 0) {
+                        suggestionsList.style.display = 'none';
+                        return;
+                    }
+
+                    suggestionsList.innerHTML = filtered.map(s => {
+                        const lbl = siteDisplayLabel(s);
+                        const esc = escapeHtmlAttr(lbl);
+                        return `<div class="suggestion-item" data-value="${esc}">${escapeHtmlText(lbl)}</div>`;
+                    }).join('');
+                    suggestionsList.style.display = 'block';
+
+                    // タップイベント（mousedownを使うことでblurより先に発火）
+                    suggestionsList.querySelectorAll('.suggestion-item').forEach(item => {
+                        item.addEventListener('mousedown', (e) => {
+                            e.preventDefault(); // blurを防ぐ
+                            siteInput.value = item.dataset.value;
+                            state.isSiteSelected = true;
+                            suggestionsList.style.display = 'none';
+                        });
+
+                        // スマホ用：タップとスクロールを区別
+                        let touchStartY = 0;
+                        let touchStartTime = 0;
+                        let isScrolling = false;
+
+                        item.addEventListener('touchstart', (e) => {
+                            touchStartY = e.touches[0].clientY;
+                            touchStartTime = Date.now();
+                            isScrolling = false;
+                        }, { passive: true });
+
+                        item.addEventListener('touchmove', (e) => {
+                            const currentY = e.touches[0].clientY;
+                            if (Math.abs(currentY - touchStartY) > 10) {
+                                isScrolling = true;
+                            }
+                        }, { passive: true });
+
+                        item.addEventListener('touchcancel', () => {
+                            isScrolling = true;
+                        }, { passive: true });
+
+                        item.addEventListener('touchend', (e) => {
+                            if (isScrolling) return;
+                            const touchEndY = e.changedTouches[0].clientY;
+                            const touchDuration = Date.now() - touchStartTime;
+                            const moveDistance = Math.abs(touchEndY - touchStartY);
+
+                            // 移動距離が10px以下、かつ300ms以内なら「タップ」と判定
+                            if (moveDistance < 10 && touchDuration < 300) {
+                                e.preventDefault();
+                                siteInput.value = item.dataset.value;
+                                state.isSiteSelected = true;
+                                suggestionsList.style.display = 'none';
+                            }
+                        }, { passive: false });
+                    });
+                };
+
+                // IME対応（日本語入力中は候補を更新しない）
+                siteInput.addEventListener('compositionstart', () => {
+                    isComposing = true;
+                });
+
+                siteInput.addEventListener('compositionend', (e) => {
+                    isComposing = false;
+                    updateSiteSuggestions(e.target.value);
+                });
+
+                siteInput.addEventListener('input', (e) => {
+                    state.isSiteSelected = false;
+                    if (!isComposing) {
+                        updateSiteSuggestions(e.target.value);
+                    }
+                });
+
+                // フォーカスが外れたら候補を隠す（遅延させてタップを優先）
+                siteInput.addEventListener('blur', () => {
+                    // オートフィル等で直接入力された場合もマスタと完全一致すればOKとする
+                    const inputVal = siteInput.value.trim();
+                    if (!state.isSiteSelected && inputVal) {
+                        if (resolveSiteFromInput(inputVal)) {
+                            state.isSiteSelected = true;
+                        }
+                    }
+                    setTimeout(() => {
+                        suggestionsList.style.display = 'none';
+                    }, 200);
+                });
+
+                // 請負業者名 → 施工業者名の連動
+                $('team-input').addEventListener('change', () => {
+                    const companySelect = $('company-input');
+                    const teamValue = $('team-input').value;
+                    const subs = CONTRACTOR_MAP[teamValue];
+                    if (!teamValue) {
+                        companySelect.innerHTML = '<option value="">先に請負業者名を選択してください</option>';
+                    } else if (!subs || subs.length === 0) {
+                        // 下請けなし → 請負業者名を施工業者名に自動入力
+                        companySelect.innerHTML = `<option value="${teamValue}">${teamValue}</option>`;
+                        companySelect.value = teamValue;
+                    } else {
+                        // 請負業者名自身を先頭に追加 + 下請け企業一覧
+                        companySelect.innerHTML = '<option value="">選択してください</option>'
+                            + `<option value="${teamValue}">${teamValue}</option>`
+                            + subs.map(s => `<option value="${s}">${s}</option>`).join('');
+                    }
+                });
+
+                $('report-type-actions').innerHTML = state.reportTypes.map(t => {
+                    const info = REPORT_TYPE_INFO[t] || { icon: '📝', label: t, time: '' };
+                    return `<div class="btn-report" data-type="${t}"><div class="btn-report-icon">${info.icon}</div><div class="btn-report-label">${info.label}</div>${info.time ? `<div class="btn-report-time">${info.time}</div>` : ''}</div>`;
+                }).join('');
+            };
+
+            const renderForm = () => {
+                let fs = state.formsByType[state.selectedReportType] || [];
+
+                const resendBanner = document.getElementById('resend-mode-banner');
+                if (resendBanner) {
+                    if (state.isResendMode && state.resendTargetType) {
+                        resendBanner.style.display = 'block';
+                        resendBanner.textContent =
+                            '\uD83D\uDD04 \u5dee\u3057\u623b\u3057\u5199\u771f\u306e\u518d\u9001 \u2014 \u5831\u544a\u7a2e\u5225: ' + state.resendTargetType;
+                    } else {
+                        resendBanner.style.display = 'none';
+                        resendBanner.textContent = '';
+                    }
+                }
+
+
+                // 再送モードの場合: 画像項目のみを表示
+                if (state.isResendMode) {
+                    fs = fs.filter(q => q.inputType === 'image' || q.inputType === 'image_text');
+                }
+
+                // active=false の項目は表示しない（終業前報告の画像フィルタ等もここで処理済み）
+                fs = fs.filter(q => q.active !== false);
+
+                // uiHint: hidden の項目は表示しない（工区番号等）
+                fs = fs.filter(q => q.uiHint !== 'hidden');
+
+                // 始業前報告で詰所使用=なし の場合、詰所の画像フィールドを非表示にする
+                if (shouldHideTsumesho()) {
+                    fs = fs.filter(q => !String(q.label || '').includes('詰所'));
+                }
+
+                $('form-questions').innerHTML = fs.map(q => renderQuestion(q)).join('');
+                fs.forEach(q => {
+                    if (q.inputType === 'slider') attachSliderListeners(q.id);
+                    if (q.uiHint === 'repeatable_zone') initRepeatableGroup(q.id);
+                });
+                updateVisibility();
+            };
+
+            /** 午後報告の写真: 行頭②・⑤のみ必須・該当なしなし（それ以外は該当なし可） */
+            const isAfternoonMandatoryPhotoLabel = (label) => {
+                const s = String(label || '').trim();
+                return /^②/.test(s) || /^⑤/.test(s);
+            };
+
+            const renderQuestion = q => {
+                const label = q.label || '';
+                let isReq = q.required && !state.isResendMode;
+                if (!state.isResendMode && state.selectedReportType === '午後報告' &&
+                    (q.inputType === 'image' || q.inputType === 'image_text')) {
+                    isReq = isAfternoonMandatoryPhotoLabel(label);
+                }
+                const req = isReq ? '<span class="form-required">*</span>' : '';
+                const hidden = q.showWhen ? 'hidden' : '';
+
+                // Use JSON-driven displayLabel and effectiveInputType (no more hardcoding)
+                let displayLabel = q.displayLabel || label;
+                let effectiveInputType = q.effectiveInputType || q.inputType;
+
+                if (q.uiHint === 'repeatable_zone') return `<div class="form-group question-item ${hidden}" data-id="${q.id}"><label class="form-label">${displayLabel}${req}</label><div id="repeatable-container-${q.id}"></div><button type="button" class="btn-add-group" onclick="addRepeatableGroup('${q.id}')">+ 工区を追加</button></div>`;
+                if (effectiveInputType === 'slider') {
+                    const smin = q.meta?.min ?? 0;
+                    const smax = q.meta?.max ?? 100;
+                    const sdef = q.meta?.default ?? 50;
+                    return `<div class="form-group question-item ${hidden}" data-id="${q.id}"><label class="form-label">${displayLabel}${req}</label><div class="input-percent-row"><input type="number" class="form-input" id="slider-${q.id}" min="${smin}" max="${smax}" step="1" value="${sdef}" inputmode="numeric" placeholder="${smin}〜${smax}" aria-label="${displayLabel}" /><span class="input-percent-suffix">%</span></div></div>`;
+                }
+                if (effectiveInputType === 'switch') {
+                    let extraHtml = '';
+                    if (q.uiHint === 'switch_with_calendar') {
+                        extraHtml = `<input type="text" id="switch-text-${q.id}" class="form-input" style="margin-top:12px; display:none;" placeholder="翌日の作業内容を入力"><label for="switch-date-${q.id}" class="form-label" id="switch-date-label-${q.id}" style="display:none; font-size:clamp(18px,4.5vw,22px); margin-top:12px; color:#64748b;">次回予定日<span class="form-required">*</span></label><input type="date" id="switch-date-${q.id}" class="form-input" style="margin-top:4px; display:none;">`;
+                    }
+                    const doneBtn = q.uiHint === 'switch_with_calendar' ? `<button type="button" class="switch-btn" onclick="setSwitch('${q.id}', 'DONE')" id="btn-done-${q.id}">完工</button>` : '';
+                    return `<div class="form-group question-item ${hidden}" data-id="${q.id}"><label class="form-label">${displayLabel}${req}</label><div class="switch-group"><button type="button" class="switch-btn" onclick="setSwitch('${q.id}', 'TRUE')" id="btn-on-${q.id}">あり</button><button type="button" class="switch-btn" onclick="setSwitch('${q.id}', 'FALSE')" id="btn-off-${q.id}">なし</button>${doneBtn}</div><input type="hidden" id="switch-${q.id}" value="">${extraHtml}</div>`;
+                }
+                if (effectiveInputType === 'check') return `<div class="form-group question-item ${hidden}" data-id="${q.id}"><label class="checkbox-container"><input type="checkbox" class="checkbox" id="check-${q.id}"><span class="form-label" style="margin: 0;">${displayLabel}${req}</span></label></div>`;
+                if (effectiveInputType === 'check_text_group') {
+                    const rows = (q.options || []).map((opt, idx) => `<div class="check-text-row" id="ct-row-${q.id}-${idx}"><div style="display: flex; align-items: center; gap: 16px; width: 100%;"><input type="checkbox" class="checkbox" id="ct-check-${q.id}-${idx}" onchange="toggleCheckDetail('${q.id}', ${idx})" style="width: 44px; height: 44px;"><span class="form-label" style="margin: 0; flex: 1; cursor: pointer; font-size: clamp(30px, 8vw, 36px);" onclick="document.getElementById('ct-check-${q.id}-${idx}').click()">${opt}</span></div><input type="text" class="check-text-input" id="ct-text-${q.id}-${idx}" placeholder="${opt}の詳細内容を入力"></div>`).join('');
+                    return `<div class="form-group question-item ${hidden}" data-id="${q.id}"><label class="form-label">${displayLabel}${req}</label><div id="ct-group-${q.id}">${rows}</div></div>`;
+                }
+                // 複数選択チェックボックス (組立/解体などで使用)
+                if (q.inputType === 'checkbox' && (q.options || []).length > 0) {
+                    const rows = q.options.map((opt, idx) => `
+            <div class="check-text-row" onclick="toggleOption('${q.id}', '${opt}', ${idx})" id="opt-row-${q.id}-${idx}" style="flex-direction: row; align-items: center;">
+              <input type="checkbox" class="checkbox" id="opt-check-${q.id}-${idx}" value="${opt}" style="width: 48px; height: 48px; margin-right: 20px;">
+              <span class="form-label" style="margin: 0; font-size: clamp(32px, 8.5vw, 40px);">${opt}</span>
+            </div>
+          `).join('');
+                    return `<div class="form-group question-item ${hidden}" data-id="${q.id}">
+            <label class="form-label">${displayLabel}${req}</label>
+            <div id="check-group-${q.id}">${rows}</div>
+            <input type="hidden" id="check-val-${q.id}" value="">
+          </div>`;
+                }
+                if (q.inputType === 'image' || q.inputType === 'image_text') {
+                    // JSON-driven showSkip / skipCondition（午後報告の②⑤以外は常に該当なし可＝サーバの skipCondition は無視）
+                    let showSkip = state.isResendMode ? false : (q.showSkip !== false);
+                    let skipClass = '';
+                    let skipStyle = '';
+                    const pmMandatory = state.selectedReportType === '午後報告' && isAfternoonMandatoryPhotoLabel(label);
+                    if (pmMandatory) {
+                        showSkip = false;
+                    } else if (state.selectedReportType === '午後報告') {
+                        showSkip = !state.isResendMode;
+                    } else if (!state.isResendMode && q.skipCondition) {
+                        skipClass = `skip-dynamic-${q.id}`;
+                        skipStyle = 'display: none !important;';
+                    }
+
+                    const skipButtonHtml = showSkip
+                        ? `<button type="button" class="btn-skip ${skipClass}" id="btn-skip-${q.id}" style="${skipStyle}" onclick="toggleSkip('${q.id}')">${q.meta?.skipLabel || '該当なし'}</button>`
+                        : '';
+
+                    const remarksHtml = state.isResendMode ? '' :
+                        `<textarea id="remarks-${q.id}" class="img-remarks" rows="2" placeholder="備考（トラブル等があれば記入）" oninput="updateRemarks('${q.id}', this.value)"></textarea>`;
+
+                    return `<div class="form-group question-item ${hidden}" data-id="${q.id}"><label class="form-label">${displayLabel}${req}</label><div id="img-container-${q.id}"><div class="img-upload-area" onclick="document.getElementById('file-${q.id}').click()"><div class="img-upload-icon">🖼️</div><div class="img-upload-text">写真を選択（複数可）</div></div><input type="file" id="file-${q.id}" accept="image/*" multiple style="opacity: 0; position: absolute; pointer-events: none;" onchange="handleImages(this, '${q.id}')"><div id="img-grid-${q.id}" class="img-grid"></div></div>${remarksHtml}${skipButtonHtml}</div>`;
+                }
+                return `<div class="form-group question-item ${hidden}" data-id="${q.id}"><label class="form-label">${displayLabel}${req}</label><textarea id="text-${q.id}" class="form-input" rows="4" placeholder="${q.placeholder || ''}"></textarea></div>`;
+            };
+
+            window.toggleOption = (qId, opt, idx) => {
+                const check = $(`opt-check-${qId}-${idx}`);
+                const row = $(`opt-row-${qId}-${idx}`);
+                if (!check) return;
+
+                // イベントの伝播を防ぐため、クリックされたのがチェックボックス自体でない場合のみ切り替える
+                if (event.target !== check) {
+                    check.checked = !check.checked;
+                }
+
+                row.classList.toggle('is-checked', check.checked);
+
+                // 選択された値を集計して hidden 入力に保存
+                const allChecks = document.querySelectorAll(`[id^="opt-check-${qId}-"]`);
+                const selected = Array.from(allChecks).filter(c => c.checked).map(c => c.value);
+                $(`check-val-${qId}`).value = selected.join(',');
+
+                updateVisibility();
+            };
+
+            window.setSwitch = (qId, val) => {
+                const input = $(`switch-${qId}`);
+                if (!input) return;
+                input.value = val;
+                $(`btn-on-${qId}`).classList.toggle('active', val === 'TRUE');
+                $(`btn-off-${qId}`).classList.toggle('active-off', val === 'FALSE');
+                const btnDone = $(`btn-done-${qId}`);
+                if (btnDone) btnDone.classList.toggle('active-done', val === 'DONE');
+                const switchText = $(`switch-text-${qId}`);
+                const switchDate = $(`switch-date-${qId}`);
+                const switchDateLabel = $(`switch-date-label-${qId}`);
+                if (switchText) switchText.style.display = val === 'TRUE' ? 'block' : 'none';
+                if (switchDate) {
+                    switchDate.style.display = val === 'FALSE' ? 'block' : 'none';
+                    if (switchDateLabel) switchDateLabel.style.display = val === 'FALSE' ? 'block' : 'none';
+                }
+                updateVisibility();
+                setTimeout(updateVisibility, 50);
+                setTimeout(updateVisibility, 300);
+            };
+
+            window.toggleCheckDetail = (qId, idx) => {
+                const cb = $(`ct-check-${qId}-${idx}`), row = $(`ct-row-${qId}-${idx}`);
+                if (cb && row) row.classList.toggle('is-checked', cb.checked);
+                updateVisibility();
+            };
+
+            const attachSliderListeners = (qId) => {
+                const inp = $(`slider-${qId}`);
+                if (!inp || inp.type !== 'number') return;
+                const min = parseInt(inp.min, 10);
+                const max = parseInt(inp.max, 10);
+                const clamp = () => {
+                    let v = parseInt(inp.value, 10);
+                    if (inp.value === '' || inp.value === null) return;
+                    if (isNaN(v)) {
+                        inp.value = '';
+                        return;
+                    }
+                    if (!isNaN(min)) v = Math.max(min, v);
+                    if (!isNaN(max)) v = Math.min(max, v);
+                    inp.value = String(v);
+                };
+                inp.addEventListener('blur', clamp);
+            };
+
+            const initRepeatableGroup = (qId) => { state.repeatableData[qId] = []; addRepeatableGroup(qId); };
+
+            window.addRepeatableGroup = (qId) => {
+                const index = state.repeatableData[qId].length; state.repeatableData[qId].push({});
+                const container = $(`repeatable-container-${qId}`), group = document.createElement('div');
+                group.className = 'repeatable-group'; group.id = `repeatable-${qId}-${index}`;
+                group.innerHTML = `${index > 0 ? `<button type="button" class="repeatable-remove" onclick="removeRepeatableGroup('${qId}', ${index})">×</button>` : ''}
+          <div class="form-group" style="margin-bottom: 20px;">
+            <label class="form-label" style="font-size: clamp(24px, 6vw, 28px);">工区番号</label>
+            <input type="tel" inputmode="numeric" pattern="[0-9]*" class="form-input" id="zone-num-${qId}-${index}" placeholder="例: 3" oninput="this.value=this.value.replace(/[^0-9]/g,'')">
+          </div>
+          <div class="form-group" style="margin-bottom: 20px;">
+            <label class="form-label" style="font-size: clamp(24px, 6vw, 28px);">作業種別</label>
+            <select class="form-select" id="zone-type-${qId}-${index}">
+              <option value="">選択してください</option>
+              <option value="組立">組立</option>
+              <option value="解体">解体</option>
+            </select>
+          </div>
+          <div class="form-group" style="margin-bottom: 0;">
+            <label class="form-label" style="font-size: clamp(24px, 6vw, 28px);">進捗率</label>
+            <div class="input-percent-row">
+              <input type="number" class="form-input" id="zone-progress-${qId}-${index}" min="0" max="100" step="1" value="50" inputmode="numeric" placeholder="0〜100" aria-label="進捗率" />
+              <span class="input-percent-suffix">%</span>
+            </div>
+          </div>`;
+                container.appendChild(group);
+                const zinp = $(`zone-progress-${qId}-${index}`);
+                if (zinp) {
+                    zinp.addEventListener('blur', () => {
+                        let v = parseInt(zinp.value, 10);
+                        if (zinp.value === '' || zinp.value === null) return;
+                        if (isNaN(v)) {
+                            zinp.value = '';
+                            return;
+                        }
+                        v = Math.min(100, Math.max(0, v));
+                        zinp.value = String(v);
+                    });
+                }
+            };
+
+            window.removeRepeatableGroup = (qId, index) => { const x = $(`repeatable-${qId}-${index}`); if (x) x.remove(); state.repeatableData[qId][index] = null; };
+
+            window.handleImages = (input, qId) => {
+                if (!input.files || !input.files.length) return;
+                if (!state.imageStore[qId]) state.imageStore[qId] = [];
+                Array.from(input.files).forEach(file => {
+                    const reader = new FileReader();
+                    reader.onload = e => {
+                        const img = new Image();
+                        img.onload = () => {
+                            const canvas = document.createElement('canvas');
+                            let w = img.width, h = img.height;
+                            if (w > 1200 || h > 1200) { if (w > h) { h *= 1200 / w; w = 1200; } else { w *= 1200 / h; h = 1200; } }
+                            canvas.width = w; canvas.height = h;
+                            canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+                            state.imageStore[qId].push({ data: canvas.toDataURL('image/jpeg', 0.8).split(',')[1], mimeType: 'image/jpeg', fileName: `img_${qId}_${state.imageStore[qId].length}.jpg`, questionId: qId });
+                            state.skippedStore[qId] = false; updateSkipUI(qId); renderImageGrid(qId);
+                        };
+                        img.src = e.target.result;
+                    };
+                    reader.readAsDataURL(file);
+                });
+                input.value = '';
+            };
+
+            const renderImageGrid = (qId) => {
+                const grid = $(`img-grid-${qId}`); if (!grid || !state.imageStore[qId]) return;
+                grid.innerHTML = state.imageStore[qId].map((img, idx) => `<div class="img-preview-item" style="background-image: url(data:${img.mimeType};base64,${img.data})"><button class="img-remove" onclick="removeImage('${qId}', ${idx})">×</button></div>`).join('');
+            };
+
+            window.removeImage = (qId, idx) => { state.imageStore[qId].splice(idx, 1); renderImageGrid(qId); };
+            window.updateRemarks = (qId, value) => { state.imageRemarks[qId] = value; };
+
+            window.toggleSkip = (qId) => {
+                state.skippedStore[qId] = !state.skippedStore[qId];
+                if (state.skippedStore[qId]) {
+                    state.imageStore[qId] = [];
+                    renderImageGrid(qId);
+                }
+                updateSkipUI(qId);
+            };
+
+            const updateSkipUI = (qId) => {
+                const btn = $(`btn-skip-${qId}`), container = $(`img-container-${qId}`);
+                if (btn) btn.classList.toggle('active', !!state.skippedStore[qId]);
+                if (container) { container.style.opacity = state.skippedStore[qId] ? '0.3' : '1'; container.style.pointerEvents = state.skippedStore[qId] ? 'none' : 'auto'; }
+            };
+
+            const collectAnswers = () => {
+                let fs = state.formsByType[state.selectedReportType] || [];
+                // 再送モードでは画像項目のみ収集
+                if (state.isResendMode) {
+                    fs = fs.filter(q => q.inputType === 'image' || q.inputType === 'image_text');
+                }
+                return fs.flatMap(q => {
+                    const container = document.querySelector(`.question-item[data-id="${q.id}"]`);
+                    if (container && (container.classList.contains('hidden') || container.classList.contains('is-disabled'))) return [];
+
+                    if (q.uiHint === 'repeatable_zone' && state.repeatableData[q.id]) {
+                        const zones = [];
+                        state.repeatableData[q.id].forEach((_, idx) => {
+                            if (_ !== null) {
+                                const num = $(`zone-num-${q.id}-${idx}`), type = $(`zone-type-${q.id}-${idx}`), prog = $(`zone-progress-${q.id}-${idx}`);
+                                if (num && prog && num.value) {
+                                    const pv = String(prog.value || '').trim();
+                                    const pn = pv === '' ? NaN : parseInt(pv, 10);
+                                    const 進捗 = isNaN(pn) ? '' : `${pn}%`;
+                                    zones.push({ 工区: num.value, 作業種別: type ? type.value : '', 進捗: 進捗 });
+                                }
+                            }
+                        });
+                        return [{ questionId: q.id, label: q.label, value: zones.length ? JSON.stringify(zones) : '' }];
+                    }
+
+
+                    let value = '';
+                    let effectiveType = q.effectiveInputType || q.inputType; // Use valid type from JSON
+                    if (effectiveType === 'number') effectiveType = 'text';
+
+                    // Safer element lookup
+                    const prefix = effectiveType || 'text';
+                    const el = document.getElementById(`${prefix}-${q.id}`);
+
+                    if (effectiveType === 'slider') {
+                        const raw = el && el.value !== '' && el.value != null ? String(el.value).trim() : '';
+                        if (raw === '') value = '';
+                        else {
+                            const n = parseInt(raw, 10);
+                            value = isNaN(n) ? '' : `${n}%`;
+                        }
+                    }
+                    else if (effectiveType === 'switch') {
+                        const sw = $(`switch-${q.id}`);
+                        if (sw && sw.value) {
+                            const normalizedSw = normalizeValue(sw.value);
+                            if (normalizedSw === 'DONE') {
+                                value = '完工';
+                            } else {
+                                const swLabel = normalizedSw === 'TRUE' ? 'あり' : 'なし';
+                                const swText = $(`switch-text-${q.id}`);
+                                const swDate = $(`switch-date-${q.id}`);
+                                if (normalizedSw === 'TRUE' && swText && swText.value.trim()) {
+                                    value = `${swLabel}: ${swText.value.trim()}`;
+                                } else if (normalizedSw === 'FALSE' && swDate && swDate.value) {
+                                    value = `${swLabel}（次回予定日: ${swDate.value}）`;
+                                } else {
+                                    value = swLabel;
+                                }
+                            }
+                        }
+                    }
+                    else if (effectiveType === 'check') {
+                        value = el && el.checked ? 'はい' : 'いいえ';
+                    }
+                    else if (effectiveType === 'check_text_group') {
+                        const res = [];
+                        (q.options || []).forEach((opt, idx) => {
+                            const cb = $(`ct-check-${q.id}-${idx}`), txt = $(`ct-text-${q.id}-${idx}`);
+                            if (cb && cb.checked) res.push(`${opt}: ${txt ? txt.value : ''}`);
+                        });
+                        value = res.join(' / ');
+                    }
+                    else if (q.inputType === 'checkbox') {
+                        const cv = $(`check-val-${q.id}`);
+                        value = cv ? cv.value : '';
+                    }
+                    else if (q.inputType === 'image' || q.inputType === 'image_text') {
+                        if (state.skippedStore[q.id]) value = '該当なし';
+                        else value = state.imageStore[q.id] && state.imageStore[q.id].length ? `[${state.imageStore[q.id].length}枚の画像]` : '';
+                    }
+                    else {
+                        value = el ? el.value : '';
+                    }
+                    const mainAnswer = { questionId: q.id, label: q.label, value };
+                    // 画像項目の備考を追加エントリとして収集（再送モード時は除外）
+                    if (!state.isResendMode && (q.inputType === 'image' || q.inputType === 'image_text')) {
+                        const remarksText = state.imageRemarks[q.id];
+                        if (remarksText && remarksText.trim()) {
+                            return [mainAnswer, { questionId: q.id + '_remarks', label: q.label + '_備考', value: remarksText.trim() }];
+                        }
+                    }
+                    return [mainAnswer];
+                });
+            };
+
+            /** 送信直前にフォーカス中の input を確定させる（スマホで数値が未コミットのまま収集されるのを防ぐ） */
+            const flushActiveInputBeforeCollect = () => {
+                const ae = document.activeElement;
+                if (ae && typeof ae.blur === 'function' && (ae.tagName === 'INPUT' || ae.tagName === 'TEXTAREA' || ae.tagName === 'SELECT')) {
+                    ae.blur();
+                    return true;
+                }
+                return false;
+            };
+
+            const handleSubmit = async () => {
+                const flushed = flushActiveInputBeforeCollect();
+                if (flushed) await new Promise(r => setTimeout(r, 50));
+                const fs = state.formsByType[state.selectedReportType] || [], answers = collectAnswers(), missing = [];
+                if (!$('worker-input').value.trim()) missing.push('報告者名');
+                if (!$('site-input').value.trim()) missing.push('工事現場名');
+                else if (!state.isSiteSelected) {
+                    alert('【重要】工事現場名は、入力欄の下に出てくる「候補（青い枠）」の中から選んでタップしてください。自分で入力しただけでは送信できません。');
+                    return;
+                }
+                if (getBuildingName().trim() === '') missing.push('棟名');
+                if (!$('team-input').value.trim()) missing.push('請負業者名');
+                if (!$('company-input').value.trim()) missing.push('施工業者名');
+                fs.forEach(q => {
+                    const container = document.querySelector(`.question-item[data-id="${q.id}"]`);
+                    if (!container || container.classList.contains('hidden') || container.classList.contains('is-disabled')) return;
+                    const ans = answers.find(a => a && a.questionId === q.id);
+                    const hasRemarks = (q.inputType === 'image' || q.inputType === 'image_text') && state.imageRemarks[q.id] && state.imageRemarks[q.id].trim();
+                    let effectiveRequired = q.required;
+                    if (state.selectedReportType === '午後報告' && (q.inputType === 'image' || q.inputType === 'image_text')) {
+                        const s = String(q.label || '').trim();
+                        effectiveRequired = /^②/.test(s) || /^⑤/.test(s);
+                    }
+                    if (!state.isResendMode && effectiveRequired && (!ans || !ans.value) && !hasRemarks) {
+                        missing.push(q.displayLabel || q.label);
+                    }
+                });
+
+                const nextDateQ = fs.find(q => q.uiHint === 'switch_with_calendar');
+                if (nextDateQ) {
+                    const sw = $(`switch-${nextDateQ.id}`);
+                    const swDate = $(`switch-date-${nextDateQ.id}`);
+                    if (sw && normalizeValue(sw.value) === 'FALSE' && swDate && !swDate.value) {
+                        missing.push('次回予定日');
+                    }
+                }
+                if (missing.length > 0) {
+                    alert("【入力漏れがあります】\n\n以下の項目を入力してください：\n\n・" + missing.map(m => m.replace(/<.*?>/g, '')).join('\n・'));
+                    return;
+                }
+                const allImages = []; Object.values(state.imageStore).forEach(imgs => { if (Array.isArray(imgs)) allImages.push(...imgs); });
+                if (state.isResendMode && allImages.length > 15) {
+                    alert(`【写真の枚数制限】\n\n再送できる写真は最大15枚です。\n現在 ${allImages.length} 枚選択されています。\n\n不要な写真を削除してから再送してください。`);
+                    return;
+                }
+                const siteHit = resolveSiteFromInput($('site-input').value);
+                const rawSiteInput = $('site-input').value;
+                const basePayload = {
+                    siteName: siteHit ? siteHit.name : rawSiteInput,
+                    siteId: siteHit
+                        ? siteHit.id
+                        : extractSiteIdFromInput(rawSiteInput) || rawSiteInput,
+                    buildingName: getBuildingName(),
+                    reporterName: $('worker-input').value,
+                    reportType: state.selectedReportType,
+                    teamName: $('team-input').value,
+                    companyName: $('company-input').value,
+                    answers,
+                    isResend: state.isResendMode,
+                    resendTargetType: state.resendTargetType,
+                    meta: {
+                        submittedAt: new Date().toISOString() // ★スマホ側で一意の送信時刻を作り、通信遅延による二重書き込みを完全に防ぐ
+                    }
+                };
+                $('btn-submit').disabled = true;
+                document.getElementById('submitOverlay').classList.add('active');
+                const setOverlayText = text => { document.getElementById('submitOverlayText').textContent = text; };
+
+                // === 自動リトライ機能（バックエンドの超高速化に伴いバッチ処理を廃止） ===
+                const runWithRetry = async (methodName, data, maxRetries = 2, delayMs = 3000) => {
+                    for (let attempt = 1; attempt <= maxRetries + 1; attempt++) {
+                        try {
+                            if (attempt > 1) {
+                                setOverlayText(`送信中...\n(通信混雑のため再送中: ${attempt}回目)`);
+                            }
+                            return await new Promise((resolve, reject) => {
+                                google.script.run
+                                    .withSuccessHandler(resolve)
+                                    .withFailureHandler(reject)[methodName](data);
+                            });
+                        } catch (error) {
+                            if (attempt > maxRetries) throw error;
+                            console.warn(`送信エラー発生(${attempt}回目)。${delayMs / 1000}秒後に自動リトライします...`, error);
+                            await new Promise(r => setTimeout(r, delayMs)); // 指定秒数待機
+                        }
+                    }
+                };
+
+                try {
+                    const questionLabels = (answers || []).reduce((acc, a) => {
+                        if (a && a.questionId) acc[a.questionId] = a.label || '';
+                        return acc;
+                    }, {});
+
+                    if (state.isResendMode) {
+                        setOverlayText('差し戻し報告を\n送信中...');
+                        const fullPayload = { ...basePayload, images: allImages };
+                        const resendResult = await runWithRetry('submitResendReport', fullPayload);
+                        if (resendResult && resendResult.success === false) throw new Error(resendResult.error || '再送に失敗しました');
+                    } else {
+                        // 写真を1回の submitReport に載せるとペイロードが巨大になり google.script.run がタイムアウトしやすい。
+                        // 先にフォルダ作成 → 数枚ずつ uploadPhotoBatch → 最後はメタだけ submitReport。
+                        let submitPayload;
+                        if (allImages.length > 0) {
+                            const submittedAtIso = basePayload.meta.submittedAt;
+                            const PHOTO_RETRIES = 4;
+                            const PHOTO_DELAY_MS = 4500;
+                            const FIRST_BATCH = 3;
+                            const BATCH = 3;
+
+                            const firstSlice = allImages.slice(0, Math.min(FIRST_BATCH, allImages.length));
+                            const rest = allImages.slice(firstSlice.length);
+
+                            setOverlayText('送信中…\n写真用フォルダを準備しています');
+                            const firstRes = await runWithRetry(
+                                'prepareFolderAndUploadFirstBatch',
+                                {
+                                    siteId: basePayload.siteId,
+                                    siteName: basePayload.siteName,
+                                    buildingName: basePayload.buildingName,
+                                    reportType: basePayload.reportType,
+                                    reporterName: basePayload.reporterName,
+                                    submittedAt: submittedAtIso,
+                                    files: firstSlice,
+                                    questionLabels,
+                                    namePrefix: 'b0_'
+                                },
+                                PHOTO_RETRIES,
+                                PHOTO_DELAY_MS
+                            );
+                            const preUploadedFolderId = firstRes && firstRes.folderId;
+                            if (!preUploadedFolderId) {
+                                throw new Error(
+                                    '写真フォルダの準備に失敗しました。通信状況を確認して再度お試しください。'
+                                );
+                            }
+                            const preUploadedFiles = [...(firstRes.files || [])];
+                            if (preUploadedFiles.length !== firstSlice.length) {
+                                throw new Error('写真の保存が途中で途切れました。再度お試しください。');
+                            }
+
+                            for (let i = 0; i < rest.length; i += BATCH) {
+                                const slice = rest.slice(i, i + BATCH);
+                                const done = firstSlice.length + Math.min(i + slice.length, rest.length);
+                                setOverlayText(
+                                    `送信中…\n写真をアップロード中（${done} / ${allImages.length}）`
+                                );
+                                const batchIdx = 1 + Math.floor(i / BATCH);
+                                const up = await runWithRetry(
+                                    'uploadPhotoBatch',
+                                    {
+                                        files: slice,
+                                        folderId: preUploadedFolderId,
+                                        questionLabels,
+                                        namePrefix: `b${batchIdx}_`
+                                    },
+                                    PHOTO_RETRIES,
+                                    PHOTO_DELAY_MS
+                                );
+                                if (!up || !Array.isArray(up.files)) {
+                                    throw new Error(
+                                        '写真のアップロードに失敗しました。通信状況を確認して再度お試しください。'
+                                    );
+                                }
+                                preUploadedFiles.push(...up.files);
+                            }
+                            if (preUploadedFiles.length !== allImages.length) {
+                                throw new Error('写真の保存が途中で途切れました。再度お試しください。');
+                            }
+                            submitPayload = {
+                                ...basePayload,
+                                images: [],
+                                preUploadedFolderId,
+                                preUploadedFiles,
+                                isQuarantine: !!(firstRes && firstRes.isQuarantine),
+                                quarantineReason: (firstRes && firstRes.quarantineReason) || '',
+                                quarantineFolderUrl: (firstRes && firstRes.quarantineFolderUrl) || '',
+                                quarantineCaseFolderId: (firstRes && firstRes.quarantineCaseFolderId) || '',
+                                intendedPath: (firstRes && firstRes.intendedPath) || '',
+                                driveFolderIdFromMaster: (firstRes && firstRes.driveFolderIdFromMaster) || '',
+                                actualFolderName: (firstRes && firstRes.actualFolderName) || ''
+                            };
+                        } else {
+                            submitPayload = { ...basePayload, images: [] };
+                        }
+                        setOverlayText('送信中…\n内容を記録しています');
+                        const submitResult = await runWithRetry('submitReport', submitPayload);
+                        if (submitResult && submitResult.success === false) {
+                            throw new Error(submitResult.error || '送信に失敗しました');
+                        }
+                        if (submitResult && submitResult.skipped) {
+                            toast('この報告は既に受け付け済みです（重複送信をスキップしました）。');
+                        }
+                        if (submitResult && submitResult.sheetWriteFallbackAppend) {
+                            toast('通常の行追加に失敗したため、シート末尾へ記録しました。管理者に連絡してください。');
+                        }
+                        if (submitResult && submitResult.quarantine) {
+                            toast('保存先不整合のため、写真は要確認フォルダへ隔離保存しました。');
+                        }
+                    }
+
+                    if (!state.isResendMode && basePayload.reportType === '始業前報告' && basePayload.siteId) {
+                        const tsumeshoAnswer = (answers || []).find(a => a && String(a.label || '').includes('詰所使用'));
+                        if (tsumeshoAnswer) {
+                            const ck = basePayload.siteId + '\t' + readBuildingNameForCache();
+                            state.tsumeshoStatusCache[ck] = {
+                                checked: true,
+                                tsumeshoNashi: isTsumeshoNashiValue(tsumeshoAnswer.value)
+                            };
+                        }
+                    }
+                    clearDraft();
+                    show('screen-complete');
+                    
+                    // トビ丸: correct（バウンス+スパークル）→ idle（呼吸）
+                    (() => {
+                        const ca = document.getElementById('completeAvatar');
+                        if (!ca) return;
+                        ca.classList.remove('tobi-state--idle');
+                        void ca.offsetWidth;
+                        ca.classList.add('tobi-state--correct');
+                        setTimeout(() => {
+                            ca.classList.remove('tobi-state--correct');
+                            ca.classList.add('tobi-state--idle');
+                        }, 1500);
+                    })();
+                } catch (e) {
+                    toast('エラー: ' + e.message);
+                } finally { 
+                    document.getElementById('submitOverlay').classList.remove('active'); 
+                    $('btn-submit').disabled = false; 
+                    $('btn-submit').textContent = state.isResendMode ? '再送する' : '送信する'; 
+                }
+            };
+
+            $('report-type-actions').addEventListener('click', e => {
+                const btn = e.target.closest('.btn-report');
+                if (btn) {
+                    const missing = [];
+                    if (!$('worker-input').value.trim()) missing.push('報告者名');
+                    if (!$('site-input').value.trim()) missing.push('工事現場名');
+                    if (getBuildingName().trim() === '') missing.push('棟名');
+                    if (!$('team-input').value.trim()) missing.push('請負業者名');
+                    if (!$('company-input').value.trim()) missing.push('施工業者名');
+
+                    if (missing.length > 0) {
+                        alert("【共通情報の入力漏れ】\n\n先に以下の項目を入力してください：\n\n・" + missing.join('\n・'));
+                        return;
+                    }
+
+                    if (!state.isSiteSelected) {
+                        alert('【確認】工事現場名は、入力欄の下に出てくる「候補（青い枠）」の中から選んでタップしてください。\n\n※ 候補が出ない場合は、現場名がマスタに登録されていません。');
+                        return;
+                    }
+
+                    state.selectedWorker = $('worker-input').value;
+                    state.selectedSite = $('site-input').value;
+                    state.isResendMode = false;
+                    state.selectedReportType = btn.dataset.type;
+                    $('btn-submit').textContent = '送信する';
+
+                    // 午後報告・終業前報告で詰所ステータスが未取得の場合はサーバーに問い合わせ（現場×棟でキャッシュ）
+                    const needsCheck = (btn.dataset.type === '午後報告' || btn.dataset.type === '終業前報告');
+                    const currentSiteId = getSiteId();
+                    const tsumeshoKey = getTsumeshoCacheKey();
+                    if (needsCheck && currentSiteId && tsumeshoKey && !state.tsumeshoStatusCache[tsumeshoKey]) {
+                        show('screen-form');
+                        $('form-questions').innerHTML = '<div style="text-align:center;padding:40px;color:#64748b;">読み込み中...</div>';
+                        fetchTsumeshoStatus().then(() => { renderForm(); });
+                    } else {
+                        renderForm();
+                        show('screen-form');
+                    }
+                }
+            });
+            window.setBuildingNameMode = (mode) => {
+                const input = $('building-name-input');
+                const hidden = $('building-name-value');
+                const btnFree = $('btn-bn-free');
+                const btnIncluded = $('btn-bn-included');
+                const btnNone = $('btn-bn-none');
+
+                // Reset states
+                [btnFree, btnIncluded, btnNone].forEach(b => {
+                    b.classList.remove('active');
+                    b.style.borderColor = '#cbd5e1';
+                    b.style.backgroundColor = '#f1f5f9';
+                    b.style.color = '#64748b';
+                });
+
+                if (mode === 'free') {
+                    btnFree.classList.add('active');
+                    input.style.display = 'block';
+                    input.focus();
+                    hidden.value = 'free'; // logic will read input value
+                } else {
+                    input.style.display = 'none';
+                    if (mode === 'included') {
+                        btnIncluded.classList.add('active');
+                        hidden.value = '（現場名に含む）';
+                    } else {
+                        btnNone.classList.add('active');
+                        hidden.value = '該当なし';
+                    }
+                }
+            };
+
+            window.getBuildingName = () => {
+                const mode = $('building-name-value').value;
+                if (mode === 'free') return $('building-name-input').value;
+                return mode;
+            };
+
+            document.addEventListener('change', updateVisibility);
+            $('btn-back').addEventListener('click', () => {
+                if (state.isResendMode) show('screen-resend-type');
+                else show('screen-home');
+            });
+            if ($('btn-back-header')) {
+                $('btn-back-header').addEventListener('click', () => {
+                    if (state.isResendMode && document.getElementById('screen-form').classList.contains('active')) {
+                        show('screen-resend-type');
+                    } else {
+                        show('screen-home');
+                    }
+                });
+            }
+
+            $('btn-resend-start').addEventListener('click', () => {
+                const missing = [];
+                if (!$('worker-input').value.trim()) missing.push('報告者名');
+                if (!$('site-input').value.trim()) missing.push('工事現場名');
+                if (getBuildingName().trim() === '') missing.push('棟名');
+                if (!$('team-input').value.trim()) missing.push('請負業者名');
+                if (!$('company-input').value.trim()) missing.push('施工業者名');
+
+                if (missing.length > 0) {
+                    alert("【共通情報の入力漏れ】\n\n先に以下の項目を入力してください：\n\n・" + missing.join('\n・'));
+                    return;
+                }
+                if (!state.isSiteSelected) {
+                    alert('【確認】工事現場名は候補から選んでタップしてください。');
+                    return;
+                }
+
+                // Render resend type buttons
+                $('resend-type-actions').innerHTML = state.reportTypes.map(t => {
+                    const info = REPORT_TYPE_INFO[t] || { icon: '📝', label: t, time: '' };
+                    return `<div class="btn-report resend-action" data-type="${t}"><div class="btn-report-icon">${info.icon}</div><div class="btn-report-label">${info.label}</div></div>`;
+                }).join('');
+
+                show('screen-resend-type');
+            });
+
+            $('resend-type-actions').addEventListener('click', e => {
+                const btn = e.target.closest('.resend-action');
+                if (btn) {
+                    state.isResendMode = true;
+                    state.selectedReportType = btn.dataset.type;
+                    state.resendTargetType = btn.dataset.type;
+                    state.imageStore = {};
+                    state.skippedStore = {};
+                    state.imageRemarks = {};
+                    state.selectedWorker = $('worker-input').value;
+                    state.selectedSite = $('site-input').value;
+                    $('btn-submit').textContent = '再送する';
+
+                    // 再送モードでも詰所ステータスをチェック
+                    const needsCheck = (btn.dataset.type === '午後報告' || btn.dataset.type === '終業前報告');
+                    const currentSiteId = getSiteId();
+                    const tsumeshoKey = getTsumeshoCacheKey();
+                    if (needsCheck && currentSiteId && tsumeshoKey && !state.tsumeshoStatusCache[tsumeshoKey]) {
+                        show('screen-form');
+                        $('form-questions').innerHTML = '<div style="text-align:center;padding:40px;color:#64748b;">読み込み中...</div>';
+                        fetchTsumeshoStatus().then(() => { renderForm(); });
+                    } else {
+                        renderForm();
+                        show('screen-form');
+                    }
+                }
+            });
+
+            $('btn-resend-back').addEventListener('click', () => {
+                state.isResendMode = false;
+                state.resendTargetType = '';
+                show('screen-home');
+            });
+
+            $('btn-submit').addEventListener('click', handleSubmit);
+            $('btn-home').addEventListener('click', () => {
+                clearDraft();
+                state.imageStore = {};
+                state.imageRemarks = {};
+                state.repeatableData = {};
+                state.isResendMode = false;
+                state.resendTargetType = '';
+                $('btn-submit').textContent = '送信する';
+                show('screen-home');
+            });
+            $('btn-save-draft').addEventListener('click', () => saveDraft(true));
+
+            // ---- 一時保存 / 自動保存 ----
+            const DRAFT_KEY = 'workerReport_draft';
+
+            // DOM上のフォーム入力値をすべて収集する
+            const collectDraftFormValues = () => {
+                const result = {};
+                const container = $('form-questions');
+                if (!container) return result;
+                container.querySelectorAll('input, textarea, select').forEach(el => {
+                    if (!el.id) return;
+                    result[el.id] = el.type === 'checkbox' ? el.checked : el.value;
+                });
+                return result;
+            };
+
+            // 一時保存（showToast=trueのときトーストを表示）
+            const saveDraft = (showToast) => {
+                const formScreen = $('screen-form');
+                if (!formScreen || !formScreen.classList.contains('active')) return;
+                const data = {
+                    savedAt: new Date().toISOString(),
+                    selectedSite: state.selectedSite,
+                    selectedWorker: state.selectedWorker,
+                    selectedReportType: state.selectedReportType,
+                    isResendMode: state.isResendMode,
+                    resendTargetType: state.resendTargetType,
+                    teamName: state.teamName,
+                    companyName: state.companyName,
+                    isSiteSelected: state.isSiteSelected,
+                    imageStore: state.imageStore,
+                    skippedStore: state.skippedStore,
+                    imageRemarks: state.imageRemarks,
+                    repeatableData: state.repeatableData,
+                    formValues: collectDraftFormValues()
+                };
+                try {
+                    localStorage.setItem(DRAFT_KEY, JSON.stringify(data));
+                } catch (e) {
+                    // QuotaExceededError: 画像なしで再試行
+                    data.imageStore = {};
+                    try { localStorage.setItem(DRAFT_KEY, JSON.stringify(data)); } catch (_) { }
+                }
+                if (showToast) showDraftToast('一時保存しました ✓');
+            };
+
+            // 下書き削除
+            const clearDraft = () => localStorage.removeItem(DRAFT_KEY);
+
+            // トースト表示（2秒後に消える）
+            const showDraftToast = (msg) => {
+                const toast = $('draft-toast');
+                if (!toast) return;
+                toast.textContent = msg;
+                toast.classList.add('show');
+                setTimeout(() => toast.classList.remove('show'), 2000);
+            };
+
+            // 復元: stateを更新 → フォームをレンダリング → DOM値を適用
+            const restoreDraft = (draft) => {
+                state.selectedSite = draft.selectedSite || '';
+                state.selectedWorker = draft.selectedWorker || '';
+                state.selectedReportType = draft.selectedReportType || '';
+                state.isResendMode = !!draft.isResendMode;
+                state.resendTargetType = draft.resendTargetType || draft.selectedReportType || '';
+                state.teamName = draft.teamName || '';
+                state.companyName = draft.companyName || '';
+                state.isSiteSelected = draft.isSiteSelected || false;
+                state.imageStore = draft.imageStore || {};
+                state.skippedStore = draft.skippedStore || {};
+                state.imageRemarks = draft.imageRemarks || {};
+                state.repeatableData = draft.repeatableData || {};
+
+                renderForm();
+                show('screen-form');
+
+                // レンダリング完了後にDOM値を適用
+                setTimeout(() => {
+                    const formValues = draft.formValues || {};
+                    Object.entries(formValues).forEach(([id, value]) => {
+                        const el = document.getElementById(id);
+                        if (!el) return;
+                        if (el.type === 'checkbox') {
+                            el.checked = !!value;
+                            el.dispatchEvent(new Event('change'));
+                        } else if (el.type === 'number' && id.indexOf('slider-') === 0) {
+                            el.value = value;
+                        } else if (id.startsWith('switch-')) {
+                            // switch: setSwitch でUI更新
+                            const qId = id.replace('switch-', '');
+                            if (value) window.setSwitch(qId, value);
+                        } else {
+                            el.value = value;
+                        }
+                    });
+                    // 画像プレビューを復元
+                    Object.keys(state.imageStore).forEach(qId => renderImageGrid(qId));
+                    // 備考を復元
+                    Object.entries(state.imageRemarks).forEach(([qId, val]) => {
+                        const el = document.getElementById(`remarks-${qId}`);
+                        if (el) el.value = val;
+                    });
+                    updateVisibility();
+                }, 100);
+            };
+
+            // ページ読み込み時: 下書きがあれば復元を確認
+            const loadDraftIfExists = () => {
+                const raw = localStorage.getItem(DRAFT_KEY);
+                if (!raw) return;
+                let draft;
+                try { draft = JSON.parse(raw); } catch (_) { clearDraft(); return; }
+                if (!draft.selectedReportType) { clearDraft(); return; }
+                const savedAt = new Date(draft.savedAt).toLocaleString('ja-JP');
+                const msg = `前回の入力途中データがあります（${savedAt}）\n\n${draft.selectedReportType} / ${draft.selectedWorker || '氏名未入力'}\n\n復元しますか？`;
+                if (confirm(msg)) {
+                    restoreDraft(draft);
+                    if (state.isResendMode) {
+                        $('btn-submit').textContent = '再送する';
+                    }
+                } else {
+                    clearDraft();
+                }
+            };
+
+            // 30秒ごとに自動保存
+            setInterval(() => saveDraft(false), 30000);
+
+            initData(); renderHome(); loadDraftIfExists();
+        })();
+    </script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.14.0/Sortable.min.js"></script>
+    <script>
+        /* Admin App Logic */
+        const AdminApp = (() => {
+            let fullConfig = null;
+            let currentReportType = null;
+            let activeTab = 'active'; // 'active' or 'inactive'
+            let sortable = null;
+
+            const init = async () => {
+                try {
+                    const res = await new Promise((resolve, reject) =>
+                        google.script.run.withSuccessHandler(resolve).withFailureHandler(reject).getAdminConfig()
+                    );
+                    fullConfig = res;
+                    renderReportTypes();
+                } catch (e) {
+                    alert('設定の読み込みに失敗しました: ' + e.message);
+                }
+            };
+
+            const renderReportTypes = () => {
+                const uniqueTypes = [...new Set(fullConfig.questions.map(q => q.reportType))];
+                const container = document.getElementById('admin-report-types');
+                container.innerHTML = uniqueTypes.map(type => `
+          <div class="btn-report" onclick="AdminApp.selectReportType('${type}')" style="display:flex; justify-content:space-between; align-items:center;">
+             <span>${type}</span>
+             <span style="font-size:20px;">›</span>
+          </div>
+        `).join('');
+            };
+
+            const selectReportType = (type) => {
+                currentReportType = type;
+                document.getElementById('admin-list-title').textContent = type;
+                show('screen-admin-list');
+                renderQuestions();
+            };
+
+            const switchTab = (tab) => {
+                activeTab = tab;
+                document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+                document.getElementById(`tab-${tab}`).classList.add('active');
+                renderQuestions();
+            };
+
+            const renderQuestions = () => {
+                const list = document.getElementById('admin-questions-list');
+                const questions = fullConfig.questions
+                    .filter(q => q.reportType === currentReportType)
+                    .filter(q => activeTab === 'active' ? (q.active !== false) : (q.active === false))
+                    .sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0));
+
+                list.innerHTML = questions.map(q => {
+                    const locked = q.systemLocked ? '<span style="font-size:14px;">🔒</span>' : '';
+                    const typeLabel = getTypeLabel(q.inputType);
+                    const reqBadge = q.required ? '<span class="admin-badge badge-req">必須</span>' : '';
+                    const skipBadge = q.showSkip ? '<span class="admin-badge badge-skip">該当なし有</span>' : '';
+
+                    let actions = '';
+                    if (activeTab === 'active') {
+                        const deleteLimit = q.systemLocked ? 'disabled' : '';
+                        actions = `
+              <button class="btn-icon" onclick="AdminApp.openEditModal('${q.id}')">✏️</button>
+              <button class="btn-icon ${deleteLimit}" onclick="${deleteLimit ? '' : `AdminApp.toggleActive('${q.id}', false)`}">👁️‍🗨️</button>
+            `;
+                    } else {
+                        actions = `
+              <button class="btn-icon" onclick="AdminApp.toggleActive('${q.id}', true)">♻️ 復活</button>
+            `;
+                    }
+
+                    return `
+            <div class="admin-card ${q.systemLocked ? 'is-locked' : ''} ${!q.active ? 'is-inactive' : ''}" data-id="${q.id}">
+              <div class="admin-card-handle" style="${activeTab === 'active' ? '' : 'display:none'}">☰</div>
+              <div class="admin-card-content">
+                <div class="admin-card-title">${locked} ${q.displayLabel || q.label}</div>
+                <div class="admin-card-meta">
+                  <span class="admin-badge badge-type">${typeLabel}</span>
+                  ${reqBadge}
+                  ${skipBadge}
+                </div>
+              </div>
+              <div class="admin-actions">
+                ${actions}
+              </div>
+            </div>
+          `;
+                }).join('');
+
+                if (activeTab === 'active') {
+                    if (sortable) sortable.destroy();
+                    sortable = new Sortable(list, {
+                        handle: '.admin-card-handle',
+                        animation: 150,
+                        ghostClass: 'sortable-ghost',
+                        onEnd: () => {
+                            // Update sortOrder based on new DOM order
+                            const items = Array.from(list.children);
+                            items.forEach((item, index) => {
+                                const qId = item.dataset.id;
+                                const q = fullConfig.questions.find(fq => fq.id === qId);
+                                if (q) q.sortOrder = index + 1;
+                            });
+                        }
+                    });
+                }
+            };
+
+            const getTypeLabel = (type) => {
+                const mat = {
+                    'text': '文字', 'switch': 'はい/いいえ', 'image': '写真', 'image_text': '写真+コメ',
+                    'select': '選択', 'checkbox': '複数', 'check': '単一', 'slider': '数値(%)', 'number': '数値'
+                };
+                return mat[type] || type;
+            };
+
+            const toggleActive = (id, isActive) => {
+                const q = fullConfig.questions.find(q => q.id === id);
+                if (q) {
+                    q.active = isActive;
+                    renderQuestions();
+                }
+            };
+
+            // Modal handling
+            let editingId = null;
+
+            const openEditModal = (id) => {
+                editingId = id;
+                const q = id ? fullConfig.questions.find(x => x.id === id) : {
+                    label: '', inputType: 'text', required: false, showSkip: false, meta: {}, options: []
+                };
+
+                document.getElementById('edit-id').value = id || '';
+                document.getElementById('edit-label').value = q.displayLabel || q.label || '';
+                document.getElementById('edit-type').value = q.inputType || 'text';
+                document.getElementById('edit-helper').value = q.helperText || '';
+
+                // Populate toggles
+                setToggle('req', !!q.required);
+                setToggle('skip', !!q.showSkip);
+
+                // Lock systemLocked items (cannot change type or label if it's super locked? Spec says label is editable)
+                const typeSelect = document.getElementById('edit-type');
+                typeSelect.disabled = !!q.systemLocked;
+                if (q.systemLocked) document.getElementById('edit-type-warning').style.display = 'block';
+                else document.getElementById('edit-type-warning').style.display = 'none';
+
+                // Options
+                document.getElementById('edit-options').value = (q.options || []).join('\n');
+
+                // Show/Hide relevant fields
+                handleTypeChange();
+
+                document.getElementById('modal-question-edit').classList.add('is-visible');
+            };
+
+            const closeModal = () => {
+                document.getElementById('modal-question-edit').classList.remove('is-visible');
+            };
+
+            const setToggle = (key, state) => {
+                document.getElementById(`edit-${key}`).value = state;
+                document.getElementById(`edit-${key}-true`).classList.toggle('active', state);
+                document.getElementById(`edit-${key}-false`).classList.toggle('active', !state);
+            };
+
+            const handleTypeChange = () => {
+                const type = document.getElementById('edit-type').value;
+                const isImage = type === 'image' || type === 'image_text';
+                const isChoice = ['select', 'checkbox', 'check_text_group'].includes(type);
+
+                document.getElementById('group-skip').style.display = isImage ? 'flex' : 'none';
+                document.getElementById('group-options').style.display = isChoice ? 'block' : 'none';
+            };
+
+            const saveModal = () => {
+                const label = document.getElementById('edit-label').value;
+                if (!label.trim()) { alert('項目名は必須です'); return; }
+
+                const type = document.getElementById('edit-type').value;
+                const required = document.getElementById('edit-req').value === 'true';
+                const showSkip = document.getElementById('edit-skip').value === 'true';
+                const helperText = document.getElementById('edit-helper').value;
+                const options = document.getElementById('edit-options').value.split('\n').map(s => s.trim()).filter(Boolean);
+
+                if (editingId) {
+                    // Update existing
+                    const q = fullConfig.questions.find(x => x.id === editingId);
+                    q.displayLabel = label; // Only update displayLabel to preserve internal label connection
+                    if (!q.systemLocked) q.inputType = type;
+                    q.required = required;
+                    q.showSkip = showSkip;
+                    q.helperText = helperText;
+                    q.options = options;
+                } else {
+                    // Create new
+                    const newQ = {
+                        id: `Q_${new Date().getTime()}`,
+                        reportType: currentReportType,
+                        label: label, // For new items, label = displayLabel
+                        displayLabel: label,
+                        inputType: type,
+                        required: required,
+                        active: true,
+                        showSkip: showSkip,
+                        helperText: helperText,
+                        options: options,
+                        sortOrder: 999,
+                        systemLocked: false,
+                        meta: { skipLabel: '該当なし' }
+                    };
+                    fullConfig.questions.push(newQ);
+                }
+
+                closeModal();
+                renderQuestions();
+            };
+
+            const saveChanges = async () => {
+                if (!confirm('変更を保存して、全ユーザーに反映しますか？')) return;
+
+                // Show loading
+                const btn = document.querySelector('#screen-admin-list .header button');
+                const origText = btn.textContent;
+                btn.textContent = '保存中...';
+                btn.disabled = true;
+
+                try {
+                    const res = await new Promise((resolve, reject) =>
+                        google.script.run.withSuccessHandler(resolve).withFailureHandler(reject).saveAdminConfigFromClient(fullConfig)
+                    );
+
+                    if (res.warnings && res.warnings.length > 0) {
+                        alert('保存しましたが、以下の警告があります：\n・' + res.warnings.join('\n・'));
+                    } else {
+                        alert('保存しました！(v' + res.version + ')');
+                    }
+                    location.reload(); // Reload to reflect changes
+                } catch (e) {
+                    alert('保存エラー: ' + e.message);
+                    btn.textContent = origText;
+                    btn.disabled = false;
+                }
+            };
+
+            return {
+                init,
+                selectReportType,
+                switchTab,
+                toggleActive,
+                openEditModal,
+                closeModal,
+                setToggle,
+                handleTypeChange,
+                saveModal,
+                saveChanges
+            };
+        })();
+
+        // Global auth handler
+        window.showAdminAuth = () => show('screen-admin-auth');
+
+        window.handleAdminAuth = async () => {
+            const pass = document.getElementById('admin-passcode').value;
+            try {
+                const valid = await new Promise((res, rej) => google.script.run.withSuccessHandler(res).withFailureHandler(rej).validatePasscode(pass));
+                if (valid) {
+                    show('screen-admin-select');
+                    AdminApp.init();
+                } else {
+                    alert('パスワードが違います');
+                }
+            } catch (e) {
+                alert('認証エラー: ' + e.message);
+            }
+        };
+    </script>
+    <div id="draft-toast"></div>
+</body>
+
+</html>

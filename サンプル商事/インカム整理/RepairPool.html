@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<base target="_top">
+<?!= include('Style'); ?>
+</head>
+<body>
+<header><h1 id="title">修理待ち（全院）</h1></header>
+<main>
+  <a class="back" id="homeLink" href="#">← ホームへ</a>
+  <div id="app"><div class="spin">読み込み中…</div></div>
+</main>
+
+<script>
+  var APP_URL = '<?= initParams && initParams.appUrl ? initParams.appUrl : "" ?>';
+  var CLINIC  = '<?= initParams && initParams.clinic ? initParams.clinic : "" ?>';
+</script>
+<?!= include('Common'); ?>
+<script>
+  $('homeLink').href = link('home');
+  if (requireClinic('title')) load();
+
+  function load(){
+    showLoading('app');
+    google.script.run.withSuccessHandler(render).withFailureHandler(fail).getRepairPool();
+  }
+
+  function render(pool){
+    $('title').innerHTML = '<span class="clinicTag">全院</span> 修理待ち';
+
+    if (!pool.items.length) {
+      $('app').innerHTML = '<div class="card"><p class="empty">'
+        + '修理待ちの機器はありません。</p></div>';
+      return;
+    }
+
+    var head;
+    if (pool.reached) {
+      head = '<div class="badge err">🔴 修理待ち ' + pool.total + '台（目安 ' + pool.threshold
+           + '台）。まとめて修理に出す時期です。</div>';
+    } else {
+      head = '<div class="badge warn">🟠 修理待ち ' + pool.total + '台。あと '
+           + (pool.threshold - pool.total) + '台で目安（' + pool.threshold + '台）に届きます。</div>';
+    }
+
+    // 医院ごとの内訳。どの医院から集めればよいかが分かる。
+    var breakdown = '<div class="stats">';
+    pool.byClinic.forEach(function(c){
+      breakdown += '<div class="stat"><div class="n"' + (c.reached ? ' style="color:var(--err);"' : '')
+                +  '>' + c.count + '</div><div class="l">' + esc(c.clinic) + '</div></div>';
+    });
+    breakdown += '</div>';
+
+    var rows = '<tr><th><input type="checkbox" onclick="toggleAll(this)"></th>'
+             + '<th>医院</th><th>機器</th><th>状態</th><th class="wrap">症状</th>'
+             + '<th>報告日</th><th>報告者</th></tr>';
+    pool.items.forEach(function(i){
+      rows += '<tr>'
+        + '<td><input type="checkbox" name="cases" value="' + esc(i.id) + '"'
+        +   ' data-arrived="' + (i.atHq ? '1' : '0') + '" onchange="updateButtons()"></td>'
+        + '<td>' + esc(i.clinic) + '</td>'
+        + '<td>' + esc(i.label) + '</td>'
+        + '<td>' + (i.atHq ? '<span class="chip moving">本部に到着済</span>'
+                           : '<span class="chip trouble">未着（医院にあり）</span>') + '</td>'
+        + '<td class="wrap">' + esc(i.symptom)
+        +   (i.flag ? '<div class="flag">⚠ ' + esc(i.flag) + '</div>' : '') + '</td>'
+        + '<td>' + esc(i.reportDate || '—') + '</td>'
+        + '<td>' + esc(i.reporter || '—') + '</td>'
+        + '</tr>';
+    });
+
+    $('app').innerHTML = head + breakdown
+      + '<div class="card" style="margin-top:14px;">'
+      +   '<div class="scroll"><table>' + rows + '</table></div>'
+      +   '<div class="actions">'
+      +     '<button class="sub" id="btnArrive" onclick="markArrived()" disabled>'
+      +       '本部に到着したことを登録</button>'
+      +     '<button id="btnOrder" onclick="order()" disabled>選んだ機器の修理を依頼する</button>'
+      +   '</div>'
+      +   '<div class="row" style="margin-top:10px;">'
+      +     '<div><label>修理依頼日</label><input type="date" id="orderDate" value="'
+      +       today() + '"></div>'
+      +   '</div>'
+      + '</div>'
+      + '<div class="note">「未着」の機器はまだ各医院にあります。'
+      + '本部に届いたら「本部に到着したことを登録」を押してください。'
+      + '<br>まとめ出しの目安台数は、スプレッドシートの「設定」シートで変更できます。</div>';
+
+    updateButtons();
+  }
+
+  function toggleAll(box){
+    var boxes = document.getElementsByName('cases');
+    for (var i = 0; i < boxes.length; i++) boxes[i].checked = box.checked;
+    updateButtons();
+  }
+
+  // 到着登録は「未着」だけ、修理依頼はどちらでも押せる。
+  // 選んだ内容と押せるボタンを一致させて、順番を間違えようがないようにする。
+  function updateButtons(){
+    var boxes = document.getElementsByName('cases');
+    var selected = 0, notArrived = 0;
+    for (var i = 0; i < boxes.length; i++) {
+      if (!boxes[i].checked) continue;
+      selected++;
+      if (boxes[i].getAttribute('data-arrived') === '0') notArrived++;
+    }
+    $('btnArrive').disabled = (notArrived === 0);
+    $('btnOrder').disabled = (selected === 0);
+    $('btnArrive').textContent = notArrived
+      ? '本部に到着したことを登録（' + notArrived + '台）' : '本部に到着したことを登録';
+    $('btnOrder').textContent = selected
+      ? '選んだ ' + selected + '台 の修理を依頼する' : '選んだ機器の修理を依頼する';
+  }
+
+  function markArrived(){
+    var ids = [];
+    var boxes = document.getElementsByName('cases');
+    for (var i = 0; i < boxes.length; i++) {
+      if (boxes[i].checked && boxes[i].getAttribute('data-arrived') === '0') ids.push(boxes[i].value);
+    }
+    if (!ids.length) return;
+    $('btnArrive').disabled = true;
+    google.script.run.withSuccessHandler(function(res){
+      toast(res.updated + '台を「本部に到着」として登録しました');
+      load();
+    }).withFailureHandler(fail).markArrivedAtHq(ids);
+  }
+
+  function order(){
+    var ids = checkedValues('cases');
+    if (!ids.length) return;
+    if (!confirm(ids.length + '台の修理を依頼したものとして登録します。よろしいですか？')) return;
+    $('btnOrder').disabled = true;
+    google.script.run.withSuccessHandler(function(res){
+      toast(res.updated + '台を「修理依頼中」にしました。完了したら「修理依頼・完了・返却」から登録してください。');
+      load();
+    }).withFailureHandler(fail).orderRepair(ids, $('orderDate').value);
+  }
+</script>
+</body>
+</html>

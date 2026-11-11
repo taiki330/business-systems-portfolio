@@ -1,0 +1,1905 @@
+<style>
+    /* ==========================================================================
+   Base Styles & Variables
+   ========================================================================== */
+    :root {
+        /* Color Palette - Premium & Energetic Construction Theme */
+        --primary: #FF6B35;
+        /* エネルギッシュなオレンジ（安全カラー） */
+        --primary-dark: #E85D2C;
+        --secondary: #2C3E50;
+        /* 引き締めるネイビー（現場監督の制服イメージ） */
+        --accent: #F7C59F;
+        /* 柔らかなアクセントカラー */
+        --success: #4CAF50;
+        /* 正解時のグリーン */
+        --danger: #F44336;
+        /* 失敗時のレッド */
+        --background: #F4F7F6;
+        /* わずかに青みがかったクリーンな背景 */
+        --surface: #FFFFFF;
+        --text-main: #333333;
+        --text-muted: #7F8C8D;
+        --border: #E0E4E8;
+
+        /* Typography */
+        --font-family: 'Noto Sans JP', sans-serif;
+
+        /* Layout */
+        --max-width: 480px;
+        /* スマホ向け最大幅 */
+        --border-radius: 16px;
+        --transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+    }
+
+    * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+        -webkit-tap-highlight-color: transparent;
+    }
+
+    body {
+        font-family: var(--font-family);
+        background-color: var(--background);
+        color: var(--text-main);
+        min-height: 100vh;
+        display: flex;
+        justify-content: center;
+        align-items: flex-start;
+        overflow-x: hidden;
+        line-height: 1.6;
+    }
+
+    /* ==========================================================================
+   SPA Layout (App Container)
+   ========================================================================== */
+    .app-container {
+        width: 100%;
+        max-width: var(--max-width);
+        min-height: 100vh;
+        background: var(--surface);
+        position: relative;
+        overflow: hidden;
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.08);
+        /* PC表示時に浮き出るように */
+    }
+
+    /* 各画面はデフォルトで隠す */
+    .view {
+        display: none;
+        width: 100%;
+        min-height: 100vh;
+        flex-direction: column;
+        background: var(--surface);
+        animation: fadeSlideIn 0.4s ease forwards;
+        position: absolute;
+        top: 0;
+        left: 0;
+        padding-bottom: 80px;
+        transition: box-shadow 0.5s ease;
+    }
+
+    /* activeクラスがついた画面のみ表示 */
+    .view.active {
+        display: flex;
+        position: relative;
+        z-index: 10;
+    }
+
+    @keyframes fadeSlideIn {
+        from {
+            opacity: 0;
+            transform: translateY(20px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    /* ==========================================================================
+   Typography & Utilities
+   ========================================================================== */
+    h1,
+    h2,
+    h3 {
+        font-weight: 700;
+        color: var(--secondary);
+    }
+
+    .text-center {
+        text-align: center;
+    }
+
+    .hidden {
+        display: none !important;
+    }
+
+    /* ==========================================================================
+   Components (Cards, Buttons, Inputs)
+   ========================================================================== */
+    .card {
+        background: var(--surface);
+        border-radius: var(--border-radius);
+        box-shadow: 0 8px 24px rgba(44, 62, 80, 0.05);
+        border: 1px solid var(--border);
+        padding: 24px;
+        margin: 16px;
+    }
+
+    .input-group {
+        margin-bottom: 20px;
+    }
+
+    .input-group label {
+        display: block;
+        font-size: 0.9rem;
+        font-weight: 700;
+        color: var(--secondary);
+        margin-bottom: 8px;
+    }
+
+    .input-group input {
+        width: 100%;
+        padding: 14px 16px;
+        border: 2px solid var(--border);
+        border-radius: 12px;
+        font-size: 1rem;
+        font-family: var(--font-family);
+        transition: var(--transition);
+        outline: none;
+        background: #FAFBFC;
+    }
+
+    .input-group input:focus {
+        border-color: var(--primary);
+        background: #FFF;
+        box-shadow: 0 0 0 4px rgba(255, 107, 53, 0.1);
+    }
+
+    /* Buttons */
+    .btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        font-family: var(--font-family);
+        font-weight: 700;
+        font-size: 1rem;
+        padding: 14px 24px;
+        border: none;
+        border-radius: 14px;
+        cursor: pointer;
+        transition: var(--transition);
+        text-decoration: none;
+    }
+
+    .btn:active {
+        transform: scale(0.96);
+    }
+
+    .btn-primary {
+        background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+        color: #FFF;
+        box-shadow: 0 4px 15px rgba(255, 107, 53, 0.3);
+    }
+
+    .btn-primary:active {
+        box-shadow: 0 2px 8px rgba(255, 107, 53, 0.2);
+    }
+
+    .btn-secondary {
+        background: var(--surface);
+        color: var(--secondary);
+        border: 2px solid var(--border);
+    }
+
+    .btn-danger {
+        background: var(--danger);
+        color: #FFF;
+    }
+
+    .btn-block {
+        width: 100%;
+        display: flex;
+    }
+
+    .btn-large {
+        padding: 18px 24px;
+        font-size: 1.1rem;
+    }
+
+    /* Icon Button */
+    .icon-btn {
+        background: transparent;
+        border: none;
+        color: var(--secondary);
+        cursor: pointer;
+        padding: 12px; /* タップターゲット確保（44px以上） */
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: var(--transition);
+    }
+
+    .icon-btn:hover {
+        background: var(--border);
+    }
+
+    /* Pulse animation for CTA */
+    .pulse-animation {
+        animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+        0% {
+            box-shadow: 0 0 0 0 rgba(255, 107, 53, 0.4);
+        }
+
+        70% {
+            box-shadow: 0 0 0 15px rgba(255, 107, 53, 0);
+        }
+
+        100% {
+            box-shadow: 0 0 0 0 rgba(255, 107, 53, 0);
+        }
+    }
+
+    /* ==========================================================================
+   Specific Views
+   ========================================================================== */
+
+    /* Login */
+    .login-header {
+        text-align: center;
+        margin-bottom: 30px;
+    }
+
+    .login-header p {
+        color: var(--text-muted);
+        font-size: 0.9rem;
+    }
+
+    .login-box {
+        margin-top: auto;
+        margin-bottom: auto;
+        /* Vertically centered */
+    }
+
+    /* Home */
+    .top-nav {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 20px 24px;
+        border-bottom: 1px solid var(--border);
+        background: var(--surface);
+        position: sticky;
+        top: 0;
+        z-index: 20;
+    }
+
+    .user-info {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-weight: 700;
+        color: var(--secondary);
+    }
+
+    .score-badge {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        background: rgba(255, 193, 7, 0.15);
+        color: #F57F17;
+        padding: 6px 12px;
+        border-radius: 20px;
+        font-weight: 900;
+        font-size: 0.95rem;
+    }
+
+    .mascot-area {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        margin-top: 30px;
+        background: transparent;
+        border: none;
+        box-shadow: none;
+        position: relative;
+    }
+
+    .mascot-area.card {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        box-shadow: 0 8px 24px rgba(44, 62, 80, 0.05);
+    }
+
+    .mascot-placeholder {
+        font-size: 4rem;
+        background: #E8F0FE;
+        width: 100px;
+        height: 100px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 50%;
+        border: 3px solid var(--primary);
+        margin-bottom: 16px;
+    }
+
+    .speech-bubble {
+        position: relative;
+        background: var(--secondary);
+        color: #FFF;
+        padding: 16px 20px;
+        border-radius: 16px;
+        font-weight: 700;
+        text-align: center;
+        width: 100%;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        transition: background 0.3s ease, box-shadow 0.3s ease, color 0.3s ease;
+    }
+
+    .mascot-area::after {
+        content: '';
+        position: absolute;
+        top: -10px;
+        left: 50%;
+        transform: translateX(-50%);
+        border-width: 0 10px 10px 10px;
+        border-style: solid;
+        border-color: transparent transparent var(--secondary) transparent;
+    }
+
+    .mascot-profile {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        width: 100%;
+        margin-bottom: 20px;
+        padding: 0 10px;
+    }
+
+    /* === トビ丸 SVG アバター === */
+    .tobi-avatar-wrap {
+        width: 120px;
+        height: 120px;
+        position: relative;
+        flex-shrink: 0;
+        margin: 0 auto;
+        display: block;
+    }
+
+    .tobimaru-svg {
+        width: 100%;
+        height: 100%;
+        display: block;
+    }
+
+    /* ホーム画面: 小さめ円形アバター */
+    .mascot-profile .tobi-avatar-wrap {
+        width: 80px;
+        height: 80px;
+        border-radius: 50%;
+        overflow: hidden;
+        border: 4px solid var(--surface);
+        box-shadow: 0 4px 12px rgba(255, 107, 53, 0.3);
+        background: linear-gradient(135deg, #FFD7B5, #FAD02C);
+        margin: 0;
+    }
+
+    /* === 表情切り替え === */
+    .tobi-face,
+    .tobi-fx {
+        display: none;
+    }
+
+    .tobi-state--idle .tobi-face--idle {
+        display: block;
+    }
+
+    .tobi-state--correct .tobi-face--correct,
+    .tobi-state--correct .tobi-fx--correct {
+        display: block;
+    }
+
+    .tobi-state--wrong .tobi-face--wrong {
+        display: block;
+    }
+
+    .tobi-state--perfect .tobi-face--perfect,
+    .tobi-state--perfect .tobi-fx--perfect {
+        display: block;
+    }
+
+    .mascot-emoji {
+        font-size: 3rem;
+        line-height: 1;
+        transform: translateY(-2px);
+        /* adjust emoji visual center */
+    }
+
+    .mascot-info {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .mascot-title {
+        font-size: 0.8rem;
+        font-weight: 700;
+        color: var(--text-muted);
+        letter-spacing: 1px;
+    }
+
+    .mascot-name {
+        font-size: 1.5rem;
+        font-weight: 900;
+        color: var(--secondary);
+    }
+
+    .speech-bubble {
+        position: relative;
+    }
+
+    .action-area {
+        padding: 0 24px;
+        margin-top: 30px;
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+    }
+
+    /* Quiz UI (Swipe Cards) */
+    .quiz-header {
+        padding: 16px 20px;
+        background: var(--surface);
+        position: sticky;
+        top: 0;
+        z-index: 20;
+        border-bottom: 1px solid var(--border);
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.02);
+    }
+
+    .quiz-top-bar {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 16px;
+    }
+
+    .quiz-status-title {
+        font-weight: 900;
+        color: var(--secondary);
+        font-size: 1.1rem;
+    }
+
+    .abort-btn {
+        color: var(--text-muted);
+        background: #F4F7F6;
+    }
+
+    .abort-btn:hover {
+        background: #E0E4E8;
+        color: var(--danger);
+    }
+
+    .progress-bar-container {
+        height: 8px;
+        background: var(--border);
+        border-radius: 4px;
+        overflow: hidden;
+        margin-bottom: 12px;
+    }
+
+    /* ==========================================================================
+   トビ丸 アニメーション
+   ========================================================================== */
+
+    /* --- idle: ゆっくり呼吸 --- */
+    .tobi-state--idle .tobimaru-svg {
+        animation: tobi-breathe 3s ease-in-out infinite;
+    }
+
+    @keyframes tobi-breathe {
+        0%, 100% { transform: scale(1) translateY(0); }
+        50% { transform: scale(1.03) translateY(-2px); }
+    }
+
+    /* --- correct: バウンス --- */
+    .tobi-state--correct .tobimaru-svg {
+        animation: tobi-bounce 0.7s cubic-bezier(0.28, 0.84, 0.42, 1);
+    }
+
+    @keyframes tobi-bounce {
+        0% { transform: scale(1); }
+        30% { transform: scale(1.25) translateY(-15px); }
+        50% { transform: scale(0.9) translateY(5px); }
+        70% { transform: scale(1.08) translateY(-3px); }
+        100% { transform: scale(1); }
+    }
+
+    /* --- wrong: 首振り --- */
+    .tobi-state--wrong .tobimaru-svg {
+        animation: tobi-headshake 0.6s cubic-bezier(.36,.07,.19,.97);
+    }
+
+    @keyframes tobi-headshake {
+        0%, 100% { transform: rotate(0deg); }
+        15% { transform: rotate(-8deg); }
+        30% { transform: rotate(6deg); }
+        45% { transform: rotate(-4deg); }
+        60% { transform: rotate(2deg); }
+        75% { transform: rotate(-1deg); }
+    }
+
+    /* --- perfect: お祝いスピン + グロー --- */
+    .tobi-state--perfect .tobimaru-svg {
+        animation: tobi-celebrate 1.2s ease-in-out;
+    }
+
+    @keyframes tobi-celebrate {
+        0% { transform: scale(1) rotate(0deg); }
+        25% { transform: scale(1.3) rotate(10deg); }
+        50% { transform: scale(0.9) rotate(-10deg); }
+        75% { transform: scale(1.2) rotate(5deg); }
+        100% { transform: scale(1) rotate(0deg); }
+    }
+
+    .tobi-state--perfect .tobi-avatar-wrap,
+    .tobi-state--perfect.tobi-avatar-wrap {
+        filter: drop-shadow(0 0 12px rgba(255, 107, 53, 0.6));
+        animation: tobi-glow 1s ease-in-out infinite alternate;
+    }
+
+    @keyframes tobi-glow {
+        0% { filter: drop-shadow(0 0 8px rgba(255, 107, 53, 0.4)); }
+        100% { filter: drop-shadow(0 0 20px rgba(255, 193, 7, 0.6)); }
+    }
+
+    /* --- correct: キラキラ粒子の放射 --- */
+    .tobi-state--correct .tobi-fx--correct circle {
+        animation: tobi-sparkle 0.8s ease-out forwards;
+    }
+
+    @keyframes tobi-sparkle {
+        0% { opacity: 1; transform: scale(0) translate(0, 0); }
+        50% { opacity: 1; }
+        100% { opacity: 0; transform: scale(1.5) translate(var(--spark-x), var(--spark-y)); }
+    }
+
+    /* --- perfect: 紙吹雪の飛散 --- */
+    .tobi-state--perfect .tobi-fx--perfect rect {
+        animation: tobi-confetti 1.5s ease-out forwards;
+        animation-delay: calc(var(--conf-d) * 0.08s);
+    }
+
+    @keyframes tobi-confetti {
+        0% { opacity: 1; transform: translate(0, 0) scale(1) rotate(0deg); }
+        100% { opacity: 0; transform: translate(var(--conf-x), var(--conf-y)) scale(0.3) rotate(720deg); }
+    }
+
+    /* --- perfect: 炎目のゆらぎ --- */
+    .tobi-state--perfect .tobi-fire-eyes {
+        animation: tobi-flame 0.4s ease-in-out infinite alternate;
+    }
+
+    @keyframes tobi-flame {
+        0% { transform: scaleY(1) translateY(0); }
+        100% { transform: scaleY(1.1) translateY(-2px); }
+    }
+
+    /* ==========================================================================
+       背景エフェクト（mascot-area 全体演出）
+       正解→ゴールデンバースト、不正解→ダークレッド、パーフェクト→虹グロー
+       ========================================================================== */
+
+    /* エフェクト用オーバーレイ共通 */
+    .mascot-area::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+        opacity: 0;
+        border-radius: inherit;
+        z-index: 0;
+    }
+
+    /* コンテンツをオーバーレイの上に */
+    .mascot-area > * {
+        position: relative;
+        z-index: 1;
+    }
+
+    /* 正解/不正解/パーフェクト時はオーバーフロー制御 */
+    .mascot-area.tobi-bg--correct,
+    .mascot-area.tobi-bg--wrong,
+    .mascot-area.tobi-bg--perfect {
+        overflow: hidden;
+    }
+
+    /* --- 正解: ゴールデンバースト + グリーングロー --- */
+    .mascot-area.tobi-bg--correct {
+        background: radial-gradient(ellipse at 50% 20%,
+            rgba(255, 215, 0, 0.15) 0%,
+            rgba(76, 175, 80, 0.05) 50%,
+            transparent 70%);
+        box-shadow:
+            0 0 30px rgba(76, 175, 80, 0.2),
+            0 0 60px rgba(255, 215, 0, 0.1),
+            inset 0 0 30px rgba(255, 215, 0, 0.05);
+        transition: background 0.3s ease, box-shadow 0.3s ease;
+    }
+
+    .mascot-area.tobi-bg--correct::before {
+        opacity: 1;
+        background: radial-gradient(circle at 50% 30%,
+            rgba(255, 215, 0, 0.45) 0%, transparent 60%);
+        animation: bg-golden-burst 1s ease-out forwards;
+    }
+
+    @keyframes bg-golden-burst {
+        0% { transform: scale(0.2); opacity: 1; }
+        60% { opacity: 0.6; }
+        100% { transform: scale(2); opacity: 0; }
+    }
+
+    /* 正解: 吹き出しをグリーンに */
+    .mascot-area.tobi-bg--correct .speech-bubble {
+        background: var(--success);
+        box-shadow: 0 4px 15px rgba(76, 175, 80, 0.3);
+        animation: bubble-pop 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+
+    /* --- 不正解: ダークレッドフラッシュ + コンテナ揺れ --- */
+    .mascot-area.tobi-bg--wrong {
+        background: linear-gradient(180deg,
+            rgba(30, 15, 15, 0.06) 0%,
+            rgba(244, 67, 54, 0.08) 100%);
+        box-shadow:
+            0 0 25px rgba(244, 67, 54, 0.15),
+            inset 0 0 40px rgba(244, 67, 54, 0.06);
+        animation: bg-container-shake 0.5s ease-out;
+    }
+
+    .mascot-area.tobi-bg--wrong::before {
+        opacity: 1;
+        background: radial-gradient(circle at 50% 50%,
+            rgba(244, 67, 54, 0.35) 0%, transparent 55%);
+        animation: bg-red-flash 0.6s ease-out forwards;
+    }
+
+    @keyframes bg-red-flash {
+        0% { opacity: 0.8; }
+        100% { opacity: 0; }
+    }
+
+    @keyframes bg-container-shake {
+        0%, 100% { transform: translateX(0); }
+        10% { transform: translateX(-5px); }
+        20% { transform: translateX(5px); }
+        30% { transform: translateX(-4px); }
+        40% { transform: translateX(4px); }
+        50% { transform: translateX(-2px); }
+        60% { transform: translateX(2px); }
+    }
+
+    /* 不正解: 吹き出しをダークレッドに */
+    .mascot-area.tobi-bg--wrong .speech-bubble {
+        background: linear-gradient(135deg, #B71C1C, #D32F2F);
+        box-shadow: 0 4px 15px rgba(183, 28, 28, 0.3);
+        animation: bubble-pop 0.4s ease-out;
+    }
+
+    /* --- パーフェクト: 虹グロー + ゴールド放射 + 星キラキラ --- */
+    .mascot-area.tobi-bg--perfect {
+        background:
+            radial-gradient(ellipse at 50% 30%, rgba(255, 215, 0, 0.2) 0%, transparent 50%),
+            radial-gradient(2px 2px at 20% 30%, rgba(255, 215, 0, 0.8), transparent),
+            radial-gradient(2px 2px at 80% 20%, rgba(255, 255, 255, 0.9), transparent),
+            radial-gradient(1.5px 1.5px at 40% 70%, rgba(255, 215, 0, 0.6), transparent),
+            radial-gradient(2px 2px at 70% 60%, rgba(255, 255, 255, 0.7), transparent),
+            radial-gradient(1.5px 1.5px at 15% 80%, rgba(255, 107, 53, 0.5), transparent),
+            radial-gradient(2px 2px at 90% 85%, rgba(255, 215, 0, 0.6), transparent),
+            linear-gradient(135deg,
+                rgba(255, 107, 53, 0.06) 0%,
+                rgba(255, 215, 0, 0.08) 50%,
+                rgba(255, 64, 129, 0.06) 100%);
+        box-shadow:
+            0 0 40px rgba(255, 215, 0, 0.3),
+            0 0 80px rgba(255, 107, 53, 0.15),
+            inset 0 0 30px rgba(255, 215, 0, 0.08);
+        animation: bg-perfect-pulse 2s ease-in-out infinite;
+    }
+
+    @keyframes bg-perfect-pulse {
+        0%, 100% {
+            box-shadow:
+                0 0 40px rgba(255, 215, 0, 0.3),
+                0 0 80px rgba(255, 107, 53, 0.15);
+        }
+        50% {
+            box-shadow:
+                0 0 60px rgba(255, 215, 0, 0.5),
+                0 0 120px rgba(255, 107, 53, 0.25);
+        }
+    }
+
+    .mascot-area.tobi-bg--perfect::before {
+        opacity: 0.5;
+        background: conic-gradient(
+            from 0deg at 50% 50%,
+            rgba(255, 215, 0, 0.3),
+            rgba(255, 107, 53, 0.2),
+            rgba(255, 64, 129, 0.15),
+            rgba(33, 150, 243, 0.12),
+            rgba(76, 175, 80, 0.15),
+            rgba(255, 215, 0, 0.3)
+        );
+        animation: bg-rainbow-rotate 4s linear infinite;
+    }
+
+    @keyframes bg-rainbow-rotate {
+        100% { transform: rotate(360deg); }
+    }
+
+    /* パーフェクト: 吹き出しをゴールド + 大きく */
+    .mascot-area.tobi-bg--perfect .speech-bubble {
+        background: linear-gradient(135deg, #FF6B35, #FFD54F);
+        color: #FFF;
+        text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+        box-shadow: 0 4px 20px rgba(255, 107, 53, 0.4);
+        animation: bubble-pop 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        font-size: 1.1em;
+    }
+
+    /* 共通: 吹き出しポップアニメ */
+    @keyframes bubble-pop {
+        0% { transform: scale(0.8); opacity: 0.5; }
+        60% { transform: scale(1.05); }
+        100% { transform: scale(1); opacity: 1; }
+    }
+
+    /* ==========================================================================
+       全画面背景エフェクト（.view レベル）
+       マスコットエリアのバースト/吹き出し色とは別に、画面全体の雰囲気を変える
+       ========================================================================== */
+
+    /* --- 正解: 画面全体にゴールドの暖かみ --- */
+    .view.tobi-bg--correct {
+        background:
+            radial-gradient(ellipse at 50% 30%,
+                rgba(255, 215, 0, 0.10) 0%,
+                rgba(76, 175, 80, 0.04) 40%,
+                var(--surface) 70%);
+        box-shadow:
+            inset 0 0 150px rgba(255, 215, 0, 0.06),
+            inset 0 0 60px rgba(76, 175, 80, 0.03);
+    }
+
+    /* --- 不正解: 画面全体にレッドの不穏さ --- */
+    .view.tobi-bg--wrong {
+        background:
+            radial-gradient(ellipse at 50% 30%,
+                rgba(244, 67, 54, 0.08) 0%,
+                rgba(30, 15, 15, 0.03) 40%,
+                var(--surface) 70%);
+        box-shadow:
+            inset 0 0 120px rgba(244, 67, 54, 0.06);
+    }
+
+    /* --- パーフェクト: 画面全体にゴールド放射 + 星キラキラ --- */
+    .view.tobi-bg--perfect {
+        background:
+            radial-gradient(ellipse at 50% 25%, rgba(255, 215, 0, 0.14) 0%, transparent 50%),
+            radial-gradient(2px 2px at 15% 12%, rgba(255, 215, 0, 0.7), transparent),
+            radial-gradient(2px 2px at 85% 8%, rgba(255, 255, 255, 0.8), transparent),
+            radial-gradient(1.5px 1.5px at 50% 35%, rgba(255, 215, 0, 0.5), transparent),
+            radial-gradient(2px 2px at 25% 55%, rgba(255, 255, 255, 0.6), transparent),
+            radial-gradient(1.5px 1.5px at 75% 45%, rgba(255, 107, 53, 0.4), transparent),
+            radial-gradient(2px 2px at 10% 70%, rgba(255, 215, 0, 0.5), transparent),
+            radial-gradient(1.5px 1.5px at 90% 65%, rgba(255, 255, 255, 0.5), transparent),
+            radial-gradient(2px 2px at 40% 85%, rgba(255, 64, 129, 0.4), transparent),
+            radial-gradient(1.5px 1.5px at 65% 75%, rgba(76, 175, 80, 0.4), transparent),
+            var(--surface);
+        box-shadow:
+            inset 0 0 200px rgba(255, 215, 0, 0.08),
+            inset 0 0 400px rgba(255, 107, 53, 0.03);
+    }
+
+    /* --- 不正解: 画面全体ガタガタ揺れ（.app-container に適用） --- */
+    .app-container.tobi-shake {
+        animation: bg-screen-shake 0.5s ease-out;
+    }
+
+    @keyframes bg-screen-shake {
+        0%, 100% { transform: translateX(0); }
+        10% { transform: translateX(-6px); }
+        20% { transform: translateX(6px); }
+        30% { transform: translateX(-5px); }
+        40% { transform: translateX(5px); }
+        50% { transform: translateX(-3px); }
+        60% { transform: translateX(3px); }
+        70% { transform: translateX(-1px); }
+    }
+
+    .progress-fill {
+        height: 100%;
+        background: var(--primary);
+        width: 0%;
+        transition: width 0.3s ease;
+    }
+
+    .quiz-status {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-weight: 700;
+        color: var(--text-muted);
+    }
+
+    .timer-badge {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        color: var(--danger);
+        font-variant-numeric: tabular-nums;
+    }
+
+    .quiz-cards-container {
+        position: relative;
+        flex-grow: 1;
+        min-height: 0; /* flexbox内で正しく縮小できるよう設定 */
+        overflow: hidden; /* スクロールはカード内で行う */
+        padding: 0 20px 20px 20px;
+    }
+
+    .quiz-card {
+        position: absolute;
+        top: 0;
+        left: 20px;
+        right: 20px;
+        bottom: 0; /* 親コンテナの高さ全体を使う（overflow-y: autoを有効にするため） */
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: var(--border-radius);
+        padding: 24px;
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06);
+        transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.4s ease;
+        transform: translateX(120%);
+        /* Default state (off screen right) */
+        opacity: 0;
+        z-index: 1;
+        display: flex;
+        flex-direction: column;
+        overflow-y: auto; /* 問題文・選択肢が長い場合にカード内でスクロール */
+    }
+
+    .quiz-card.active {
+        transform: translateX(0);
+        opacity: 1;
+        z-index: 2;
+    }
+
+    .quiz-card.done {
+        transform: translateX(-120%);
+        opacity: 0;
+    }
+
+    .question-text {
+        font-size: 1.15rem;
+        font-weight: 700;
+        color: var(--secondary);
+        margin-bottom: 24px;
+        line-height: 1.5;
+    }
+
+    .option-btn {
+        width: 100%;
+        text-align: left;
+        padding: 16px 20px;
+        margin-bottom: 12px;
+        background: var(--surface);
+        border: 2px solid var(--border);
+        border-radius: 14px;
+        font-size: 1rem;
+        font-weight: 500;
+        color: var(--text-main);
+        transition: var(--transition);
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        touch-action: manipulation; /* スクロール中の誤タップ防止 */
+    }
+
+    .option-btn .opt-badge {
+        background: var(--background);
+        color: var(--text-muted);
+        width: 28px;
+        height: 28px;
+        border-radius: 50%;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 900;
+        font-size: 0.85rem;
+    }
+
+    .option-btn:active {
+        background: #F8F9FA;
+        transform: scale(0.98);
+    }
+
+    .option-btn.selected {
+        border-color: var(--primary);
+        background: rgba(255, 107, 53, 0.05);
+    }
+
+    .option-btn.selected .opt-badge {
+        background: var(--primary);
+        color: #FFF;
+    }
+
+    /* Result View */
+    .result-header {
+        text-align: center;
+        padding: 40px 20px 20px;
+    }
+
+    .score-circle {
+        width: 140px;
+        height: 140px;
+        border-radius: 50%;
+        background: conic-gradient(var(--primary) calc(var(--score-pct) * 1%), var(--border) 0);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 20px auto 0;
+        position: relative;
+    }
+
+    .score-circle::before {
+        content: '';
+        position: absolute;
+        width: 120px;
+        height: 120px;
+        background: var(--surface);
+        border-radius: 50%;
+    }
+
+    .score-circle * {
+        position: relative;
+        z-index: 2;
+    }
+
+    .score-num {
+        font-size: 3rem;
+        font-weight: 900;
+        color: var(--secondary);
+        line-height: 1;
+    }
+
+    .score-slash {
+        font-size: 1.5rem;
+        color: var(--text-muted);
+        margin: 0 4px;
+    }
+
+    .score-max {
+        font-size: 1.2rem;
+        color: var(--text-muted);
+    }
+
+    .review-list {
+        padding: 0 20px;
+    }
+
+    .review-item {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 16px;
+        margin-bottom: 16px;
+    }
+
+    .review-q {
+        font-weight: 700;
+        margin-bottom: 8px;
+    }
+
+    .review-wrong {
+        color: var(--danger);
+        font-size: 0.9rem;
+        text-decoration: line-through;
+    }
+
+    .review-correct {
+        color: var(--success);
+        font-size: 0.9rem;
+        font-weight: 700;
+        margin-bottom: 8px;
+    }
+
+    .review-exp {
+        font-size: 0.85rem;
+        color: var(--text-muted);
+        background: var(--background);
+        padding: 10px;
+        border-radius: 8px;
+    }
+
+    /* Leaderboard */
+    .sub-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 16px 20px;
+        border-bottom: 1px solid var(--border);
+        position: sticky;
+        top: 0;
+        background: var(--surface);
+        z-index: 10;
+    }
+
+    .ranking-tabs {
+        display: flex;
+        padding: 12px 20px 0;
+        gap: 6px;
+        border-bottom: 2px solid var(--border);
+    }
+
+    .tab-btn {
+        flex: 1;
+        padding: 10px 4px;
+        border: none;
+        background: transparent;
+        font-family: var(--font-family);
+        font-size: 0.82rem;
+        font-weight: 700;
+        color: var(--text-muted);
+        cursor: pointer;
+        border-bottom: 3px solid transparent;
+        margin-bottom: -2px;
+        transition: var(--transition);
+    }
+
+    .tab-btn.active {
+        color: var(--primary);
+        border-bottom-color: var(--primary);
+    }
+
+    .month-selector-wrap {
+        padding: 12px 20px 0;
+    }
+
+    .month-selector-wrap select {
+        width: 100%;
+        padding: 10px 14px;
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        font-family: var(--font-family);
+        font-size: 0.95rem;
+        background: var(--surface);
+        color: var(--text-main);
+    }
+
+    .ranking-list {
+        padding: 20px;
+    }
+
+    .rank-item {
+        display: flex;
+        align-items: center;
+        padding: 16px;
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        margin-bottom: 12px;
+    }
+
+    .rank-num {
+        font-size: 1.2rem;
+        font-weight: 900;
+        width: 30px;
+        text-align: center;
+        color: var(--text-muted);
+    }
+
+    .rank-1 .rank-num {
+        color: #FFD700;
+        font-size: 1.5rem;
+    }
+
+    .rank-2 .rank-num {
+        color: #C0C0C0;
+        font-size: 1.3rem;
+    }
+
+    .rank-3 .rank-num {
+        color: #CD7F32;
+        font-size: 1.3rem;
+    }
+
+    .rank-name {
+        flex-grow: 1;
+        font-weight: 700;
+        margin-left: 12px;
+    }
+
+    .rank-score {
+        font-weight: 900;
+        color: var(--primary);
+    }
+
+    /* UI Helpers */
+    .sticky-bottom {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        max-width: var(--max-width);
+        margin: 0 auto;
+        background: var(--surface);
+        padding: 16px 24px 24px;
+        border-top: 1px solid var(--border);
+        z-index: 30;
+    }
+
+    /* ==========================================================================
+   Loading & Toast
+   ========================================================================== */
+    .overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(255, 255, 255, 0.9);
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        z-index: 1000;
+    }
+
+    .spinner {
+        width: 50px;
+        height: 50px;
+        border: 5px solid var(--border);
+        border-top-color: var(--primary);
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+        margin-bottom: 16px;
+    }
+
+    @keyframes spin {
+        100% {
+            transform: rotate(360deg);
+        }
+    }
+
+    .toast {
+        position: fixed;
+        bottom: 30px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: var(--secondary);
+        color: #FFF;
+        padding: 12px 24px;
+        border-radius: 30px;
+        font-size: 0.9rem;
+        font-weight: 700;
+        z-index: 1001;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+        white-space: nowrap;
+    }
+
+    /* ==========================================================================
+       LINEブラウザ警告バナー
+       ========================================================================== */
+    .browser-warning {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        background: #FFF3CD;
+        border-left: 4px solid #F57F17;
+        color: #5D4037;
+        font-size: 0.85rem;
+        font-weight: 500;
+        padding: 12px 16px;
+        line-height: 1.5;
+    }
+
+    .browser-warning .material-symbols-outlined {
+        font-size: 1.4rem;
+        color: #F57F17;
+        flex-shrink: 0;
+    }
+
+    /* ==========================================================================
+       テストルール説明カード
+       ========================================================================== */
+    .quiz-rules-card {
+        margin: 0 16px 16px;
+        padding: 14px 16px;
+    }
+    .quiz-rules-title {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 0.9rem;
+        font-weight: 700;
+        color: var(--text-main);
+        margin-bottom: 10px;
+    }
+    .quiz-rules-title .material-symbols-outlined {
+        font-size: 1.1rem;
+        color: var(--primary);
+    }
+    .quiz-rules-list {
+        list-style: none;
+        padding: 0;
+        margin: 0 0 8px;
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+    }
+    .quiz-rules-list li {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 0.85rem;
+        color: var(--text-main);
+    }
+    .day-label-rule {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 22px;
+        height: 22px;
+        border-radius: 50%;
+        background: var(--primary);
+        color: #fff;
+        font-size: 0.75rem;
+        font-weight: 700;
+        flex-shrink: 0;
+    }
+    .day-label-rule.friday {
+        background: var(--accent, #e67e22);
+    }
+    .quiz-rules-note {
+        font-size: 0.78rem;
+        color: var(--text-muted);
+        margin: 0;
+    }
+
+    /* ==========================================================================
+       週間スコア・月次成長グラフ
+       ========================================================================== */
+    .personal-stats-section {
+        padding: 0 16px 16px;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+    }
+
+    .stats-card {
+        padding: 16px;
+    }
+
+    .stats-title {
+        font-size: 0.95rem;
+        font-weight: 700;
+        color: var(--secondary);
+        margin: 0 0 12px;
+    }
+
+    .weekly-score-table {
+        display: flex;
+        gap: 6px;
+        justify-content: space-between;
+    }
+
+    /* 今週の得点 ヒントテキスト */
+    .weekly-score-hint {
+        font-size: 0.72rem;
+        color: var(--text-muted);
+        text-align: center;
+        margin: 2px 0 10px;
+    }
+
+    /* タップ可能セルの虫眼鏡アイコン */
+    .day-tap-icon {
+        font-size: 0.7rem;
+        color: var(--primary);
+        opacity: 0.7;
+    }
+
+    .weekly-score-day {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 4px;
+    }
+
+    .day-label {
+        font-size: 0.75rem;
+        color: var(--text-muted);
+        font-weight: 500;
+    }
+
+    .day-score {
+        font-size: 1.1rem;
+        font-weight: 700;
+        color: var(--secondary);
+        background: var(--background);
+        border-radius: 8px;
+        width: 100%;
+        text-align: center;
+        padding: 6px 2px;
+    }
+
+    .day-score.has-score {
+        color: var(--primary);
+        background: #FFF3EE;
+    }
+
+    .monthly-chart {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        padding: 4px 0;
+    }
+
+    .monthly-chart-bar-wrap {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .monthly-chart-bar {
+        height: 20px;
+        background: var(--primary);
+        border-radius: 0 4px 4px 0;
+        min-width: 4px;
+        flex-shrink: 0;
+        transition: width 0.3s ease;
+    }
+
+    .monthly-chart-label {
+        font-size: 0.75rem;
+        color: var(--text-muted);
+        white-space: nowrap;
+        min-width: 32px;
+        flex-shrink: 0;
+    }
+
+    .monthly-chart-score {
+        font-size: 0.75rem;
+        color: var(--text-muted);
+        flex-shrink: 0;
+    }
+
+    /* ==========================================================================
+       PDF印刷プレビュー
+       ========================================================================== */
+    .pdf-content {
+        padding: 16px;
+        background: #FFF;
+    }
+
+    .pdf-title {
+        font-size: 1.3rem;
+        font-weight: 900;
+        text-align: center;
+        margin-bottom: 4px;
+        color: var(--secondary);
+    }
+
+    .pdf-meta {
+        font-size: 0.8rem;
+        text-align: center;
+        color: var(--text-muted);
+        margin-bottom: 20px;
+    }
+
+    .pdf-section-title {
+        font-size: 1rem;
+        font-weight: 700;
+        color: var(--primary);
+        border-bottom: 2px solid var(--primary);
+        padding-bottom: 4px;
+        margin: 20px 0 12px;
+    }
+
+    .pdf-question {
+        margin-bottom: 16px;
+    }
+
+    .pdf-question-text {
+        font-size: 0.9rem;
+        font-weight: 500;
+        margin-bottom: 6px;
+        line-height: 1.5;
+    }
+
+    .pdf-options {
+        padding-left: 16px;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 2px 12px;
+    }
+
+    .pdf-option {
+        font-size: 0.85rem;
+        color: var(--text-main);
+    }
+
+    .pdf-written-space {
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        height: 60px;
+        margin-top: 4px;
+    }
+
+    .pdf-score-badge {
+        display: inline-block;
+        font-size: 0.72rem;
+        font-weight: 700;
+        color: var(--primary);
+        background: #FFF3E0;
+        border: 1px solid var(--primary);
+        border-radius: 4px;
+        padding: 0 5px;
+        margin-right: 6px;
+        vertical-align: middle;
+    }
+
+    /* 解答ページ */
+    .pdf-answer-page {
+        page-break-before: always;
+        padding-top: 8px;
+    }
+
+    .pdf-answer-page-title {
+        font-size: 1.1rem;
+        font-weight: 900;
+        text-align: center;
+        color: var(--secondary);
+        border-bottom: 3px solid var(--secondary);
+        padding-bottom: 6px;
+        margin-bottom: 16px;
+    }
+
+    .pdf-answer-section {
+        margin-bottom: 20px;
+    }
+
+    .pdf-answer-section-title {
+        font-size: 0.9rem;
+        font-weight: 700;
+        color: var(--primary);
+        margin-bottom: 8px;
+    }
+
+    .pdf-answer-grid {
+        display: grid;
+        grid-template-columns: repeat(5, 1fr);
+        gap: 4px 8px;
+        padding-left: 8px;
+    }
+
+    .pdf-answer-item {
+        font-size: 0.85rem;
+    }
+
+    .pdf-answer-written {
+        margin-bottom: 12px;
+        padding-left: 8px;
+    }
+
+    .pdf-answer-written-label {
+        font-size: 0.85rem;
+        font-weight: 700;
+        display: block;
+        margin-bottom: 4px;
+    }
+
+    .pdf-answer-written-text {
+        font-size: 0.85rem;
+        line-height: 1.6;
+        border-left: 3px solid var(--primary);
+        padding-left: 10px;
+        color: var(--text-main);
+    }
+
+    /* ==========================================================================
+       日別スコアクリック解説パネル
+       ========================================================================== */
+    .day-detail-panel {
+        margin: 0 16px 16px;
+        border: 2px solid var(--primary);
+        border-radius: 12px;
+        overflow: hidden;
+    }
+
+    .day-detail-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 10px 14px;
+        background: var(--primary);
+        color: #fff;
+        font-weight: 600;
+        font-size: 0.9rem;
+    }
+
+    #dayDetailContent {
+        padding: 0 12px 8px;
+    }
+
+    .weekly-score-day.clickable {
+        cursor: pointer;
+        transition: opacity 0.15s ease;
+    }
+
+    .weekly-score-day.clickable:active {
+        opacity: 0.6;
+    }
+
+    /* ==========================================================================
+       復習リスト（復習タブ）
+       ========================================================================== */
+    .review-list {
+        padding: 12px 16px;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+    }
+
+    .review-card {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 14px;
+    }
+
+    .review-card-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 8px;
+        margin-bottom: 8px;
+    }
+
+    .review-wrong-count {
+        font-size: 0.75rem;
+        color: #e74c3c;
+        white-space: nowrap;
+        flex-shrink: 0;
+    }
+
+    .review-question-text {
+        font-size: 0.9rem;
+        font-weight: 500;
+        line-height: 1.5;
+    }
+
+    .review-answer {
+        font-size: 0.85rem;
+        color: var(--primary);
+        margin-bottom: 4px;
+    }
+
+    .review-explanation {
+        font-size: 0.8rem;
+        color: var(--text-muted);
+        line-height: 1.5;
+        border-top: 1px solid var(--border);
+        padding-top: 8px;
+        margin-top: 4px;
+    }
+
+    /* ==========================================================================
+       復習クイズモード
+       ========================================================================== */
+
+    /* 復習クイズ用マスコット（小さめ） */
+    .review-quiz-mascot {
+        max-width: 200px;
+        margin: 8px auto 0;
+        padding: 4px 8px;
+    }
+    .review-quiz-mascot .speech-bubble {
+        font-size: 0.82rem;
+        padding: 8px 14px;
+        margin-top: 8px;
+    }
+
+    .review-quiz-progress {
+        text-align: center;
+        padding: 12px 16px 4px;
+        font-size: 0.85rem;
+        color: var(--text-muted);
+        font-weight: 500;
+    }
+
+    .review-quiz-card {
+        background: var(--card-bg);
+        border-radius: 12px;
+        padding: 20px 16px 16px;
+        margin: 8px 16px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    }
+
+    .review-quiz-question {
+        font-size: 1rem;
+        font-weight: 600;
+        line-height: 1.6;
+        color: var(--text);
+        margin-bottom: 20px;
+    }
+
+    .review-quiz-options {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    .review-quiz-option-btn {
+        width: 100%;
+        padding: 12px 14px;
+        border: 2px solid var(--border);
+        border-radius: 10px;
+        background: var(--bg);
+        color: var(--text);
+        font-size: 0.9rem;
+        font-family: inherit;
+        text-align: left;
+        cursor: pointer;
+        transition: border-color 0.15s, background 0.15s;
+        line-height: 1.5;
+    }
+
+    .review-quiz-option-btn:disabled {
+        cursor: default;
+    }
+
+    .review-quiz-option-btn.correct {
+        border-color: #27ae60;
+        background: rgba(39, 174, 96, 0.12);
+        color: #1a7340;
+        font-weight: 600;
+    }
+
+    .review-quiz-option-btn.wrong {
+        border-color: #e74c3c;
+        background: rgba(231, 76, 60, 0.10);
+        color: #c0392b;
+    }
+
+    .review-quiz-feedback {
+        margin: 12px 16px 8px;
+        padding: 14px 16px;
+        border-radius: 10px;
+        background: rgba(231, 76, 60, 0.08);
+        border-left: 4px solid #e74c3c;
+    }
+
+    .review-quiz-feedback.is-correct {
+        background: rgba(39, 174, 96, 0.08);
+        border-left-color: #27ae60;
+    }
+
+    .review-feedback-icon {
+        font-size: 1.1rem;
+        font-weight: 700;
+        margin-bottom: 6px;
+    }
+
+    .review-quiz-feedback.is-correct .review-feedback-icon {
+        color: #27ae60;
+    }
+
+    .review-quiz-feedback:not(.is-correct) .review-feedback-icon {
+        color: #e74c3c;
+    }
+
+    .review-feedback-explanation {
+        font-size: 0.85rem;
+        color: var(--text-muted);
+        line-height: 1.6;
+    }
+
+    .review-complete-msg {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 60px 20px;
+        text-align: center;
+        gap: 8px;
+    }
+
+    .review-complete-icon {
+        font-size: 3rem;
+        margin-bottom: 8px;
+    }
+
+    .review-complete-title {
+        font-size: 1.4rem;
+        font-weight: 700;
+        color: var(--text);
+    }
+
+    .review-complete-sub {
+        font-size: 0.9rem;
+        color: var(--text-muted);
+    }
+
+    /* ==========================================================================
+       スマホ対応
+       ========================================================================== */
+
+    /* スマホ全般（480px以下） */
+    @media (max-width: 480px) {
+        /* 小さすぎるフォントを底上げ */
+        .weekly-score-hint,
+        .day-tap-icon {
+            font-size: 0.8rem;
+        }
+
+        .day-label,
+        .monthly-chart-label,
+        .monthly-chart-score,
+        .review-wrong-count {
+            font-size: 0.8rem;
+        }
+
+        /* ランキングタブの詰まり対策 */
+        .ranking-tabs {
+            padding: 10px 12px 0;
+            gap: 4px;
+        }
+
+        .tab-btn {
+            font-size: 0.78rem;
+            padding: 10px 2px;
+        }
+    }
+
+    /* 最狭スマホ（360px以下） */
+    @media (max-width: 360px) {
+        .tab-btn {
+            font-size: 0.72rem;
+            padding: 8px 1px;
+        }
+
+        .card {
+            padding: 16px;
+            margin: 12px;
+        }
+    }
+
+    /* iOS SafeArea対応（ノッチ・Dynamic Island） */
+    @supports (padding: max(0px)) {
+        .sticky-bottom {
+            padding-bottom: max(24px, env(safe-area-inset-bottom));
+        }
+
+        body {
+            padding-left: env(safe-area-inset-left);
+            padding-right: env(safe-area-inset-right);
+        }
+    }
+
+    /* タッチデバイスでホバー効果を無効化・active に置き換え */
+    @media (hover: none) {
+        .icon-btn:hover {
+            background: transparent;
+        }
+
+        .icon-btn:active {
+            background: var(--border);
+        }
+
+        .abort-btn:hover {
+            background: #F4F7F6;
+            color: var(--text-muted);
+        }
+    }
+
+    /* トーストのはみ出し防止 */
+    .toast {
+        max-width: calc(100vw - 40px);
+        white-space: normal;
+        text-align: center;
+    }
+
+    /* ==========================================================================
+       印刷用スタイル
+       ========================================================================== */
+    @media print {
+        /* body のflex中央揃えを解除して左上から印刷 */
+        body {
+            display: block;
+            margin: 0;
+            padding: 0;
+        }
+
+        /* #viewPdfは.app-container内に配置済み。印刷時はコンテナをフル幅に */
+        .app-container {
+            max-width: 100%;
+            padding: 0;
+            overflow: visible;
+            box-shadow: none;
+        }
+
+        .no-print {
+            display: none !important;
+        }
+
+        .view {
+            display: none !important;
+        }
+
+        #viewPdf {
+            display: block !important;
+            position: static !important;
+            width: 100% !important;
+            min-height: unset !important;
+            padding-bottom: 0 !important;
+        }
+
+        .pdf-content {
+            padding: 8px 16px;
+        }
+    }
+
+/* --- クイズセレクター --- */
+.quiz-selector-section {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 14px 16px;
+  margin-bottom: 12px;
+}
+.selector-label {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--text-sub);
+  margin: 0 0 8px 0;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.selector-label .material-symbols-outlined {
+  font-size: 1rem;
+}
+.quiz-selector {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: 1rem;
+  background: var(--bg);
+  color: var(--text-main);
+  margin-bottom: 10px;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24'%3E%3Cpath fill='%23888' d='M7 10l5 5 5-5z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+}
+.quiz-selector:disabled {
+  opacity: 0.4;
+}
+.quiz-selector option:disabled {
+  color: var(--text-sub);
+}
+</style>

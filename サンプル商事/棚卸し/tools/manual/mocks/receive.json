@@ -1,0 +1,50 @@
+{
+  "getOpenOrders": {
+    "clinic": "サンプル歯科",
+    "orders": [
+      {
+        "orderId": "O1700000001",
+        "productId": "P001",
+        "name": "サンプルグローブ Mサイズ",
+        "mode": "数量管理",
+        "expiryManaged": false,
+        "orderedQty": 10,
+        "receivedQty": 0,
+        "remainingQty": 10,
+        "supplier": "サンプル商会",
+        "status": "発注済み"
+      },
+      {
+        "orderId": "O1700000002",
+        "productId": "P002",
+        "name": "サンプル麻酔カートリッジ",
+        "mode": "数量管理",
+        "expiryManaged": true,
+        "orderedQty": 20,
+        "receivedQty": 8,
+        "remainingQty": 12,
+        "supplier": "サンプル商会",
+        "status": "一部入荷"
+      },
+      {
+        "orderId": "O1700000003",
+        "productId": "P003",
+        "name": "サンプル紙コップ",
+        "mode": "発注トリガー管理",
+        "expiryManaged": false,
+        "orderedQty": 0,
+        "receivedQty": 0,
+        "remainingQty": 0,
+        "supplier": "サンプル資材",
+        "status": "発注済み"
+      }
+    ]
+  },
+  "getProductsForDirectReceipt": {
+    "clinic": "サンプル歯科",
+    "products": [
+      { "productId": "P001", "name": "サンプルグローブ Mサイズ", "stock": 4, "expiryManaged": false },
+      { "productId": "P002", "name": "サンプル麻酔カートリッジ", "stock": 30, "expiryManaged": true }
+    ]
+  }
+}

@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<base target="_top">
+<?!= include('Style'); ?>
+</head>
+<body>
+<header><h1 id="title">修理依頼・完了・返却</h1></header>
+<main>
+  <a class="back" id="homeLink" href="#">← ホームへ</a>
+  <div id="app"><div class="spin">読み込み中…</div></div>
+</main>
+
+<script>
+  var APP_URL = '<?= initParams && initParams.appUrl ? initParams.appUrl : "" ?>';
+  var CLINIC  = '<?= initParams && initParams.clinic ? initParams.clinic : "" ?>';
+  var ACTIONS = ['修理','修理（保証）','購入','破棄'];
+</script>
+<?!= include('Common'); ?>
+<script>
+  var ORDERED = [];
+  var RETURNS = [];
+
+  $('homeLink').href = link('home');
+  if (requireClinic('title')) load();
+
+  // 2つの一覧（依頼中／返却待ち）を続けて取りに行く。
+  // 画面の描画は両方そろってから1回だけ行う。
+  function load(){
+    showLoading('app');
+    google.script.run.withSuccessHandler(function(ordered){
+      ORDERED = ordered;
+      google.script.run.withSuccessHandler(function(returns){
+        RETURNS = returns;
+        render();
+      }).withFailureHandler(fail).getReturnQueue();
+    }).withFailureHandler(fail).getOrderedCases();
+  }
+
+  function render(){
+    $('title').innerHTML = '<span class="clinicTag">本部</span> 修理依頼・完了・返却';
+    $('app').innerHTML = orderedSection() + returnSection()
+      + '<div class="note">対応区分で<b>「購入」</b>または<b>「破棄」</b>を選ぶと、'
+      + 'その機器は台帳で「破棄」になります。'
+      + '<br>新しく買った機体は、各医院の<b>現況一覧 →「機器を追加」</b>から登録してください。</div>';
+  }
+
+  // --- 修理依頼中 → 完了登録 ---
+  function orderedSection(){
+    if (!ORDERED.length) {
+      return '<h2>修理依頼中</h2><div class="card"><p class="empty">'
+           + '修理依頼中の機器はありません。</p></div>';
+    }
+    var html = '<h2>修理依頼中（' + ORDERED.length + '件）</h2>';
+    ORDERED.forEach(function(o, i){
+      html += '<div class="card">'
+        + '<div style="font-weight:700;font-size:15px;margin-bottom:2px;">'
+        +   esc(o.clinic) + '　' + esc(o.label) + '</div>'
+        + '<div style="color:var(--sub);font-size:12.5px;">'
+        +   '症状: ' + esc(o.symptom) + '／依頼日: ' + esc(o.orderDate || '—')
+        +   '／故障日: ' + esc(o.faultDate || '—') + '</div>'
+        + '<div class="row">'
+        +   '<div><label>対応区分 ※必須</label><select id="act' + i + '">'
+        +     '<option value="">選んでください</option>'
+        +     ACTIONS.map(function(a){ return '<option>' + a + '</option>'; }).join('')
+        +   '</select></div>'
+        +   '<div><label>原因</label><input type="text" id="cause' + i
+        +     '" placeholder="経年劣化 など"></div>'
+        + '</div>'
+        + '<div class="row">'
+        +   '<div><label>費用（税抜・数字のみ）</label>'
+        +     '<input type="number" id="cost' + i + '" min="0" placeholder="5600"></div>'
+        +   '<div><label>完了日</label><input type="date" id="done' + i
+        +     '" value="' + today() + '"></div>'
+        + '</div>'
+        + '<label>備考</label><input type="text" id="cnote' + i + '">'
+        + '<div class="actions"><button id="cbtn' + i + '" onclick="complete(' + i + ')">'
+        +   '完了として登録する</button></div>'
+        + '</div>';
+    });
+    return html;
+  }
+
+  function complete(i){
+    var o = ORDERED[i];
+    var action = $('act' + i).value;
+    if (!action) { toast('対応区分を選んでください。', true); return; }
+    if ((action === '購入' || action === '破棄') &&
+        !confirm('「' + action + '」を選ぶと ' + o.label + ' は台帳で「破棄」になります。よろしいですか？')) {
+      return;
+    }
+    $('cbtn' + i).disabled = true;
+
+    google.script.run.withSuccessHandler(function(res){
+      toast(res.needsReplacement
+        ? '完了として登録しました。新しく購入した機体は「機器を追加」から登録してください。'
+        : '完了として登録しました。' +
+          (res.deviceStatus === '返却待ち' ? '下の「返却待ち」から医院へ返却してください。' : ''));
+      load();
+    }).withFailureHandler(fail).completeRepair(o.id, {
+      action: action,
+      cause: $('cause' + i).value,
+      cost: $('cost' + i).value,
+      doneDate: $('done' + i).value,
+      note: $('cnote' + i).value
+    });
+  }
+
+  // --- 返却待ち → 医院へ返す ---
+  function returnSection(){
+    if (!RETURNS.length) {
+      return '<h2>返却待ち</h2><div class="card"><p class="empty">'
+           + '返却待ちの機器はありません。</p></div>';
+    }
+    var rows = '<tr><th><input type="checkbox" onclick="toggleAll(this)"></th>'
+             + '<th>返却先</th><th>機器</th><th>使用者</th><th>修理完了日</th></tr>';
+    RETURNS.forEach(function(d){
+      rows += '<tr>'
+        + '<td><input type="checkbox" name="rets" value="' + esc(d.id) + '" onchange="updateReturnBtn()"></td>'
+        + '<td>' + esc(d.clinic) + '</td>'
+        + '<td>' + esc(d.label) + '</td>'
+        + '<td>' + esc(d.user || '—') + '</td>'
+        + '<td>' + esc(d.lastRepair || '—') + '</td>'
+        + '</tr>';
+    });
+    return '<h2>返却待ち（' + RETURNS.length + '件）</h2>'
+      + '<div class="card"><div class="scroll"><table>' + rows + '</table></div>'
+      + '<div class="actions"><button id="rbtn" onclick="doReturn()" disabled>'
+      + '医院へ返却したことを登録</button></div></div>';
+  }
+
+  function toggleAll(box){
+    var boxes = document.getElementsByName('rets');
+    for (var i = 0; i < boxes.length; i++) boxes[i].checked = box.checked;
+    updateReturnBtn();
+  }
+
+  function updateReturnBtn(){
+    var n = checkedValues('rets').length;
+    $('rbtn').disabled = (n === 0);
+    $('rbtn').textContent = n ? n + '台を返却したことを登録' : '医院へ返却したことを登録';
+  }
+
+  function doReturn(){
+    var ids = checkedValues('rets');
+    if (!ids.length) return;
+    $('rbtn').disabled = true;
+    google.script.run.withSuccessHandler(function(res){
+      toast(res.updated + '台を各医院へ返却したものとして登録しました。');
+      load();
+    }).withFailureHandler(fail).completeReturn(ids);
+  }
+</script>
+</body>
+</html>

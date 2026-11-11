@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<base target="_top">
+<style>
+  :root{ --line:#d8dde5; --ink:#1a1a1a; --sub:#5a6270; --accent:#1e5aa8;
+         --soft:#f4f6f9; --ok:#1e7a4d; --warn:#b3541e; --err:#c0392b; --na:#8a90a0; }
+  *{box-sizing:border-box;}
+  body{margin:0;font-family:"Yu Gothic",YuGothic,"Hiragino Kaku Gothic ProN","Meiryo",sans-serif;
+       color:var(--ink);background:#eef1f5;font-size:14px;}
+  header{background:#fff;border-bottom:2px solid var(--accent);padding:16px;
+         box-shadow:0 1px 6px rgba(0,0,0,.06);}
+  h1{font-size:18px;margin:0;}
+  .sub{font-size:12.5px;color:var(--sub);margin-top:4px;line-height:1.6;}
+  main{max-width:900px;margin:0 auto;padding:16px;}
+  a{color:var(--accent);}
+
+  .card{background:#fff;border:1px solid var(--line);border-radius:10px;margin-bottom:14px;overflow:hidden;}
+  .card .hd{padding:11px 14px;border-bottom:1px solid var(--line);font-weight:700;}
+  .card .bd{padding:14px;}
+  .step{display:inline-block;background:var(--accent);color:#fff;border-radius:50%;
+        width:22px;height:22px;line-height:22px;text-align:center;font-size:12.5px;margin-right:7px;}
+
+  .row{display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end;margin-bottom:12px;}
+  .fld{display:flex;flex-direction:column;gap:4px;}
+  .fld label{font-size:11.5px;color:var(--sub);font-weight:700;}
+  input[type=date]{font:inherit;padding:7px 9px;border:1px solid var(--line);border-radius:6px;background:#fff;}
+  button{font:inherit;font-weight:700;padding:9px 16px;border:none;border-radius:6px;cursor:pointer;}
+  button.primary{background:var(--accent);color:#fff;}
+  button.danger{background:var(--err);color:#fff;}
+  button.ghost{background:#fff;color:var(--accent);border:1px solid var(--accent);}
+  button:disabled{opacity:.5;cursor:default;}
+
+  .scroll{overflow-x:auto;}
+  table{border-collapse:collapse;width:100%;min-width:560px;}
+  th,td{padding:8px 10px;border-bottom:1px solid var(--line);text-align:left;white-space:nowrap;}
+  th{background:var(--soft);font-size:12px;color:var(--sub);}
+  td.num,th.num{text-align:right;font-variant-numeric:tabular-nums;}
+  td.hit{font-weight:800;color:var(--accent);}
+
+  .note{font-size:12.5px;color:var(--sub);background:var(--soft);border-radius:8px;
+        padding:10px 13px;line-height:1.7;}
+  .warnbox{font-size:12.5px;background:#fdf1e7;border:1px solid #f0c9a8;color:#7a3d10;
+           border-radius:8px;padding:10px 13px;line-height:1.7;margin-top:12px;}
+  .okbox{font-size:13px;background:#e9f5ee;border:1px solid #a9d6bd;color:#14512f;
+         border-radius:8px;padding:12px 14px;line-height:1.7;margin-top:12px;}
+  .errbox{font-size:13px;background:#fbe9e7;border:1px solid #f0b7ae;color:#8c2c20;
+          border-radius:8px;padding:12px 14px;line-height:1.7;margin-top:12px;}
+  .spin,.empty{padding:30px;text-align:center;color:var(--sub);}
+  .foot{margin-top:16px;text-align:center;font-size:12.5px;}
+</style>
+</head>
+<body>
+<header>
+  <h1>履歴の保管・削除（年1回）</h1>
+  <div class="sub">1年分の記録を別ファイルに書き出して保管し、そのうえで元の履歴から消します。<br>
+    そのままにしておくと履歴が増え続け、数年後にシステムが重くなるための年次作業です。</div>
+</header>
+<main>
+  <div id="app"><div class="spin">履歴の状況を確認中…</div></div>
+  <div class="foot"><a id="backLink" href="#">← 理事長・事務ホームへ戻る</a></div>
+</main>
+
+<script>
+  var APP_URL = '<?= initParams && initParams.appUrl ? initParams.appUrl : "" ?>';
+  var $ = function(id){ return document.getElementById(id); };
+  var STATUS = null;
+  // 実行結果のメッセージ。load() で画面を作り直しても消えないよう、ここに保持して毎回描き直す。
+  var FLASH = '';
+
+  $('backLink').href = APP_URL + '?page=adminhome';
+  load('');
+
+  function load(beforeDate){
+    $('app').innerHTML = '<div class="spin">履歴の状況を確認中…</div>';
+    google.script.run
+      .withSuccessHandler(function(res){ STATUS = res; render(); })
+      .withFailureHandler(function(err){
+        $('app').innerHTML = '<div class="errbox">状況を取得できませんでした：' + esc(err && err.message) + '</div>';
+      })
+      .getHistoryArchiveStatus(beforeDate);
+  }
+
+  function render(){
+    $('app').innerHTML = FLASH + statusCard() + archiveCard() + purgeCard() + logCard();
+    bind();
+  }
+
+  function statusCard(){
+    var rows = STATUS.sheets.map(function(s){
+      if (!s.exists) {
+        return '<tr><td>' + esc(s.label) + '</td><td colspan="4" style="color:#8a90a0">まだ記録がありません</td></tr>';
+      }
+      return '<tr>'
+        + '<td>' + esc(s.label) + '</td>'
+        + '<td class="num">' + s.totalRows.toLocaleString() + '</td>'
+        + '<td>' + esc(s.oldest || '—') + ' 〜 ' + esc(s.newest || '—') + '</td>'
+        + '<td class="num ' + (s.targetRows ? 'hit' : '') + '">' + s.targetRows.toLocaleString() + '</td>'
+        + '</tr>';
+    }).join('');
+
+    return '<div class="card"><div class="hd">いま溜まっている履歴</div><div class="bd">'
+      + '<div class="row">'
+      +   '<div class="fld"><label for="before">基準日（この日より前を対象にします）</label>'
+      +     '<input type="date" id="before" value="' + esc(STATUS.beforeDate) + '"></div>'
+      +   '<button class="ghost" id="recount">件数を数え直す</button>'
+      + '</div>'
+      + '<div class="scroll"><table><thead><tr>'
+      +   '<th>履歴</th><th class="num">全件数</th><th>期間</th><th class="num">対象件数</th>'
+      + '</tr></thead><tbody>' + rows + '</tbody></table></div>'
+      + '<div class="note" style="margin-top:12px;">'
+      +   '<b>合計 ' + STATUS.totalTargetRows.toLocaleString() + ' 件</b>が、この基準日より前の記録です。<br>'
+      +   '「発注管理」「発注候補」「QR印刷済み」は、いま発注中の資材や印刷済みのQRという'
+      +   '<b>今の状態</b>を持っているため、この作業では触りません。'
+      + '</div>'
+      + '</div></div>';
+  }
+
+  function archiveCard(){
+    var disabled = STATUS.totalTargetRows === 0;
+    return '<div class="card"><div class="hd"><span class="step">1</span>書き出して保管する</div><div class="bd">'
+      + '<div class="note">基準日より前の記録を、Googleドライブに新しいスプレッドシートとして書き出します。'
+      + 'このときは<b>元の履歴は消えません</b>。書き出したファイルは、この棚卸しファイルと同じ場所の'
+      + '「棚卸しシステム_履歴アーカイブ」フォルダに入ります。</div>'
+      + '<div class="row" style="margin:12px 0 0;">'
+      +   '<button class="primary" id="doArchive"' + (disabled ? ' disabled' : '') + '>'
+      +     '書き出して保管する</button>'
+      + '</div>'
+      + (disabled ? '<div class="note" style="margin-top:10px;">対象の記録が0件のため実行できません。</div>' : '')
+      + '<div id="archiveResult"></div>'
+      + '</div></div>';
+  }
+
+  function purgeCard(){
+    // 書き出し済みでまだ削除していないアーカイブだけを、削除の対象として選ばせる。
+    var pending = STATUS.logs.filter(function(l){ return !l.purgedAt; });
+    var body;
+    if (!pending.length) {
+      body = '<div class="note">削除できるアーカイブがありません。'
+           + '先に上の「書き出して保管する」を実行してください。</div>';
+    } else {
+      body = '<div class="note">書き出し済みのアーカイブを選び、元の履歴から消します。'
+           + '<b>この操作は元に戻せません。</b>保管ファイルが残っていることを確認してから実行してください。</div>'
+           + '<div class="row" style="margin:12px 0 0;">'
+           + '<div class="fld"><label for="purgeId">削除するアーカイブ</label>'
+           + '<select id="purgeId" style="font:inherit;padding:7px 9px;border:1px solid var(--line);border-radius:6px;">'
+           + pending.map(function(l){
+               return '<option value="' + esc(l.archiveId) + '">'
+                    + esc(l.archiveId) + '（' + esc(l.beforeDate) + 'より前・' + esc(l.rows) + '件）</option>';
+             }).join('')
+           + '</select></div>'
+           + '<button class="danger" id="doPurge">元の履歴から削除する</button>'
+           + '</div>'
+           + '<div class="warnbox">削除する前に、保管ファイルを開いて中身が入っていることを必ず確認してください。'
+           + '保管ファイルを消してしまうと、削除した履歴は二度と戻せません。</div>';
+    }
+    return '<div class="card"><div class="hd"><span class="step">2</span>元の履歴から削除する</div>'
+         + '<div class="bd">' + body + '<div id="purgeResult"></div></div></div>';
+  }
+
+  function logCard(){
+    if (!STATUS.logs.length) return '';
+    var rows = STATUS.logs.map(function(l){
+      return '<tr>'
+        + '<td>' + esc(l.archiveId) + '</td>'
+        + '<td>' + esc(l.createdAt) + '</td>'
+        + '<td>' + esc(l.beforeDate) + ' より前</td>'
+        + '<td class="num">' + esc(l.rows) + '</td>'
+        + '<td>' + (l.url ? '<a href="' + esc(l.url) + '" target="_blank" rel="noopener">開く</a>' : '—') + '</td>'
+        + '<td>' + (l.purgedAt ? esc(l.purgedAt) + '（' + esc(l.purgedRows) + '件）'
+                               : '<span style="color:#b3541e">未削除</span>') + '</td>'
+        + '</tr>';
+    }).join('');
+    return '<div class="card"><div class="hd">これまでの保管・削除の記録</div><div class="bd"><div class="scroll">'
+      + '<table><thead><tr><th>ID</th><th>書き出し日時</th><th>対象</th><th class="num">件数</th>'
+      + '<th>保管ファイル</th><th>削除</th></tr></thead><tbody>' + rows + '</tbody></table>'
+      + '</div></div></div>';
+  }
+
+  function bind(){
+    $('recount').onclick = function(){ load($('before').value); };
+    $('before').onchange = function(){ load($('before').value); };
+
+    var a = $('doArchive');
+    if (a) a.onclick = doArchive;
+    var p = $('doPurge');
+    if (p) p.onclick = doPurge;
+  }
+
+  function doArchive(){
+    var before = $('before').value;
+    if (!confirm(before + ' より前の履歴 ' + STATUS.totalTargetRows + ' 件を書き出して保管します。\n'
+               + '（この操作では元の履歴は消えません）\n\nよろしいですか？')) return;
+
+    $('doArchive').disabled = true;
+    $('archiveResult').innerHTML = '<div class="note" style="margin-top:12px;">書き出しています…件数が多いと1〜2分かかります。</div>';
+    google.script.run
+      .withSuccessHandler(function(res){
+        FLASH = '<div class="okbox">'
+          + '書き出しました（' + res.total.toLocaleString() + ' 件）。<br>'
+          + 'アーカイブID：<b>' + esc(res.archiveId) + '</b><br>'
+          + '<a href="' + esc(res.url) + '" target="_blank" rel="noopener">保管したファイルを開く</a><br><br>'
+          + '中身を確認したら、下の「元の履歴から削除する」に進んでください。</div>';
+        load($('before').value);
+      })
+      .withFailureHandler(function(err){
+        $('doArchive').disabled = false;
+        $('archiveResult').innerHTML = '<div class="errbox">書き出しに失敗しました：'
+          + esc(err && err.message) + '<br>元の履歴は変更していません。</div>';
+      })
+      .archiveHistoryBefore(before);
+  }
+
+  function doPurge(){
+    var id = $('purgeId').value;
+    if (!confirm('アーカイブ ' + id + ' の対象期間の履歴を、元のシートから削除します。\n\n'
+               + 'この操作は元に戻せません。\n保管ファイルの中身は確認しましたか？')) return;
+    if (!confirm('最終確認です。\n\n' + id + ' の対象期間の履歴を削除します。よろしいですか？')) return;
+
+    $('doPurge').disabled = true;
+    $('purgeResult').innerHTML = '<div class="note" style="margin-top:12px;">削除しています…</div>';
+    google.script.run
+      .withSuccessHandler(function(res){
+        var detail = res.counts.map(function(c){ return c.sheet + ' ' + c.rows + '件'; }).join('／');
+        FLASH = '<div class="okbox">削除しました（合計 '
+          + res.deleted.toLocaleString() + ' 件）。<br>' + esc(detail) + '</div>';
+        load($('before').value);
+      })
+      .withFailureHandler(function(err){
+        $('doPurge').disabled = false;
+        $('purgeResult').innerHTML = '<div class="errbox">削除できませんでした：'
+          + esc(err && err.message) + '</div>';
+      })
+      .purgeArchivedHistory(id);
+  }
+
+  function esc(s){
+    return String(s==null?'':s).replace(/[&<>"']/g,function(c){
+      return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];
+    });
+  }
+</script>
+</body>
+</html>

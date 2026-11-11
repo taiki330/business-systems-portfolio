@@ -1,0 +1,1280 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <base target="_top">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    /* リセット＋基本スタイル */
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Helvetica Neue', 'Hiragino Sans', 'Meiryo', sans-serif;
+      background: #f5f5f5;
+      color: #333;
+      min-height: 100vh;
+    }
+
+    /* ヘッダー */
+    .header {
+      background: #1a237e;
+      color: white;
+      padding: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    .header h1 {
+      font-size: 18px;
+      font-weight: 600;
+    }
+
+    .header .user-info {
+      font-size: 13px;
+      opacity: 0.8;
+      margin-top: 2px;
+    }
+
+    .header button {
+      background: rgba(255, 255, 255, 0.2);
+      border: none;
+      color: white;
+      padding: 6px 12px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 13px;
+    }
+
+    /* 画面切り替え */
+    .screen {
+      display: none;
+    }
+
+    .screen.active {
+      display: block;
+    }
+
+    /* ボタン共通 */
+    .btn {
+      width: 100%;
+      padding: 14px;
+      border: none;
+      border-radius: 8px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: opacity 0.2s;
+    }
+
+    .btn:hover {
+      opacity: 0.85;
+    }
+
+    .btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .btn-primary {
+      background: #1a237e;
+      color: white;
+    }
+
+    .btn-success {
+      background: #2e7d32;
+      color: white;
+    }
+
+    .btn-danger {
+      background: #c62828;
+      color: white;
+    }
+
+    .btn-secondary {
+      background: #757575;
+      color: white;
+    }
+
+    .error-msg {
+      color: #c62828;
+      font-size: 13px;
+      margin-top: 8px;
+      text-align: center;
+    }
+
+    /* 一覧画面コンテナ */
+    .list-container {
+      padding: 16px;
+      max-width: 600px;
+      margin: 0 auto;
+    }
+
+    /* 報告種別タブ */
+    .report-type-tabs {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 12px;
+      overflow-x: auto;
+      padding-bottom: 4px;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    .report-type-tabs::-webkit-scrollbar {
+      display: none;
+    }
+
+    .report-type-tab {
+      padding: 8px 16px;
+      border-radius: 20px;
+      border: 2px solid #1a237e;
+      background: white;
+      color: #1a237e;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: background 0.2s, color 0.2s;
+    }
+
+    .report-type-tab.active {
+      background: #1a237e;
+      color: white;
+    }
+
+    /* ステータスフィルター */
+    .status-filters {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 16px;
+      overflow-x: auto;
+      padding-bottom: 4px;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    .status-filters::-webkit-scrollbar {
+      display: none;
+    }
+
+    .status-filter {
+      padding: 6px 14px;
+      border-radius: 16px;
+      border: 1px solid #ddd;
+      background: white;
+      font-size: 12px;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: background 0.2s, color 0.2s, border-color 0.2s;
+    }
+
+    .status-filter.active {
+      background: #455a64;
+      color: white;
+      border-color: #455a64;
+    }
+
+    /* 報告カード */
+    .report-card {
+      background: white;
+      border-radius: 12px;
+      padding: 16px;
+      margin-bottom: 12px;
+      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+      cursor: pointer;
+      transition: box-shadow 0.2s;
+    }
+
+    .report-card:hover {
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    }
+
+    .report-card:active {
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+    }
+
+    .report-card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 8px;
+    }
+
+    .report-card-site {
+      font-size: 16px;
+      font-weight: 600;
+    }
+
+    .report-card-meta {
+      font-size: 13px;
+      color: #666;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .report-card-info {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .report-card-images {
+      font-size: 13px;
+      color: #555;
+      margin-top: 6px;
+    }
+
+    /* ステータスバッジ */
+    .badge {
+      display: inline-block;
+      padding: 4px 10px;
+      border-radius: 12px;
+      font-size: 12px;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+
+    .badge-unchecked {
+      background: #fff3e0;
+      color: #e65100;
+    }
+
+    .badge-approved {
+      background: #e8f5e9;
+      color: #2e7d32;
+    }
+
+    .badge-rejected {
+      background: #ffebee;
+      color: #c62828;
+    }
+
+    /* 詳細画面 */
+    .detail-container {
+      padding: 16px;
+      max-width: 600px;
+      margin: 0 auto;
+    }
+
+    .back-btn {
+      background: none;
+      border: none;
+      color: #1a237e;
+      font-size: 14px;
+      cursor: pointer;
+      margin-bottom: 16px;
+      padding: 8px 0;
+    }
+
+    .detail-card {
+      background: white;
+      border-radius: 12px;
+      padding: 20px;
+      margin-bottom: 16px;
+      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+    }
+
+    .detail-card h3 {
+      font-size: 15px;
+      color: #1a237e;
+      margin-bottom: 12px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid #f0f0f0;
+    }
+
+    /* 報告情報リスト */
+    .info-list {
+      list-style: none;
+    }
+
+    .info-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px 0;
+      border-bottom: 1px solid #f0f0f0;
+      font-size: 14px;
+    }
+
+    .info-item:last-child {
+      border-bottom: none;
+    }
+
+    .info-label {
+      color: #888;
+      font-size: 13px;
+      flex-shrink: 0;
+      margin-right: 12px;
+    }
+
+    .info-value {
+      font-weight: 500;
+      text-align: right;
+      word-break: break-all;
+    }
+
+    /* 回答一覧 */
+    .answer-list {
+      list-style: none;
+    }
+
+    .answer-item {
+      padding: 10px 0;
+      border-bottom: 1px solid #f0f0f0;
+      font-size: 14px;
+    }
+
+    .answer-item:last-child {
+      border-bottom: none;
+    }
+
+    .answer-label {
+      color: #888;
+      font-size: 13px;
+      margin-bottom: 4px;
+    }
+
+    .answer-value {
+      font-weight: 500;
+    }
+
+    /* 写真グリッド */
+    .photo-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+
+    .photo-item {
+      text-align: center;
+      position: relative;
+    }
+
+    .photo-item a {
+      display: block;
+      text-decoration: none;
+    }
+
+    /* 写真チェックボックス */
+    .photo-checkbox-wrapper {
+      position: absolute;
+      top: 4px;
+      left: 4px;
+      z-index: 10;
+      background: rgba(255, 255, 255, 0.85);
+      border-radius: 4px;
+      padding: 2px;
+    }
+
+    .photo-checkbox {
+      width: 22px;
+      height: 22px;
+      cursor: pointer;
+    }
+
+    /* 差し戻し済み画像の赤枠 */
+    .photo-item.rejected img,
+    .photo-item.rejected .photo-error {
+      border: 3px solid #c62828;
+    }
+
+    .photo-item.rejected .photo-caption {
+      color: #c62828;
+      font-weight: 600;
+    }
+
+    /* チェック中画像のハイライト */
+    .photo-item.checked img {
+      border: 3px solid #1a237e;
+    }
+
+    .photo-item img {
+      width: 100%;
+      height: auto;
+      border-radius: 8px;
+      background: #f0f0f0;
+      min-height: 100px;
+      object-fit: cover;
+    }
+
+    .photo-item .photo-caption {
+      font-size: 11px;
+      color: #888;
+      margin-top: 4px;
+      word-break: break-all;
+      line-height: 1.3;
+    }
+
+    .photo-error {
+      width: 100%;
+      min-height: 100px;
+      border-radius: 8px;
+      background: #f0f0f0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #999;
+      font-size: 12px;
+    }
+
+    .no-photos {
+      text-align: center;
+      color: #999;
+      font-size: 14px;
+      padding: 20px 0;
+    }
+
+    /* アクションボタン */
+    .action-buttons {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+
+    .action-buttons .btn {
+      flex: 1;
+      padding: 14px;
+    }
+
+    /* 差し戻しモーダル */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.5);
+      z-index: 200;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .modal-overlay.active {
+      display: flex;
+    }
+
+    .modal {
+      background: white;
+      border-radius: 12px;
+      padding: 24px;
+      width: 90%;
+      max-width: 400px;
+    }
+
+    .modal h3 {
+      margin-bottom: 16px;
+      color: #c62828;
+    }
+
+    .modal textarea {
+      width: 100%;
+      padding: 12px;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      font-size: 14px;
+      min-height: 100px;
+      resize: vertical;
+      font-family: inherit;
+    }
+
+    .modal .btn-group {
+      display: flex;
+      gap: 8px;
+      margin-top: 16px;
+    }
+
+    .modal .btn-group .btn {
+      flex: 1;
+    }
+
+    /* 履歴 */
+    .history-item {
+      padding: 10px 0;
+      border-bottom: 1px solid #f0f0f0;
+      font-size: 13px;
+    }
+
+    .history-item:last-child {
+      border-bottom: none;
+    }
+
+    .history-action {
+      font-weight: 600;
+    }
+
+    .history-meta {
+      color: #999;
+      font-size: 12px;
+      margin-top: 2px;
+    }
+
+    .history-comment {
+      color: #666;
+      margin-top: 4px;
+      font-style: italic;
+    }
+
+    .history-detail {
+      color: #888;
+      font-size: 12px;
+      margin-top: 2px;
+    }
+
+    /* ローディング */
+    .loading {
+      text-align: center;
+      padding: 40px;
+      color: #999;
+    }
+
+  </style>
+</head>
+
+<body>
+
+  <!-- 一覧画面 -->
+  <div id="screen-list" class="screen active">
+    <div class="header">
+      <div>
+        <h1>報告確認・承認</h1>
+      </div>
+    </div>
+    <div class="list-container">
+      <!-- 報告種別タブ -->
+      <div id="report-type-tabs" class="report-type-tabs"></div>
+      <!-- ステータスフィルター -->
+      <div class="status-filters">
+        <div class="status-filter active" data-status="all" onclick="setStatusFilter('all')">すべて</div>
+        <div class="status-filter" data-status="pending" onclick="setStatusFilter('pending')">要確認</div>
+        <div class="status-filter" data-status="rejected" onclick="setStatusFilter('rejected')">差し戻し</div>
+        <div class="status-filter" data-status="approved" onclick="setStatusFilter('approved')">確認済</div>
+      </div>
+      <!-- 報告カード一覧 -->
+      <div id="report-list-content">
+        <div class="loading">読み込み中...</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 詳細画面 -->
+  <div id="screen-detail" class="screen">
+    <div class="header">
+      <div>
+        <h1 id="detail-header-title">報告詳細</h1>
+      </div>
+    </div>
+    <div class="detail-container">
+      <button class="back-btn" onclick="backToList()">&larr; 一覧に戻る</button>
+
+      <!-- ステータスカード -->
+      <div class="detail-card" id="detail-status-card">
+        <h3>承認ステータス</h3>
+        <div id="detail-status"></div>
+        <div id="detail-reject-reason" style="margin-top: 8px; color: #c62828; font-size: 13px; display: none;"></div>
+      </div>
+
+      <!-- 報告情報カード -->
+      <div class="detail-card">
+        <h3>報告情報</h3>
+        <ul class="info-list" id="detail-info"></ul>
+      </div>
+
+      <!-- 回答内容カード -->
+      <div class="detail-card" id="detail-answers-card">
+        <h3>回答内容</h3>
+        <ul class="answer-list" id="detail-answers"></ul>
+      </div>
+
+      <!-- 写真カード -->
+      <div class="detail-card" id="detail-photos-card">
+        <h3 id="detail-photos-title">添付写真</h3>
+        <div id="detail-photos"></div>
+      </div>
+
+      <!-- アクションボタン -->
+      <div id="detail-actions" class="action-buttons"></div>
+
+      <!-- 承認履歴カード -->
+      <div class="detail-card">
+        <h3>承認履歴</h3>
+        <div id="detail-history">
+          <div class="loading">読み込み中...</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  </div>
+
+  <script>
+    // =============================================
+    // 状態管理
+    // =============================================
+    var currentUser = { name: '管理者' };
+    var reportTypes = [];
+    var currentReportType = '';
+    var currentStatusFilter = 'all';
+    var reportList = [];
+    var currentReport = null;
+    var selectedImageIds = [];   // 詳細画面で選択した差し戻し画像ID
+
+    // ディープリンク用
+    var deepLinkType = null;
+    var deepLinkRow = null;
+
+    // =============================================
+    // URLパラメータからディープリンク取得
+    // =============================================
+    (function () {
+      try {
+        google.script.url.getLocation(function (location) {
+          if (location.parameter) {
+            if (location.parameter.type) {
+              deepLinkType = decodeURIComponent(location.parameter.type);
+            }
+            if (location.parameter.row) {
+              deepLinkRow = parseInt(location.parameter.row, 10);
+            }
+          }
+        });
+      } catch (e) {
+        // ローカルテスト時はスキップ
+      }
+    })();
+
+    // =============================================
+    // 画面切り替え
+    // =============================================
+    function showScreen(screenId) {
+      var screens = document.querySelectorAll('.screen');
+      for (var i = 0; i < screens.length; i++) {
+        screens[i].classList.remove('active');
+      }
+      document.getElementById('screen-' + screenId).classList.add('active');
+      // 画面遷移時にトップへスクロール
+      window.scrollTo(0, 0);
+    }
+
+    // =============================================
+    // 起動時に一覧画面を表示
+    // =============================================
+    (function() {
+      // ディープリンクがある場合は報告種別タブ読み込み後に遷移
+      // URLパラメータの取得は非同期なので少し待つ
+      setTimeout(function() {
+        if (deepLinkType && deepLinkRow) {
+          loadReportTypesAndNavigate();
+        } else {
+          initListScreen();
+        }
+      }, 100);
+    })();
+
+    // =============================================
+    // ディープリンク遷移
+    // =============================================
+    function loadReportTypesAndNavigate() {
+      google.script.run
+        .withSuccessHandler(function (types) {
+          reportTypes = types || [];
+          renderReportTypeTabs();
+
+          // ディープリンク先の報告種別をアクティブにする
+          if (deepLinkType) {
+            currentReportType = deepLinkType;
+            updateReportTypeTabUI();
+          }
+
+          showScreen('list');
+
+          // 詳細画面へ遷移
+          if (deepLinkType && deepLinkRow) {
+            showReportDetail(deepLinkType, deepLinkRow);
+            deepLinkType = null;
+            deepLinkRow = null;
+          }
+        })
+        .withFailureHandler(function (err) {
+          // エラー時は通常の一覧画面表示
+          initListScreen();
+        })
+        .fetchReportTypes();
+    }
+
+    // =============================================
+    // 一覧画面の初期化
+    // =============================================
+    function initListScreen() {
+      showScreen('list');
+      loadReportTypes();
+    }
+
+    // =============================================
+    // 報告種別タブの読み込み
+    // =============================================
+    function loadReportTypes() {
+      var tabsEl = document.getElementById('report-type-tabs');
+      tabsEl.innerHTML = '';
+      var contentEl = document.getElementById('report-list-content');
+      contentEl.innerHTML = '<div class="loading">読み込み中...</div>';
+
+      google.script.run
+        .withSuccessHandler(function (types) {
+          reportTypes = types || [];
+          renderReportTypeTabs();
+
+          // 最初のタブを選択して報告一覧を読み込む
+          if (reportTypes.length > 0) {
+            currentReportType = reportTypes[0];
+            updateReportTypeTabUI();
+            loadReportList();
+          } else {
+            contentEl.innerHTML = '<div class="empty-state"><div class="empty-state-text">報告種別がありません</div></div>';
+          }
+        })
+        .withFailureHandler(function (err) {
+          contentEl.innerHTML = '<div class="error-msg">報告種別の取得に失敗しました: ' + err.message + '</div>';
+        })
+        .fetchReportTypes();
+    }
+
+    function renderReportTypeTabs() {
+      var tabsEl = document.getElementById('report-type-tabs');
+      var html = '';
+      for (var i = 0; i < reportTypes.length; i++) {
+        var type = reportTypes[i];
+        html += '<div class="report-type-tab" data-type="' + escapeAttr(type) + '" onclick="setReportType(\'' + escapeJs(type) + '\')">'
+          + escapeHtml(type)
+          + '</div>';
+      }
+      tabsEl.innerHTML = html;
+    }
+
+    function setReportType(type) {
+      currentReportType = type;
+      currentStatusFilter = 'all';
+
+      // ステータスフィルターのUIリセット
+      var filters = document.querySelectorAll('.status-filter');
+      for (var i = 0; i < filters.length; i++) {
+        filters[i].classList.toggle('active', filters[i].dataset.status === 'all');
+      }
+      updateReportTypeTabUI();
+      loadReportList();
+    }
+
+    function updateReportTypeTabUI() {
+      var tabs = document.querySelectorAll('.report-type-tab');
+      for (var i = 0; i < tabs.length; i++) {
+        tabs[i].classList.toggle('active', tabs[i].dataset.type === currentReportType);
+      }
+    }
+
+    // =============================================
+    // ステータスフィルター
+    // =============================================
+    function setStatusFilter(status) {
+      currentStatusFilter = status;
+      var filters = document.querySelectorAll('.status-filter');
+      for (var i = 0; i < filters.length; i++) {
+        filters[i].classList.toggle('active', filters[i].dataset.status === status);
+      }
+      renderReportList();
+    }
+
+    // =============================================
+    // 報告一覧の読み込みと描画
+    // =============================================
+    function loadReportList() {
+      var contentEl = document.getElementById('report-list-content');
+      contentEl.innerHTML = '<div class="loading">読み込み中...</div>';
+
+      google.script.run
+        .withSuccessHandler(function (reports) {
+          reportList = reports || [];
+          renderReportList();
+        })
+        .withFailureHandler(function (err) {
+          contentEl.innerHTML = '<div class="error-msg">報告一覧の取得に失敗しました: ' + err.message + '</div>';
+        })
+        .fetchReportList(currentUser.name, currentReportType);
+    }
+
+    function renderReportList() {
+      var contentEl = document.getElementById('report-list-content');
+      var filtered = getFilteredReports();
+
+      if (filtered.length === 0) {
+        var filterLabel = currentStatusFilter === 'all' ? '' : getStatusFilterLabel(currentStatusFilter);
+        contentEl.innerHTML = '<div class="empty-state">'
+          + '<div class="empty-state-icon">&#128203;</div>'
+          + '<div class="empty-state-text">' + (filterLabel ? filterLabel + 'の' : '') + '報告はありません</div>'
+          + '</div>';
+        return;
+      }
+
+      var html = '';
+      for (var i = 0; i < filtered.length; i++) {
+        var report = filtered[i];
+        var badgeClass = getBadgeClass(report.status);
+        var submittedStr = formatDateTime(report.submittedAt);
+        var imageCountText = report.imageCount > 0 ? ('&#128247; ' + report.imageCount + '枚') : '';
+
+        html += '<div class="report-card" onclick="showReportDetailByIndex(' + i + ')">'
+          + '<div class="report-card-header">'
+          + '<div class="report-card-site">' + escapeHtml(report.siteName) + '</div>'
+          + '<span class="badge ' + badgeClass + '">' + escapeHtml(report.status) + '</span>'
+          + '</div>'
+          + '<div class="report-card-meta">'
+          + '<div class="report-card-info">'
+          + '<span>' + escapeHtml(report.reporterName) + '</span>'
+          + '<span style="font-size:12px; color:#999;">' + submittedStr + '</span>'
+          + '</div>'
+          + '</div>'
+          + (imageCountText ? '<div class="report-card-images">' + imageCountText + '</div>' : '')
+          + '</div>';
+      }
+
+      contentEl.innerHTML = html;
+    }
+
+    function getFilteredReports() {
+      var filtered = reportList;
+      if (currentStatusFilter === 'pending') {
+        filtered = reportList.filter(function (r) { return r.status === '未確認'; });
+      } else if (currentStatusFilter === 'rejected') {
+        filtered = reportList.filter(function (r) { return r.status === '差し戻し'; });
+      } else if (currentStatusFilter === 'approved') {
+        filtered = reportList.filter(function (r) { return r.status === '確認済'; });
+      }
+      return filtered;
+    }
+
+    function getStatusFilterLabel(status) {
+      var labels = {
+        'pending': '要確認',
+        'rejected': '差し戻し',
+        'approved': '確認済'
+      };
+      return labels[status] || '';
+    }
+
+    /**
+     * フィルタ済み一覧のインデックスから詳細画面を表示
+     */
+    function showReportDetailByIndex(index) {
+      var filtered = getFilteredReports();
+      var report = filtered[index];
+      if (!report) return;
+      showReportDetail(report.reportType, report.reportKey);
+    }
+
+    // =============================================
+    // 一覧に戻る
+    // =============================================
+    function backToList() {
+      currentReport = null;
+      showScreen('list');
+      // 一覧を再読み込み（ステータスが変わっている可能性があるため）
+      loadReportList();
+    }
+
+    // =============================================
+    // 詳細画面の表示
+    // =============================================
+    function showReportDetail(reportType, reportKeyOrRow) {
+      showScreen('detail');
+
+      // ローディング表示
+      document.getElementById('detail-header-title').textContent = '読み込み中...';
+      document.getElementById('detail-status').innerHTML = '<div class="loading">読み込み中...</div>';
+      document.getElementById('detail-reject-reason').style.display = 'none';
+      document.getElementById('detail-info').innerHTML = '';
+      document.getElementById('detail-answers').innerHTML = '';
+      document.getElementById('detail-photos').innerHTML = '<div class="loading">読み込み中...</div>';
+      document.getElementById('detail-actions').innerHTML = '';
+      document.getElementById('detail-history').innerHTML = '<div class="loading">読み込み中...</div>';
+
+      google.script.run
+        .withSuccessHandler(function (report) {
+          if (!report) {
+            document.getElementById('detail-header-title').textContent = 'エラー';
+            document.getElementById('detail-status').innerHTML = '<div class="error-msg">報告が見つかりません</div>';
+            return;
+          }
+          currentReport = report;
+          renderReportDetail(report);
+        })
+        .withFailureHandler(function (err) {
+          document.getElementById('detail-header-title').textContent = 'エラー';
+          document.getElementById('detail-status').innerHTML = '<div class="error-msg">データ取得エラー: ' + err.message + '</div>';
+        })
+        .fetchReportDetail(reportType, reportKeyOrRow);
+    }
+
+    // =============================================
+    // 詳細画面の描画
+    // =============================================
+    function renderReportDetail(report) {
+      // 画像選択状態をリセット
+      selectedImageIds = [];
+
+      // ヘッダータイトル
+      document.getElementById('detail-header-title').textContent = report.siteName;
+
+      // ステータスバッジ
+      var badgeClass = getBadgeClass(report.status);
+      document.getElementById('detail-status').innerHTML = '<span class="badge ' + badgeClass + '">' + escapeHtml(report.status) + '</span>';
+
+      // 差し戻し画像の表示
+      var rejectReasonEl = document.getElementById('detail-reject-reason');
+      if (report.rejectedImages && report.rejectedImages.length > 0) {
+        var names = report.rejectedImages.map(function(img) { return img.name || img.id; });
+        rejectReasonEl.textContent = '差し戻し画像: ' + names.join(', ');
+        rejectReasonEl.style.display = 'block';
+      } else if (report.rejectComment) {
+        // 旧データ互換（コメントベースの差し戻し）
+        rejectReasonEl.textContent = '差し戻し理由: ' + report.rejectComment;
+        rejectReasonEl.style.display = 'block';
+      } else {
+        rejectReasonEl.style.display = 'none';
+      }
+
+      // 報告情報
+      var infoHtml = '';
+      infoHtml += renderInfoItem('報告者', report.reporterName);
+      infoHtml += renderInfoItem('送信日時', formatDateTime(report.submittedAt));
+      infoHtml += renderInfoItem('報告種別', report.reportType);
+      if (report.approver) {
+        infoHtml += renderInfoItem('確認者', report.approver);
+      }
+      if (report.approvedAt) {
+        infoHtml += renderInfoItem('確認日時', formatDateTime(report.approvedAt));
+      }
+      document.getElementById('detail-info').innerHTML = infoHtml;
+
+      // 回答内容
+      var answersEl = document.getElementById('detail-answers');
+      var answersCardEl = document.getElementById('detail-answers-card');
+      if (report.answers && report.answers.length > 0) {
+        var answersHtml = '';
+        for (var i = 0; i < report.answers.length; i++) {
+          var answer = report.answers[i];
+          answersHtml += '<li class="answer-item">'
+            + '<div class="answer-label">' + escapeHtml(answer.label) + '</div>'
+            + '<div class="answer-value">' + escapeHtml(answer.value) + '</div>'
+            + '</li>';
+        }
+        answersEl.innerHTML = answersHtml;
+        answersCardEl.style.display = 'block';
+      } else {
+        answersCardEl.style.display = 'none';
+      }
+
+      // 写真
+      renderPhotos(report.images || []);
+
+      // アクションボタン（画像選択状態に応じて動的に切り替え）
+      updateDetailActionButtons();
+
+      // 承認履歴
+      renderHistory(report.history || []);
+    }
+
+    function renderInfoItem(label, value) {
+      return '<li class="info-item">'
+        + '<span class="info-label">' + escapeHtml(label) + '</span>'
+        + '<span class="info-value">' + escapeHtml(value || '-') + '</span>'
+        + '</li>';
+    }
+
+    // =============================================
+    // 写真表示（最重要機能）
+    // =============================================
+    function renderPhotos(images) {
+      var photosEl = document.getElementById('detail-photos');
+      var titleEl = document.getElementById('detail-photos-title');
+
+      titleEl.textContent = '添付写真（' + images.length + '枚）';
+
+      if (!images || images.length === 0) {
+        photosEl.innerHTML = '<div class="no-photos">添付写真はありません</div>';
+        return;
+      }
+
+      // 差し戻し済み画像のIDセットを構築
+      var rejectedImageIdSet = {};
+      var rejectedImages = (currentReport && currentReport.rejectedImages) || [];
+      for (var r = 0; r < rejectedImages.length; r++) {
+        rejectedImageIdSet[rejectedImages[r].id] = true;
+      }
+
+      // 未確認 or 差し戻しステータスのときのみチェックボックスを表示
+      var showCheckbox = currentReport &&
+        (currentReport.status === '未確認' || currentReport.status === '差し戻し');
+
+      var html = '<div class="photo-grid">';
+      for (var i = 0; i < images.length; i++) {
+        var image = images[i];
+        var thumbnailUrl = 'https://drive.google.com/thumbnail?id=' + encodeURIComponent(image.id) + '&sz=w400';
+        var viewUrl = 'https://drive.google.com/file/d/' + encodeURIComponent(image.id) + '/view';
+        var captionText = image.name || ('写真 ' + (i + 1));
+        var isRejected = rejectedImageIdSet[image.id] === true;
+        var isChecked = selectedImageIds.indexOf(image.id) !== -1;
+        var itemClass = 'photo-item' + (isRejected ? ' rejected' : '') + (isChecked ? ' checked' : '');
+
+        html += '<div class="' + itemClass + '" data-image-id="' + escapeAttr(image.id) + '">';
+
+        // チェックボックス（未確認/差し戻し時のみ表示）
+        if (showCheckbox) {
+          html += '<div class="photo-checkbox-wrapper">'
+            + '<input type="checkbox" class="photo-checkbox" '
+            + (isChecked ? 'checked' : '')
+            + ' onchange="toggleImageSelect(\'' + escapeJs(image.id) + '\', this.checked)">'
+            + '</div>';
+        }
+
+        html += '<a href="' + viewUrl + '" target="_blank">'
+          + '<img src="' + thumbnailUrl + '" alt="' + escapeAttr(captionText) + '" loading="lazy" onerror="handleImageError(this)">'
+          + '</a>'
+          + '<div class="photo-caption">' + escapeHtml(captionText)
+          + (isRejected ? ' [差し戻し済]' : '')
+          + '</div>'
+          + '</div>';
+      }
+      html += '</div>';
+
+      photosEl.innerHTML = html;
+    }
+
+    // 画像読み込みエラー時の代替表示
+    function handleImageError(imgEl) {
+      var altText = imgEl.alt || '写真を読み込めません';
+      var errorDiv = document.createElement('div');
+      errorDiv.className = 'photo-error';
+      errorDiv.textContent = altText;
+      imgEl.parentNode.replaceChild(errorDiv, imgEl);
+    }
+
+    // =============================================
+    // 承認履歴の描画
+    // =============================================
+    function renderHistory(history) {
+      var el = document.getElementById('detail-history');
+
+      if (!history || history.length === 0) {
+        el.innerHTML = '<div style="color: #999; font-size: 13px; padding: 8px 0;">履歴はありません</div>';
+        return;
+      }
+
+      // 新しい順にソート
+      var sorted = history.slice().sort(function (a, b) {
+        return new Date(b.timestamp) - new Date(a.timestamp);
+      });
+
+      var html = '';
+      for (var i = 0; i < sorted.length; i++) {
+        var item = sorted[i];
+        html += '<div class="history-item">'
+          + '<div class="history-action">' + escapeHtml(item.action) + '</div>'
+          + '<div class="history-meta">' + formatDateTime(item.timestamp) + ' - ' + escapeHtml(item.operator) + '</div>';
+        if (item.siteName || item.reporterName) {
+          html += '<div class="history-detail">'
+            + escapeHtml(item.reportType || '') + ' / ' + escapeHtml(item.siteName || '') + ' / ' + escapeHtml(item.reporterName || '')
+            + '</div>';
+        }
+        if (item.comment) {
+          html += '<div class="history-comment">' + escapeHtml(item.comment) + '</div>';
+        }
+        html += '</div>';
+      }
+
+      el.innerHTML = html;
+    }
+
+    // =============================================
+    // 承認処理
+    // =============================================
+    function handleApprove() {
+      if (!currentReport || !currentUser) return;
+      if (!confirm(currentReport.siteName + ' の ' + currentReport.reportType + ' を確認済にしますか？')) return;
+
+      var actionsEl = document.getElementById('detail-actions');
+      actionsEl.innerHTML = '<div class="loading">処理中...</div>';
+
+      google.script.run
+        .withSuccessHandler(function (result) {
+          if (result && result.success) {
+            // 詳細を再読み込み
+            showReportDetail(currentReport.reportType, currentReport.reportKey);
+          } else {
+            actionsEl.innerHTML = '<div class="error-msg">' + (result ? result.message : '不明なエラー') + '</div>';
+          }
+        })
+        .withFailureHandler(function (err) {
+          actionsEl.innerHTML = '<div class="error-msg">エラー: ' + err.message + '</div>';
+        })
+        .approveReport(currentReport.reportType, currentReport.reportKey, currentUser.name);
+    }
+
+    // =============================================
+    // 画像選択トグル
+    // =============================================
+    function toggleImageSelect(imageId, isChecked) {
+      var idx = selectedImageIds.indexOf(imageId);
+      if (isChecked && idx === -1) {
+        selectedImageIds.push(imageId);
+      } else if (!isChecked && idx !== -1) {
+        selectedImageIds.splice(idx, 1);
+      }
+      updateDetailActionButtons();
+
+      // CSSクラスだけ切り替え（再描画しない）
+      var items = document.querySelectorAll('.photo-item');
+      for (var i = 0; i < items.length; i++) {
+        var item = items[i];
+        var itemImageId = item.getAttribute('data-image-id');
+        if (itemImageId === imageId) {
+          if (isChecked) {
+            item.classList.add('checked');
+          } else {
+            item.classList.remove('checked');
+          }
+          break;
+        }
+      }
+    }
+
+    // =============================================
+    // アクションボタンの動的切り替え
+    // =============================================
+    function updateDetailActionButtons() {
+      if (!currentReport) return;
+      var actionsEl = document.getElementById('detail-actions');
+
+      // 確認済の場合はボタン非表示
+      if (currentReport.status !== '未確認' && currentReport.status !== '差し戻し') {
+        actionsEl.innerHTML = '';
+        return;
+      }
+
+      if (selectedImageIds.length > 0) {
+        // チェックあり → 確認済 + 差し戻す
+        actionsEl.innerHTML = '<button class="btn btn-success" onclick="handleApprove()">確認済にする</button>'
+          + '<button class="btn btn-danger" onclick="handleRejectImages()">差し戻す (' + selectedImageIds.length + '枚)</button>';
+      } else {
+        // チェックなし → 確認済のみ
+        actionsEl.innerHTML = '<button class="btn btn-success" onclick="handleApprove()">確認済にする</button>';
+      }
+    }
+
+    // =============================================
+    // 画像差し戻し処理
+    // =============================================
+    function handleRejectImages() {
+      if (!currentReport || !currentUser) return;
+      if (selectedImageIds.length === 0) return;
+
+      // 選択した画像の情報を構築
+      var allImages = currentReport.images || [];
+      var rejectedImages = [];
+      for (var i = 0; i < allImages.length; i++) {
+        if (selectedImageIds.indexOf(allImages[i].id) !== -1) {
+          rejectedImages.push({ id: allImages[i].id, name: allImages[i].name || '' });
+        }
+      }
+
+      var imageNames = rejectedImages.map(function(img) { return img.name || img.id; });
+      if (!confirm(imageNames.join(', ') + ' を差し戻しますか？')) return;
+
+      var actionsEl = document.getElementById('detail-actions');
+      actionsEl.innerHTML = '<div class="loading">処理中...</div>';
+
+      google.script.run
+        .withSuccessHandler(function(result) {
+          if (result && result.success) {
+            selectedImageIds = [];
+            showReportDetail(currentReport.reportType, currentReport.reportKey);
+          } else {
+            actionsEl.innerHTML = '<div class="error-msg">' + (result ? result.message : '不明なエラー') + '</div>';
+          }
+        })
+        .withFailureHandler(function(err) {
+          actionsEl.innerHTML = '<div class="error-msg">エラー: ' + err.message + '</div>';
+        })
+        .rejectReport(currentReport.reportType, currentReport.reportKey, currentUser.name, rejectedImages);
+    }
+
+    // =============================================
+    // ユーティリティ関数
+    // =============================================
+
+    // ステータスに対応するバッジクラスを返す
+    function getBadgeClass(status) {
+      switch (status) {
+        case '未確認': return 'badge-unchecked';
+        case '確認済': return 'badge-approved';
+        case '差し戻し': return 'badge-rejected';
+        default: return 'badge-unchecked';
+      }
+    }
+
+    // HTMLエスケープ
+    function escapeHtml(str) {
+      if (str === null || str === undefined) return '';
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+    }
+
+    // HTML属性用エスケープ
+    function escapeAttr(str) {
+      if (str === null || str === undefined) return '';
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;');
+    }
+
+    // JS文字列用エスケープ（onclick属性内で使用）
+    function escapeJs(str) {
+      if (str === null || str === undefined) return '';
+      return String(str)
+        .replace(/\\/g, '\\\\')
+        .replace(/'/g, "\\'")
+        .replace(/"/g, '\\"');
+    }
+
+    // 日時フォーマット（YYYY/MM/DD HH:mm）
+    function formatDateTime(dateValue) {
+      if (!dateValue) return '-';
+      try {
+        var d = new Date(dateValue);
+        if (isNaN(d.getTime())) return String(dateValue);
+        var year = d.getFullYear();
+        var month = ('0' + (d.getMonth() + 1)).slice(-2);
+        var day = ('0' + d.getDate()).slice(-2);
+        var hours = ('0' + d.getHours()).slice(-2);
+        var minutes = ('0' + d.getMinutes()).slice(-2);
+        return year + '/' + month + '/' + day + ' ' + hours + ':' + minutes;
+      } catch (e) {
+        return String(dateValue);
+      }
+    }
+  </script>
+</body>
+
+</html>

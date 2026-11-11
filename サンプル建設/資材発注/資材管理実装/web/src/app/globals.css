@@ -1,0 +1,37 @@
+@import "tailwindcss";
+
+@media print {
+  .order-print-page {
+    break-after: page;
+  }
+
+  .order-print-page:last-child {
+    break-after: auto;
+  }
+}
+
+:root {
+  --background: #ffffff;
+  --foreground: #171717;
+  color-scheme: light;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+/* ラジオボタン・チェックボックスの選択色が薄く見づらいため、ボタン等と同じ
+   zinc-900 に統一する（個々のフォームで都度指定せず、ここ1箇所で全画面に適用）。 */
+input[type="radio"],
+input[type="checkbox"] {
+  accent-color: #18181b;
+}

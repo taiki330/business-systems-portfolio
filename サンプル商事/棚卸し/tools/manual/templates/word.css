@@ -1,0 +1,98 @@
+/* Word版マニュアルの体裁。
+   ------------------------------------------------------------------
+   WordのHTML取り込みは flex / grid / position を理解しないため、
+   段落・表・画像といった基本の組み方だけで作る。
+   ここで指定した書式は .docx の段落スタイルへそのまま引き継がれるので、
+   受け取った側はWord上で自由に書き換えられる。 */
+
+body {
+  font-family: "Yu Gothic", "游ゴシック", "Meiryo", "ＭＳ Ｐゴシック", sans-serif;
+  color: #1a1a1a;
+  font-size: 10.5pt;
+  line-height: 1.7;
+  margin: 0;
+}
+
+/* ページ区切り。Wordでは空の段落に page-break-before を付けるのが最も確実に効く。 */
+.pagebreak {
+  page-break-before: always;
+  height: 0;
+  font-size: 1pt;
+  line-height: 0;
+}
+
+/* ---- 表紙 ---- */
+.cover { text-align: center; }
+.cover-client { font-size: 12pt; color: #5a6270; margin: 90pt 0 20pt; }
+.cover-title { font-size: 26pt; margin: 10pt 0 6pt; border: none; padding: 0; }
+.cover-sub { font-size: 15pt; color: #1e5aa8; font-weight: bold; margin: 0 0 30pt; }
+.cover-meta { font-size: 10pt; color: #5a6270; }
+
+/* ---- 目次 ---- */
+.toc-page h2 { font-size: 17pt; border-bottom: 2px solid #1e5aa8; padding-bottom: 5pt; }
+.toc-page h3 { font-size: 12pt; color: #1e5aa8; margin: 16pt 0 5pt; }
+ol.toc { margin: 0; padding-left: 20pt; }
+ol.toc li { margin: 4pt 0; font-weight: bold; }
+.toc-sum { display: block; font-size: 9pt; color: #5a6270; font-weight: normal; }
+
+/* ---- 本文 ---- */
+h1 {
+  font-size: 19pt;
+  color: #1a1a1a;
+  border-bottom: 3px solid #1e5aa8;
+  padding-bottom: 6pt;
+  margin: 0 0 14pt;
+}
+h2 {
+  font-size: 13.5pt;
+  color: #1e5aa8;
+  margin: 18pt 0 8pt;
+  padding-left: 8pt;
+  border-left: 5px solid #1e5aa8;
+}
+h3 { font-size: 11.5pt; margin: 12pt 0 5pt; }
+
+p { margin: 6pt 0; }
+ul, ol { margin: 6pt 0; padding-left: 22pt; }
+li { margin: 3pt 0; }
+
+/* 画像の大きさはここでは決まらない。
+   Wordは img の max-width を無視して、画像の画素数どおりの大きさで取り込む
+   （画面写真は印刷用に2倍の解像度で撮っているため、そのままだと数ページぶんの幅になる）。
+   実際の縮小は to-docx.ps1 が取り込み後にWord側で行っている。 */
+img {
+  border: 1px solid #d8dde5;
+  margin: 8pt 0 10pt;
+}
+
+table {
+  border-collapse: collapse;
+  margin: 8pt 0 12pt;
+  font-size: 9.5pt;
+  width: 100%;
+}
+th, td { border: 1px solid #d8dde5; padding: 4pt 6pt; text-align: left; vertical-align: top; }
+th { background: #f4f6f9; }
+
+blockquote {
+  margin: 9pt 0;
+  padding: 7pt 10pt;
+  background: #fff8e6;
+  border-left: 5px solid #e0a800;
+  color: #4a3c10;
+}
+
+code {
+  font-family: Consolas, "Courier New", monospace;
+  background: #f4f6f9;
+  font-size: 9.5pt;
+}
+pre {
+  background: #f4f6f9;
+  padding: 7pt 9pt;
+  font-family: Consolas, "Courier New", monospace;
+  font-size: 9pt;
+}
+
+hr { border: none; border-top: 1px solid #d8dde5; margin: 14pt 0; }
+a { color: #1e5aa8; }

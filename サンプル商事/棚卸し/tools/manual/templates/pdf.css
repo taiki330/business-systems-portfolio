@@ -1,0 +1,104 @@
+/* PDF版マニュアルの体裁。初心者が読みやすいよう、余白・行間を広めにとる。 */
+@page { size: A4; }
+
+* { box-sizing: border-box; }
+
+body {
+  font-family: "Yu Gothic", YuGothic, "Hiragino Kaku Gothic ProN", "Meiryo", sans-serif;
+  color: #1a1a1a;
+  font-size: 10.5pt;
+  line-height: 1.85;
+  margin: 0;
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+}
+
+/* ---- 表紙 ---- */
+.cover {
+  height: 245mm;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  border-top: 6px solid #1e5aa8;
+  page-break-after: always;
+}
+.cover h1 { font-size: 26pt; margin: 12px 0 4px; letter-spacing: .04em; }
+.cover-client { font-size: 12pt; color: #5a6270; margin: 0 0 28px; }
+.cover-sub { font-size: 15pt; color: #1e5aa8; font-weight: 700; margin: 0 0 40px; }
+.cover-meta { font-size: 10pt; color: #5a6270; }
+
+/* ---- 目次 ---- */
+.toc-page { page-break-after: always; }
+.toc-page h2 { font-size: 17pt; border-bottom: 2px solid #1e5aa8; padding-bottom: 6px; }
+.toc-page h3 { font-size: 12pt; color: #1e5aa8; margin: 20px 0 6px; }
+ol.toc { margin: 0; padding-left: 1.4em; }
+ol.toc li { margin: 5px 0; }
+ol.toc a { color: #1a1a1a; text-decoration: none; font-weight: 700; }
+.toc-sum { display: block; font-size: 9pt; color: #5a6270; font-weight: 400; }
+
+/* ---- 本文 ---- */
+/* 画面1つ＝1ページから始める。要素は div（Word版と同じ組み立てを使うため）。 */
+.screen { page-break-before: always; }
+
+h1 {
+  font-size: 19pt;
+  color: #1a1a1a;
+  border-bottom: 3px solid #1e5aa8;
+  padding-bottom: 8px;
+  margin: 0 0 18px;
+}
+h2 {
+  font-size: 13.5pt;
+  color: #1e5aa8;
+  margin: 24px 0 10px;
+  padding-left: 10px;
+  border-left: 5px solid #1e5aa8;
+  page-break-after: avoid;
+}
+h3 { font-size: 11.5pt; margin: 16px 0 6px; page-break-after: avoid; }
+
+p { margin: 8px 0; }
+ul, ol { margin: 8px 0; padding-left: 1.6em; }
+li { margin: 4px 0; }
+
+img {
+  max-width: 100%;
+  border: 1px solid #d8dde5;
+  border-radius: 4px;
+  margin: 10px 0 14px;
+  page-break-inside: avoid;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 10px 0 16px;
+  font-size: 9.5pt;
+  page-break-inside: avoid;
+}
+th, td { border: 1px solid #d8dde5; padding: 6px 9px; text-align: left; vertical-align: top; }
+th { background: #f4f6f9; white-space: nowrap; }
+
+blockquote {
+  margin: 12px 0;
+  padding: 10px 14px;
+  background: #fff8e6;
+  border-left: 5px solid #e0a800;
+  color: #4a3c10;
+  page-break-inside: avoid;
+}
+
+code {
+  font-family: Consolas, "Courier New", monospace;
+  background: #f4f6f9;
+  border: 1px solid #e3e7ee;
+  border-radius: 3px;
+  padding: 1px 4px;
+  font-size: 9.5pt;
+}
+pre { background: #f4f6f9; padding: 10px 12px; border-radius: 5px; overflow-x: auto; page-break-inside: avoid; }
+pre code { border: none; background: none; padding: 0; }
+
+hr { border: none; border-top: 1px solid #d8dde5; margin: 20px 0; }
+a { color: #1e5aa8; }

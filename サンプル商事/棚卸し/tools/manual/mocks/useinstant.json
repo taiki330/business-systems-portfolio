@@ -1,0 +1,12 @@
+{
+  "_comment": "clearStorage を外して --source=local で撮ると、使用登録が完了した画面を撮影できる。",
+  "instantUse": {
+    "duplicated": false,
+    "kind": "quantity",
+    "name": "サンプルグローブ Mサイズ",
+    "before": 5,
+    "after": 4,
+    "negative": false,
+    "orderCandidateAdded": true
+  }
+}

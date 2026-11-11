@@ -1,0 +1,22 @@
+{
+  "name": "manual-generator",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "納品システムの利用者マニュアルを、スクリーンショット自動取得＋コード解析から生成する仕組み",
+  "scripts": {
+    "manual:sync": "node tools/manual/sync-screens.mjs",
+    "manual:evidence": "node tools/manual/evidence.mjs",
+    "manual:login": "node tools/manual/capture.mjs --login",
+    "manual:capture": "node tools/manual/capture.mjs",
+    "manual:capture:local": "node tools/manual/capture.mjs --source=local",
+    "manual:index": "node tools/manual/build-index.mjs",
+    "manual:pdf": "node tools/manual/build-pdf.mjs",
+    "manual:docx": "node tools/manual/build-docx.mjs",
+    "manual:build": "node tools/manual/sync-screens.mjs && node tools/manual/evidence.mjs && node tools/manual/build-index.mjs"
+  },
+  "devDependencies": {
+    "markdown-it": "^14.1.0",
+    "playwright": "^1.62.1"
+  }
+}

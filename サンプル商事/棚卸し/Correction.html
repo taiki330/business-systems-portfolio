@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<base target="_top">
+<style>
+  :root{ --line:#d8dde5; --ink:#1a1a1a; --sub:#5a6270; --accent:#1e5aa8;
+         --soft:#f4f6f9; --ok:#1e7a4d; --warn:#b3541e; --err:#c0392b; }
+  *{box-sizing:border-box;}
+  body{margin:0;font-family:"Yu Gothic",YuGothic,"Hiragino Kaku Gothic ProN","Meiryo",sans-serif;
+       color:var(--ink);background:#eef1f5;font-size:14px;}
+  header{background:#fff;border-bottom:2px solid var(--accent);padding:10px 14px;box-shadow:0 1px 6px rgba(0,0,0,.06);}
+  .back{display:inline-block;margin-bottom:6px;font-size:13px;font-weight:700;color:var(--accent);text-decoration:none;}
+  h1{font-size:16px;margin:0 0 8px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+  .clinicTag{background:var(--accent);color:#fff;font-size:13px;padding:2px 10px;border-radius:4px;font-weight:700;}
+  .tabs{display:flex;gap:6px;}
+  .tab{padding:8px 14px;border:1px solid var(--line);border-bottom:none;border-radius:8px 8px 0 0;background:var(--soft);cursor:pointer;font-weight:700;font-size:13.5px;color:var(--sub);}
+  .tab.active{background:#fff;color:var(--accent);}
+  main{max-width:680px;margin:0 auto;padding:14px;}
+  a{color:var(--accent);}
+  .card{background:#fff;border:1px solid var(--line);border-radius:10px;padding:14px;box-shadow:0 1px 4px rgba(0,0,0,.05);}
+  .field{margin-bottom:12px;}
+  .field label{display:block;font-size:12.5px;color:var(--sub);margin-bottom:4px;font-weight:700;}
+  .req{color:var(--err);}
+  input,select,textarea{width:100%;font-size:15px;padding:9px 10px;border:1px solid var(--line);border-radius:6px;background:#fff;font-family:inherit;}
+  .cur{font-size:13px;color:var(--sub);margin-top:4px;}
+  button{cursor:pointer;font-size:15px;font-weight:700;border:none;border-radius:8px;padding:11px 16px;}
+  .primary{background:var(--ok);color:#fff;width:100%;}
+  .cancelbtn{background:#fff;color:var(--err);border:1px solid var(--err);font-size:13px;padding:6px 12px;}
+  button:disabled{opacity:.5;cursor:not-allowed;}
+  .msg{margin-top:10px;font-size:13px;min-height:18px;}
+  .msg.err{color:var(--err);} .msg.ok{color:var(--ok);}
+  table{width:100%;border-collapse:collapse;background:#fff;}
+  th,td{border:1px solid var(--line);padding:6px 8px;text-align:left;font-size:13px;vertical-align:middle;}
+  th{background:var(--soft);white-space:nowrap;}
+  td.num{text-align:right;}
+  h2{font-size:14px;color:var(--sub);margin:6px 0 8px;}
+  .empty,.spin{padding:24px;text-align:center;color:var(--sub);}
+  .sec{margin-bottom:18px;}
+</style>
+</head>
+<body>
+<header>
+  <a class="back" id="homeBack" href="#">← 医院ホームに戻る</a>
+  <h1>訂正・取消 <span class="clinicTag" id="clinicTag">医院未選択</span></h1>
+  <div class="tabs">
+    <div class="tab active" id="tabAdjust" onclick="showTab('adjust')">在庫を修正</div>
+    <div class="tab" id="tabCancel" onclick="showTab('cancel')">使用/入荷の取消</div>
+  </div>
+</header>
+<main>
+  <div id="paneAdjust"></div>
+  <div id="paneCancel" style="display:none;"></div>
+</main>
+
+<script>
+  var CLINIC_KEY = 'tanaoroshi_clinic';
+  var APP_URL = '<?= initParams && initParams.appUrl ? initParams.appUrl : "" ?>';
+  var CLINIC  = '<?= initParams && initParams.clinic ? initParams.clinic : "" ?>';
+  var products = [];   // {productId,name,category,stock}
+  var $ = function(id){ return document.getElementById(id); };
+
+  if(!CLINIC){ try { CLINIC = localStorage.getItem(CLINIC_KEY) || ''; } catch(e){} }
+  else { try { localStorage.setItem(CLINIC_KEY, CLINIC); } catch(e){} }
+  $('homeBack').href = APP_URL + '?page=home' + (CLINIC ? '&clinic=' + encodeURIComponent(CLINIC) : '');
+
+  if(!CLINIC){
+    document.querySelector('main').innerHTML = '<div class="card" style="color:var(--err);">医院が指定されていません。医院ホームから開いてください。</div>';
+  } else {
+    $('clinicTag').textContent = CLINIC;
+    renderAdjust();
+    renderCancel();
+  }
+
+  window.showTab = function(which){
+    var a = which === 'adjust';
+    $('paneAdjust').style.display = a ? 'block' : 'none';
+    $('paneCancel').style.display = a ? 'none' : 'block';
+    $('tabAdjust').className = 'tab' + (a ? ' active' : '');
+    $('tabCancel').className = 'tab' + (a ? '' : ' active');
+    if(!a) loadCancelLists();
+  };
+
+  /* ===== タブ1：在庫手動修正 ===== */
+  function renderAdjust(){
+    $('paneAdjust').innerHTML =
+      '<div class="card">'
+      + '<div class="field"><label>商品 <span class="req">*</span></label>'
+      +   '<select id="prod"><option value="">読み込み中…</option></select>'
+      +   '<div class="cur" id="curStock"></div></div>'
+      + '<div class="field"><label>正しい在庫数 <span class="req">*</span></label>'
+      +   '<input type="number" id="newCount" min="0" step="1" placeholder="数えた実数"></div>'
+      + '<div class="field"><label>修正理由 <span class="req">*必須</span></label>'
+      +   '<input type="text" id="reason" placeholder="例：棚卸しで数え直し／登録漏れ"></div>'
+      + '<button class="primary" id="adjBtn">この内容で修正する</button>'
+      + '<div class="msg" id="adjMsg"></div>'
+      + '</div>';
+    google.script.run.withSuccessHandler(function(res){
+      products = res.items || [];
+      var sel = $('prod');
+      sel.innerHTML = '<option value="">選択してください</option>'
+        + products.map(function(p){ return '<option value="'+esc(p.productId)+'">'+esc(p.name)+(p.category?('（'+esc(p.category)+'）'):'')+'</option>'; }).join('');
+      sel.onchange = function(){
+        var p = products.find(function(x){ return x.productId === this.value; }.bind(this));
+        $('curStock').textContent = p ? ('現在の在庫（参考）：' + p.stock) : '';
+      };
+    }).withFailureHandler(function(err){ $('adjMsg').textContent = esc(err.message); $('adjMsg').className='msg err'; })
+      .getBulkStockList(CLINIC);
+    $('adjBtn').onclick = doAdjust;
+  }
+
+  function doAdjust(){
+    var pid = $('prod').value, cnt = $('newCount').value.trim(), reason = $('reason').value.trim();
+    if(!pid){ setAdj('商品を選んでください。', true); return; }
+    if(cnt===''){ setAdj('正しい在庫数を入力してください。', true); return; }
+    if(reason===''){ setAdj('修正理由は必須です。', true); return; }
+    if(!confirm('この商品の在庫を '+cnt+' に修正します。よろしいですか？')) return;
+    $('adjBtn').disabled = true; setAdj('修正中…');
+    google.script.run
+      .withSuccessHandler(function(res){
+        $('adjBtn').disabled = false;
+        if(res.duplicated){ setAdj('この修正は送信済みです。'); return; }
+        setAdj('✓ 「'+esc(res.name)+'」を '+res.before+' → '+res.after+' に修正しました。', false, true);
+        $('newCount').value=''; $('reason').value='';
+        renderAdjust(); // 一覧を取り直して現在庫を最新に
+      })
+      .withFailureHandler(function(err){ $('adjBtn').disabled = false; setAdj('修正できませんでした：'+esc(err.message), true); })
+      .adjustStock(CLINIC, pid, Number(cnt), reason, genId());
+  }
+  function setAdj(m, isErr, isOk){ var e=$('adjMsg'); if(e){ e.textContent=m||''; e.className='msg'+(isErr?' err':(isOk?' ok':'')); } }
+
+  /* ===== タブ2：使用/入荷の取消 ===== */
+  function renderCancel(){
+    $('paneCancel').innerHTML =
+      '<div class="sec"><h2>直近の使用登録</h2><div id="usageList" class="card"><div class="spin">…</div></div></div>'
+      + '<div class="sec"><h2>直近の入荷登録</h2><div id="receiptList" class="card"><div class="spin">…</div></div></div>'
+      + '<div class="msg" id="canMsg"></div>';
+  }
+  function loadCancelLists(){
+    google.script.run.withSuccessHandler(function(res){ renderList('usageList', res.items, 'usage'); })
+      .withFailureHandler(function(err){ $('usageList').innerHTML = '<div class="empty">'+esc(err.message)+'</div>'; })
+      .getRecentUsage(CLINIC);
+    google.script.run.withSuccessHandler(function(res){ renderList('receiptList', res.items, 'receipt'); })
+      .withFailureHandler(function(err){ $('receiptList').innerHTML = '<div class="empty">'+esc(err.message)+'</div>'; })
+      .getRecentReceipts(CLINIC);
+  }
+  function renderList(elId, items, kind){
+    if(!items || !items.length){ $(elId).innerHTML = '<div class="empty">対象の登録はありません。</div>'; return; }
+    var html = '<table><thead><tr><th>日時</th><th>品名</th><th>数量</th><th></th></tr></thead><tbody>';
+    items.forEach(function(it){
+      html += '<tr><td>'+esc(it.date)+'</td><td>'+esc(it.name)+esc(it.target||'')+'</td>'
+        + '<td class="num">'+it.qty+'</td>'
+        + '<td><button class="cancelbtn" onclick="doCancel(\''+kind+'\','+it.row+',\''+esc(it.productId)+'\','+it.qty+')">取消</button></td></tr>';
+    });
+    html += '</tbody></table>';
+    $(elId).innerHTML = html;
+  }
+  // productId/qty は「画面に出していた内容」。サーバ側で対象行と突き合わせ、
+  // 一覧表示後に履歴が並べ替え・削除されて行番号がずれていた場合に中止させる。
+  window.doCancel = function(kind, row, productId, qty){
+    var reason = prompt('取消理由を入力してください（必須）');
+    if(reason === null) return;
+    reason = reason.trim();
+    if(reason === ''){ alert('取消理由は必須です。'); return; }
+    setCan('取消中…');
+    var fn = kind === 'usage' ? 'cancelUsage' : 'cancelReceipt';
+    google.script.run
+      .withSuccessHandler(function(res){
+        if(res.alreadyCanceled){ setCan(res.message, false); loadCancelLists(); return; }
+        var s = res.stock ? ('　在庫 '+res.stock.before+' → '+res.stock.after) : '';
+        setCan('✓ 取消しました：'+esc(res.name)+' '+res.qty+s, false, true);
+        loadCancelLists();
+      })
+      .withFailureHandler(function(err){ setCan('取消できませんでした：'+esc(err.message), true); })
+      [fn](CLINIC, row, reason, { productId: productId, qty: qty });
+  };
+  function setCan(m, isErr, isOk){ var e=$('canMsg'); if(e){ e.textContent=m||''; e.className='msg'+(isErr?' err':(isOk?' ok':'')); } }
+
+  function genId(){ if(window.crypto && crypto.randomUUID) return crypto.randomUUID(); return 'a-'+Date.now()+'-'+Math.random().toString(16).slice(2); }
+  function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g,function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
+</script>
+</body>
+</html>

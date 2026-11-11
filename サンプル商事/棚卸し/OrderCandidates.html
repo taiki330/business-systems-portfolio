@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<base target="_top">
+<style>
+  :root{ --line:#d8dde5; --ink:#1a1a1a; --sub:#5a6270; --accent:#1e5aa8;
+         --soft:#f4f6f9; --ok:#1e7a4d; --trg:#7a4fbf; }
+  *{box-sizing:border-box;}
+  body{margin:0;font-family:"Yu Gothic",YuGothic,"Hiragino Kaku Gothic ProN","Meiryo",sans-serif;
+       color:var(--ink);background:#eef1f5;font-size:14px;}
+  header{position:sticky;top:0;z-index:10;background:#fff;border-bottom:2px solid var(--accent);
+         padding:12px 16px;box-shadow:0 1px 6px rgba(0,0,0,.06);}
+  h1{font-size:17px;margin:0 0 10px;}
+  .clinicTag{background:var(--accent);color:#fff;font-size:13px;padding:2px 10px;border-radius:4px;font-weight:700;}
+  .bar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;}
+  select,input,button{font-size:14px;padding:6px 10px;border:1px solid var(--line);border-radius:5px;background:#fff;}
+  button{cursor:pointer;background:var(--accent);color:#fff;border:none;font-weight:700;}
+  button.ghost{background:#fff;color:var(--accent);border:1px solid var(--accent);}
+  button:disabled{opacity:.5;cursor:not-allowed;}
+  main{padding:12px 16px 90px;}
+  table{width:100%;border-collapse:collapse;background:#fff;}
+  th,td{border:1px solid var(--line);padding:6px 8px;text-align:left;vertical-align:middle;}
+  th{background:var(--soft);position:sticky;top:0;font-size:12.5px;white-space:nowrap;}
+  td.num{text-align:right;}
+  .qty{width:70px;text-align:right;}
+  .reason{display:inline-block;font-size:11px;padding:1px 7px;border-radius:10px;}
+  .reason.trg{background:#f6f1fc;color:var(--trg);}
+  .reason.thr{background:#fdf1e7;color:#b3541e;}
+  .unset{color:#b3b8c0;}
+  .empty,.spin{padding:40px;text-align:center;color:var(--sub);}
+  footer{position:fixed;bottom:0;left:0;right:0;background:#fff;border-top:1px solid var(--line);
+         padding:10px 16px;display:flex;gap:12px;align-items:center;justify-content:flex-end;
+         box-shadow:0 -1px 6px rgba(0,0,0,.06);}
+  footer .status{margin-right:auto;color:var(--sub);}
+  .savebtn{background:var(--ok);padding:9px 22px;}
+</style>
+</head>
+<body>
+<header>
+  <a id="homeBack" href="#" style="display:inline-block;margin-bottom:8px;font-size:13px;font-weight:700;color:var(--accent);text-decoration:none;">← 医院ホームに戻る</a>
+  <h1>発注候補・発注登録 <span class="clinicTag" id="clinicTag">医院未選択</span></h1>
+  <div class="bar">
+    <button id="loadBtn" class="ghost">再読み込み</button>
+    <label><input type="checkbox" id="selAll"> 表示中を全選択</label>
+    <span style="font-size:12px;color:var(--sub);">発注先は商品マスタで決まっています（この画面では変更できません）。</span>
+  </div>
+</header>
+
+<main>
+  <div id="wrap"><div class="spin">読み込み中…</div></div>
+</main>
+
+<footer>
+  <span class="status" id="status"></span>
+  <button class="savebtn" id="orderBtn" disabled>選択した商品を発注登録</button>
+</footer>
+
+<script>
+  var CLINIC_KEY = 'tanaoroshi_clinic';
+  var CLINIC = '<?= initParams && initParams.clinic ? initParams.clinic : "" ?>';
+  var items = [];
+  var $ = function(id){ return document.getElementById(id); };
+
+  // 医院はURL優先、無ければ端末記憶から（他の医院専用画面と同じ方式。切り替えUIは持たない）
+  if(!CLINIC){ try { CLINIC = localStorage.getItem(CLINIC_KEY) || ''; } catch(e){} }
+  else { try { localStorage.setItem(CLINIC_KEY, CLINIC); } catch(e){} }
+
+  $('loadBtn').onclick = load;
+  $('selAll').onchange = function(){
+    var on = this.checked;
+    document.querySelectorAll('.rowchk').forEach(function(c){ c.checked = on; });
+    updateFooter();
+  };
+  $('orderBtn').onclick = submitOrders;
+
+  if(!CLINIC){
+    $('wrap').innerHTML = '<div class="empty">医院が指定されていません。医院ホームから開いてください。</div>';
+  } else {
+    $('clinicTag').textContent = CLINIC;
+    load();
+  }
+
+  function load(){
+    if(!CLINIC) return;
+    $('wrap').innerHTML = '<div class="spin">読み込み中…</div>';
+    google.script.run
+      .withSuccessHandler(function(res){ items = res.candidates || []; render(); })
+      .withFailureHandler(function(err){ $('wrap').innerHTML = '<div class="empty">読み込みに失敗：'+esc(err.message)+'</div>'; })
+      .getOrderCandidates(CLINIC);
+  }
+
+  function render(){
+    if(!items.length){
+      $('wrap').innerHTML = '<div class="empty">発注が必要な商品はありません。</div>';
+      updateFooter();
+      return;
+    }
+    var html = '<table><thead><tr>'
+      + '<th></th><th>品名</th><th>理由</th><th>現在庫</th><th>未入荷</th><th>基準</th>'
+      + '<th>発注数量</th><th>発注先</th>'
+      + '</tr></thead><tbody>';
+    items.forEach(function(it, i){
+      var isTrigger = it.reason === '発注トリガー';
+      var reasonCls = isTrigger ? 'trg' : 'thr';
+      var stockCell = isTrigger ? '<span style="color:#b3b8c0;">対象外</span>' : (it.stock===undefined?'-':it.stock);
+      var openCell = isTrigger ? '-' : (it.openQty===undefined?0:it.openQty);
+      var kijunCell = isTrigger ? '-' : (it.kijun || '-');
+      var defQty = it.standardQty || (isTrigger ? '' : '');
+      html += '<tr data-i="'+i+'">'
+        + '<td><input type="checkbox" class="rowchk" checked></td>'
+        + '<td>'+esc(it.name)+(isTrigger && it.trigger ? '<div style="font-size:11px;color:var(--sub);">'+esc(it.trigger)+'</div>' : '')+'</td>'
+        + '<td><span class="reason '+reasonCls+'">'+esc(it.reason||'')+'</span></td>'
+        + '<td class="num">'+stockCell+'</td>'
+        + '<td class="num">'+openCell+'</td>'
+        + '<td class="num">'+kijunCell+'</td>'
+        + '<td>'+(isTrigger ? '<span style="color:#b3b8c0;">数量なし</span>' : '<input type="number" class="qty" min="1" step="1" value="'+esc(defQty)+'" placeholder="数量">')+'</td>'
+        + '<td>'+supplierCell(it)+'</td>'
+        + '</tr>';
+    });
+    html += '</tbody></table>';
+    $('wrap').innerHTML = html;
+    document.querySelectorAll('.rowchk').forEach(function(c){ c.onchange = updateFooter; });
+    $('selAll').checked = false;
+    updateFooter();
+  }
+
+  // 発注先は商品マスタの値で固定。医院では選べない（変更は商品マスタ管理画面で行う）。
+  // 発注登録時もサーバー側で商品マスタの発注先を書き込むため、ここは表示専用。
+  function supplierCell(it){
+    var master = it.supplier || '';
+    return master
+      ? esc(master)
+      : '<span class="unset" title="商品マスタ管理画面で設定してください">（未設定）</span>';
+  }
+
+  function updateFooter(){
+    var n = document.querySelectorAll('.rowchk:checked').length;
+    $('orderBtn').disabled = n === 0;
+    $('orderBtn').textContent = n ? ('選択した'+n+'件を発注登録') : '選択した商品を発注登録';
+  }
+
+  function submitOrders(){
+    var payload = [];
+    var problems = [];
+    document.querySelectorAll('#wrap tbody tr').forEach(function(tr){
+      var chk = tr.querySelector('.rowchk');
+      if(!chk.checked) return;
+      var i = Number(tr.getAttribute('data-i'));
+      var it = items[i];
+      var isTrigger = it.reason === '発注トリガー';
+      if(isTrigger){
+        // 発注トリガー管理商品：数量なしで発注（1件の発注として登録）
+        payload.push({ productId: it.productId, qty: 1, reason: it.reason });
+        return;
+      }
+      var qtyEl = tr.querySelector('.qty');
+      var qty = Number(qtyEl.value);
+      if(!(qty > 0)){ problems.push(it.name); return; }
+      payload.push({ productId: it.productId, qty: qty, reason: it.reason });
+    });
+    if(problems.length){ alert('発注数量が未入力の商品があります：\n'+problems.join('\n')); return; }
+    if(!payload.length) return;
+
+    if(!confirm(payload.length+'件を発注登録します。よろしいですか？')) return;
+    $('orderBtn').disabled = true;
+    $('status').textContent = '登録中…';
+    var token = genId();
+    google.script.run
+      .withSuccessHandler(function(res){
+        $('status').textContent = res.duplicated
+          ? 'この登録は送信済みです（二重登録を防止しました）。'
+          : (res.count+'件 発注登録しました。');
+        load();
+      })
+      .withFailureHandler(function(err){
+        $('status').textContent = '失敗：'+err.message;
+        $('orderBtn').disabled = false;
+      })
+      .registerOrders(CLINIC, payload, localStorage.getItem('tanaoroshi_registrant') || '', token);
+  }
+
+  function genId(){
+    if(window.crypto && crypto.randomUUID) return crypto.randomUUID();
+    return 'o-' + Date.now() + '-' + Math.random().toString(16).slice(2);
+  }
+
+  function esc(s){
+    return String(s==null?'':s).replace(/[&<>"']/g,function(c){
+      return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];
+    });
+  }
+</script>
+<script>
+  // 「医院ホームに戻る」リンク：現在の医院（localStorage）＋実行URL（appUrl）でホームURLを組む
+  (function(){
+    var b = document.getElementById('homeBack');
+    if (!b) return;
+    var c = localStorage.getItem('tanaoroshi_clinic') || '';
+    var base = '<?= initParams && initParams.appUrl ? initParams.appUrl : "" ?>';
+    b.href = base + '?page=home' + (c ? '&clinic=' + encodeURIComponent(c) : '');
+  })();
+</script>
+</body>
+</html>

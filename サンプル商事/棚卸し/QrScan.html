@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<base target="_top">
+<style>
+  :root{ --line:#d8dde5; --ink:#1a1a1a; --sub:#5a6270; --accent:#1e5aa8;
+         --soft:#f4f6f9; --ok:#1e7a4d; --warn:#b3541e; --trg:#7a4fbf; }
+  *{box-sizing:border-box;}
+  body{margin:0;font-family:"Yu Gothic",YuGothic,"Hiragino Kaku Gothic ProN","Meiryo",sans-serif;
+       color:var(--ink);background:#eef1f5;font-size:15px;}
+  header{background:#fff;border-bottom:2px solid var(--accent);padding:10px 14px;
+         position:sticky;top:0;z-index:10;}
+  h1{font-size:16px;margin:0;display:flex;align-items:center;gap:8px;}
+  .clinicTag{background:var(--accent);color:#fff;font-size:13px;padding:2px 10px;border-radius:4px;}
+  main{padding:12px 14px 120px;max-width:640px;margin:0 auto;}
+  .panel{background:#fff;border:1px solid var(--line);border-radius:8px;padding:12px;margin-bottom:12px;}
+  #reader{width:100%;border-radius:8px;overflow:hidden;}
+  button{cursor:pointer;font-size:15px;padding:10px 16px;border:none;border-radius:6px;
+         background:var(--accent);color:#fff;font-weight:700;}
+  button.ghost{background:#fff;color:var(--accent);border:1px solid var(--accent);}
+  button:disabled{opacity:.5;cursor:not-allowed;}
+  input,select{font-size:15px;padding:8px 10px;border:1px solid var(--line);border-radius:6px;background:#fff;}
+  .row{display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
+  .toast{min-height:22px;font-size:13.5px;margin-top:8px;}
+  .toast.ok{color:var(--ok);} .toast.err{color:#c0392b;} .toast.trg{color:var(--trg);}
+  h2{font-size:14px;margin:4px 0 8px;color:var(--sub);}
+  .item{display:flex;align-items:center;gap:8px;padding:8px 6px;border-bottom:1px solid var(--line);}
+  .item .name{flex:1;font-weight:700;font-size:14px;line-height:1.35;word-break:break-all;}
+  .item .sub{font-size:11.5px;color:var(--sub);font-weight:400;}
+  .qtybox{display:flex;align-items:center;gap:6px;}
+  .qtybtn{width:34px;height:34px;padding:0;border-radius:6px;background:var(--soft);color:var(--ink);
+          border:1px solid var(--line);font-size:20px;line-height:1;}
+  .qtyval{min-width:28px;text-align:center;font-weight:700;font-size:16px;}
+  .del{background:none;color:#c0392b;border:none;font-size:13px;padding:4px;}
+  .trgitem{background:#f6f1fc;border-left:3px solid var(--trg);}
+  .empty{color:var(--sub);font-size:13px;padding:10px 4px;}
+  footer{position:fixed;left:0;right:0;bottom:0;background:#fff;border-top:1px solid var(--line);
+         padding:10px 14px;box-shadow:0 -1px 6px rgba(0,0,0,.08);}
+  footer .inner{max-width:640px;margin:0 auto;display:flex;gap:10px;align-items:center;}
+  .confirmBtn{flex:1;background:var(--ok);padding:13px;font-size:16px;}
+  .badge{background:var(--soft);border:1px solid var(--line);border-radius:20px;padding:3px 10px;font-size:12.5px;}
+</style>
+</head>
+<body>
+<header>
+  <h1>QR読取・使用登録 <span class="clinicTag" id="clinicTag">医院未選択</span></h1>
+</header>
+
+<main>
+  <!-- 医院・登録者 -->
+  <div class="panel" id="setupPanel">
+    <div class="row" id="clinicRow" style="display:none;margin-bottom:8px;">
+      <label>医院：<select id="clinicSel"></select></label>
+      <button class="ghost" id="clinicSet">決定</button>
+    </div>
+    <div class="row">
+      <label>登録者：<input type="text" id="registrant" placeholder="お名前（任意）" style="width:160px;"></label>
+    </div>
+  </div>
+
+  <!-- スキャナ -->
+  <div class="panel">
+    <div class="row" style="justify-content:space-between;">
+      <span class="badge" id="scanState">カメラ停止中</span>
+      <div class="row">
+        <button class="ghost" id="startBtn">スキャン開始</button>
+        <button class="ghost" id="stopBtn" disabled>停止</button>
+      </div>
+    </div>
+    <div id="reader" style="margin-top:10px;"></div>
+    <div class="toast" id="toast"></div>
+  </div>
+
+  <!-- 使用（数量管理商品） -->
+  <div class="panel">
+    <h2>使用した商品（数量管理）</h2>
+    <div id="usageList"><div class="empty">まだ読み取っていません。</div></div>
+  </div>
+
+  <!-- 発注候補（発注トリガー管理商品） -->
+  <div class="panel">
+    <h2>発注が必要（発注トリガー管理）</h2>
+    <div id="triggerList"><div class="empty">なし。</div></div>
+  </div>
+</main>
+
+<footer>
+  <div class="inner">
+    <span class="badge"><span id="sumUsage">0</span> 品 / 使用計 <span id="sumQty">0</span></span>
+    <button class="confirmBtn" id="confirmBtn" disabled>登録を確定する</button>
+  </div>
+</footer>
+
+<!-- html5-qrcode（外部ライブラリ／カメラでのQR読取） -->
+<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+<script>
+  // ルーターから初期パラメータ（医院コード）を受け取る
+  var INIT = { clinic: '<?= initParams && initParams.clinic ? initParams.clinic : "" ?>' };
+
+  var CLINIC = '';
+  var QR_PREFIX = 'INV-';        // サーバーから上書きされる
+  var products = {};              // 商品ID -> {name,mode,stock,trigger}
+  var usage = {};                 // 商品ID -> {name, qty}
+  var triggers = {};              // 商品ID -> {name, trigger}
+  var html5Qr = null;
+  var lastText = '', lastAt = 0;  // 誤連続読取防止用
+  var COOLDOWN_MS = 2000;
+
+  var $ = function(id){ return document.getElementById(id); };
+
+  // 登録者はローカルに記憶
+  $('registrant').value = localStorage.getItem('tanaoroshi_registrant') || '';
+  $('registrant').oninput = function(){ localStorage.setItem('tanaoroshi_registrant', this.value); };
+
+  $('startBtn').onclick = startScan;
+  $('stopBtn').onclick = stopScan;
+  $('confirmBtn').onclick = confirmScan;
+  $('clinicSet').onclick = function(){ setClinic($('clinicSel').value); };
+
+  // 起動：医院決定
+  if (INIT.clinic) {
+    setClinic(INIT.clinic);
+  } else {
+    // 医院未指定 → 選択UIを出す
+    $('clinicRow').style.display = 'flex';
+    google.script.run.withSuccessHandler(function(list){
+      var sel = $('clinicSel');
+      list.forEach(function(c){ var o=document.createElement('option'); o.value=c; o.textContent=c; sel.appendChild(o); });
+    }).getClinicList();
+  }
+
+  function setClinic(clinic){
+    if(!clinic) return;
+    CLINIC = clinic;
+    $('clinicTag').textContent = clinic;
+    $('clinicRow').style.display = 'none';
+    toast('商品情報を読み込み中…', '');
+    google.script.run
+      .withSuccessHandler(function(ctx){
+        products = ctx.products || {};
+        QR_PREFIX = ctx.qrPrefix || 'INV-';
+        toast('準備完了。スキャンを開始できます（商品 ' + Object.keys(products).length + ' 件）', 'ok');
+      })
+      .withFailureHandler(function(err){ toast(err.message, 'err'); })
+      .getUsageContext(clinic);
+  }
+
+  function startScan(){
+    if(!CLINIC){ toast('先に医院を決定してください。', 'err'); return; }
+    if(!window.Html5Qrcode){ toast('QRライブラリの読み込みに失敗しました（通信環境をご確認ください）。', 'err'); return; }
+    html5Qr = new Html5Qrcode('reader');
+    html5Qr.start(
+      { facingMode: 'environment' },
+      { fps: 10, qrbox: { width: 220, height: 220 } },
+      onScan,
+      function(){ /* 読取失敗フレームは無視 */ }
+    ).then(function(){
+      $('scanState').textContent = 'スキャン中';
+      $('startBtn').disabled = true; $('stopBtn').disabled = false;
+    }).catch(function(e){
+      toast('カメラを起動できません：' + e, 'err');
+    });
+  }
+
+  function stopScan(){
+    if(html5Qr){
+      html5Qr.stop().then(function(){ html5Qr.clear(); }).catch(function(){});
+      html5Qr = null;
+    }
+    $('scanState').textContent = 'カメラ停止中';
+    $('startBtn').disabled = false; $('stopBtn').disabled = true;
+  }
+
+  function onScan(decodedText){
+    var now = Date.now();
+    // 誤連続読取防止：同じQRを短時間に連続認識しない
+    if(decodedText === lastText && (now - lastAt) < COOLDOWN_MS) return;
+    lastText = decodedText; lastAt = now;
+
+    var id = parseId(decodedText);
+    if(!id){ feedback(false); toast('このシステムのQRではありません。', 'err'); return; }
+    var p = products[id];
+    if(!p){ feedback(false); toast('未登録の商品です（' + id + '）。', 'err'); return; }
+
+    if(p.mode === '発注トリガー管理'){
+      if(!triggers[id]){ triggers[id] = { name: p.name, trigger: p.trigger }; }
+      feedback(true); toast('発注候補に追加：' + p.name, 'trg');
+      renderTriggers();
+    } else if(p.mode === '数量管理'){
+      if(!usage[id]) usage[id] = { name: p.name, qty: 0 };
+      usage[id].qty += 1;
+      feedback(true); toast('使用に追加：' + p.name + '（' + usage[id].qty + '）', 'ok');
+      renderUsage();
+    } else {
+      feedback(false); toast('管理方式が未設定の商品です（' + id + '）。', 'err');
+    }
+  }
+
+  function parseId(text){
+    var s = String(text || '').trim();
+    // URL形式（?p=ID）にも対応（標準カメラ用QRを、アプリ内カメラでも読めるように）
+    var m = s.match(/[?&]p=([^&]+)/);
+    if(m){ try{ return decodeURIComponent(m[1]) || null; }catch(e){ return m[1] || null; } }
+    // 旧形式（INV-ID）
+    if(s.indexOf(QR_PREFIX) === 0){ var id = s.substring(QR_PREFIX.length); return id || null; }
+    return null;
+  }
+
+  function renderUsage(){
+    var ids = Object.keys(usage);
+    if(!ids.length){ $('usageList').innerHTML = '<div class="empty">まだ読み取っていません。</div>'; updateFooter(); return; }
+    var html = '';
+    ids.forEach(function(id){
+      var u = usage[id];
+      html += '<div class="item">'
+        + '<div class="name">'+esc(u.name)+'<div class="sub">'+esc(id)+'</div></div>'
+        + '<div class="qtybox">'
+        +   '<button class="qtybtn" onclick="chgQty(\''+esc(id)+'\',-1)">－</button>'
+        +   '<span class="qtyval">'+u.qty+'</span>'
+        +   '<button class="qtybtn" onclick="chgQty(\''+esc(id)+'\',1)">＋</button>'
+        + '</div>'
+        + '<button class="del" onclick="delUsage(\''+esc(id)+'\')">削除</button>'
+        + '</div>';
+    });
+    $('usageList').innerHTML = html;
+    updateFooter();
+  }
+
+  function renderTriggers(){
+    var ids = Object.keys(triggers);
+    if(!ids.length){ $('triggerList').innerHTML = '<div class="empty">なし。</div>'; updateFooter(); return; }
+    var html = '';
+    ids.forEach(function(id){
+      var t = triggers[id];
+      html += '<div class="item trgitem">'
+        + '<div class="name">'+esc(t.name)
+        +   '<div class="sub">'+esc(id)+(t.trigger ? (' ／ '+esc(t.trigger)) : '')+'</div></div>'
+        + '<button class="del" onclick="delTrigger(\''+esc(id)+'\')">削除</button>'
+        + '</div>';
+    });
+    $('triggerList').innerHTML = html;
+    updateFooter();
+  }
+
+  window.chgQty = function(id, d){
+    if(!usage[id]) return;
+    usage[id].qty += d;
+    if(usage[id].qty <= 0) delete usage[id];
+    renderUsage();
+  };
+  window.delUsage = function(id){ delete usage[id]; renderUsage(); };
+  window.delTrigger = function(id){ delete triggers[id]; renderTriggers(); };
+
+  function updateFooter(){
+    var uids = Object.keys(usage);
+    var totalQty = uids.reduce(function(s,id){ return s + usage[id].qty; }, 0);
+    $('sumUsage').textContent = uids.length;
+    $('sumQty').textContent = totalQty;
+    var hasSomething = uids.length > 0 || Object.keys(triggers).length > 0;
+    $('confirmBtn').disabled = !hasSomething;
+  }
+
+  function confirmScan(){
+    var usageItems = Object.keys(usage).map(function(id){ return { productId:id, qty:usage[id].qty }; });
+    var triggerItems = Object.keys(triggers);
+    if(!usageItems.length && !triggerItems.length) return;
+
+    var msg = '登録します。\n\n使用（数量管理）：'+usageItems.length+'品\n発注候補（トリガー）：'+triggerItems.length+'品';
+    if(!confirm(msg + '\n\nよろしいですか？')) return;
+
+    var payload = {
+      processId: genId(),
+      registrant: $('registrant').value.trim(),
+      usageItems: usageItems,
+      triggerItems: triggerItems
+    };
+    $('confirmBtn').disabled = true;
+    toast('登録中…', '');
+    google.script.run
+      .withSuccessHandler(function(res){
+        if(res.duplicated){ toast('この登録は送信済みです（二重送信を防止しました）。', 'ok'); return; }
+        var neg = (res.usage||[]).filter(function(u){ return u.negative; });
+        var m = '登録しました。使用 '+(res.usage||[]).length+'品／発注候補 追加'+res.candidates.added+'・重複'+res.candidates.skipped;
+        if(neg.length) m += '　⚠在庫がマイナスの商品が'+neg.length+'件あります';
+        toast(m, neg.length ? 'err' : 'ok');
+        usage = {}; triggers = {};
+        renderUsage(); renderTriggers();
+        // 最新在庫を取り直す
+        google.script.run.withSuccessHandler(function(ctx){ products = ctx.products || products; }).getUsageContext(CLINIC);
+      })
+      .withFailureHandler(function(err){
+        toast('登録に失敗しました：'+err.message, 'err');
+        $('confirmBtn').disabled = false;
+      })
+      .confirmScan(CLINIC, payload);
+  }
+
+  function feedback(ok){
+    try{ if(navigator.vibrate) navigator.vibrate(ok ? 60 : [40,40,40]); }catch(e){}
+  }
+  function toast(msg, kind){
+    var t = $('toast'); t.textContent = msg || ''; t.className = 'toast ' + (kind||'');
+  }
+  function genId(){
+    if(window.crypto && crypto.randomUUID) return crypto.randomUUID();
+    return 'p-' + Date.now() + '-' + Math.random().toString(16).slice(2);
+  }
+  function esc(s){
+    return String(s==null?'':s).replace(/[&<>"']/g,function(c){
+      return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];
+    });
+  }
+</script>
+</body>
+</html>

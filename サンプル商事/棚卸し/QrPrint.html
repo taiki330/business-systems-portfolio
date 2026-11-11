@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<base target="_top">
+<style>
+  :root{ --line:#c9d0da; --ink:#1a1a1a; --sub:#5a6270; --accent:#1e5aa8; --soft:#f4f6f9; }
+  *{box-sizing:border-box;}
+  body{margin:0;font-family:"Yu Gothic",YuGothic,"Hiragino Kaku Gothic ProN","Meiryo",sans-serif;
+       color:var(--ink);background:#eef1f5;font-size:14px;}
+  header{position:sticky;top:0;z-index:5;background:#fff;border-bottom:2px solid var(--accent);
+         padding:12px 16px;box-shadow:0 1px 6px rgba(0,0,0,.06);}
+  h1{font-size:17px;margin:0 0 10px;}
+  .bar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;}
+  select,input[type="search"],button{font-size:14px;padding:6px 10px;border:1px solid var(--line);border-radius:5px;background:#fff;}
+  button{cursor:pointer;background:var(--accent);color:#fff;border:none;font-weight:700;}
+  button.ghost{background:#fff;color:var(--accent);border:1px solid var(--accent);}
+  .hint{color:var(--sub);font-size:12.5px;}
+  main{padding:14px 16px 60px;}
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:10px;}
+  .card{border:1px solid var(--line);border-radius:8px;background:#fff;padding:10px;text-align:center;
+        page-break-inside:avoid;break-inside:avoid;}
+  .card img{width:150px;height:150px;object-fit:contain;}
+  .card .photo{width:150px;height:150px;object-fit:cover;border-radius:5px;background:#f0f2f5;}
+  .photoEmpty{width:150px;height:150px;margin:auto;display:flex;align-items:center;justify-content:center;
+              color:var(--sub);background:#f0f2f5;border:1px dashed var(--line);border-radius:5px;}
+  .kijun{font-size:12px;font-weight:700;color:#9a4b00;margin-top:4px;}
+  /* 「撮影」と「写真を選ぶ」を横に並べる。スマホでは capture 付きの入力だと
+     カメラしか開かず端末内の写真を選べないため、用途ごとにボタンを分けている。 */
+  .photoBtns{display:flex;gap:6px;justify-content:center;margin:6px 0 0;}
+  .photoBtn{display:block;font-size:11px;padding:5px 8px;margin:0;white-space:nowrap;cursor:pointer;
+            background:#fff;color:var(--accent);border:1px solid var(--accent);border-radius:5px;font-weight:700;}
+  .ruleEdit{margin-top:6px;padding-top:6px;border-top:1px solid var(--line);}
+  .ruleLabel{font-size:11px;font-weight:700;color:var(--sub);text-align:left;margin-bottom:3px;}
+  .ruleEdit input{width:100%;font-size:11px;padding:5px;border:1px solid var(--line);border-radius:4px;}
+  .ruleSave{font-size:11px;padding:4px 8px;margin-top:4px;width:100%;}
+  .card .name{font-size:12.5px;font-weight:700;margin-top:6px;line-height:1.4;
+              word-break:break-all;min-height:2.6em;}
+  .card .meta{font-size:11px;color:var(--sub);margin-top:3px;}
+  .card .pid{font-size:11px;color:var(--sub);font-family:monospace;margin-top:2px;}
+  .empty,.spin{padding:40px;text-align:center;color:var(--sub);}
+  .count{font-weight:700;color:var(--accent);}
+  .markBtn{font-size:11px;padding:4px 8px;margin-top:6px;width:100%;}
+  .printedBadge{display:inline-block;font-size:10px;color:#1e7a4d;background:#e9f5ee;border-radius:8px;padding:1px 8px;margin-top:4px;}
+
+  @media print{
+    body{background:#fff;}
+    header{display:none;}
+    main{padding:0;}
+    .grid{grid-template-columns:repeat(4,1fr);gap:6px;}
+    .card{border:1px solid #999;}
+    .markBtn,.printedBadge,.photoBtn,.photoBtns,.ruleEdit{display:none;}
+    @page{margin:8mm;}
+  }
+</style>
+</head>
+<body>
+<header>
+  <a id="homeBack" href="#" style="display:inline-block;margin-bottom:8px;font-size:13px;font-weight:700;color:var(--accent);text-decoration:none;">← 医院ホームに戻る</a>
+  <h1>QRコード生成（印刷用） <span id="clinicTag" style="background:var(--accent);color:#fff;font-size:13px;padding:2px 10px;border-radius:4px;"></span></h1>
+  <div class="bar">
+    <label>カテゴリ：
+      <select id="catFilter"><option value="">すべて</option></select>
+    </label>
+    <input type="search" id="nameSearch" placeholder="品名・発注先で検索" aria-label="品名・発注先で検索">
+    <label>印刷面：
+      <select id="faceMode"><option value="qr">QR面</option><option value="photo">写真面</option></select>
+    </label>
+    <button id="reload" class="ghost">再読み込み</button>
+    <button id="printBtn">印刷する</button>
+    <label id="showPrintedWrap" style="display:none;"><input type="checkbox" id="showPrinted"> 印刷済みも表示する</label>
+    <button id="markAllBtn" class="ghost" style="display:none;">表示中をすべて印刷済みにする</button>
+    <button id="unmarkAllBtn" class="ghost" style="display:none;">表示中の印刷済みをまとめて解除</button>
+    <span class="hint"><span class="count" id="count">0</span> 件表示中<span id="clinicNote"></span><span id="hiddenNote"></span></span>
+  </div>
+</header>
+
+<main>
+  <div id="wrap"><div class="spin">読み込み中…</div></div>
+</main>
+
+<script>
+  var allCats = [];
+  var loadedProducts = [];
+  var hiddenPrintedCount = 0;
+  var APP_URL = '<?= initParams && initParams.appUrl ? initParams.appUrl : "" ?>';
+  var CLINIC  = '<?= initParams && initParams.clinic ? initParams.clinic : "" ?>';
+  if(!CLINIC){ try { CLINIC = localStorage.getItem('tanaoroshi_clinic') || ''; } catch(e){} }
+
+  // 医院指定時：その医院のホームへ戻るリンク＋バッジ表示
+  document.getElementById('homeBack').href = APP_URL + '?page=home' + (CLINIC ? '&clinic=' + encodeURIComponent(CLINIC) : '');
+  if(CLINIC){
+    document.getElementById('clinicTag').textContent = CLINIC;
+    document.getElementById('clinicNote').textContent = '（' + CLINIC + 'で使う資材のみ）';
+  } else {
+    document.getElementById('homeBack').style.display = 'none';
+    document.getElementById('clinicNote').textContent = '（全医院の資材）';
+  }
+
+  document.getElementById('reload').onclick = load;
+  document.getElementById('catFilter').onchange = load;
+  document.getElementById('nameSearch').oninput = renderFiltered;
+  document.getElementById('faceMode').onchange = renderFiltered;
+  document.getElementById('printBtn').onclick = function(){ window.print(); };
+
+  // 印刷済み管理は医院が特定できているときのみ（全医院表示では対象にしない）
+  var lastProducts = [];
+  if (CLINIC) {
+    document.getElementById('showPrintedWrap').style.display = 'inline-flex';
+    document.getElementById('markAllBtn').style.display = 'inline-block';
+    document.getElementById('unmarkAllBtn').style.display = 'inline-block';
+    document.getElementById('showPrinted').onchange = load;
+    document.getElementById('markAllBtn').onclick = markAllVisible;
+    document.getElementById('unmarkAllBtn').onclick = unmarkAllVisible;
+  }
+
+  load();
+
+  function load(){
+    var cat = document.getElementById('catFilter').value;
+    var includePrinted = CLINIC && document.getElementById('showPrinted').checked;
+    document.getElementById('wrap').innerHTML = '<div class="spin">読み込み中…</div>';
+    google.script.run
+      .withSuccessHandler(render)
+      .withFailureHandler(function(err){
+        document.getElementById('wrap').innerHTML =
+          '<div class="empty">読み込みに失敗しました：<br>'+esc(err.message)+'</div>';
+      })
+      .getProductsForQr(cat, CLINIC, includePrinted);
+  }
+
+  function render(res){
+    // カテゴリ選択肢は初回のみ構築（全件取得時のcategoriesを使う）
+    if(res.categories && res.categories.length && allCats.length===0){
+      allCats = res.categories;
+      var sel = document.getElementById('catFilter');
+      allCats.forEach(function(c){
+        var o=document.createElement('option'); o.value=c; o.textContent=c; sel.appendChild(o);
+      });
+    }
+    loadedProducts = res.products || [];
+    hiddenPrintedCount = res.hiddenPrintedCount || 0;
+    renderFiltered();
+  }
+
+  function renderFiltered(){
+    var q = document.getElementById('nameSearch').value.trim().toLowerCase();
+    var products = loadedProducts.filter(function(p){
+      return !q || (String(p.name)+' '+String(p.supplier)+' '+String(p.id)).toLowerCase().indexOf(q) >= 0;
+    });
+    lastProducts = products;
+    document.getElementById('count').textContent = products.length;
+    document.getElementById('hiddenNote').textContent = hiddenPrintedCount ? '（印刷済み '+hiddenPrintedCount+' 件は非表示）' : '';
+
+    if(!products.length){
+      document.getElementById('wrap').innerHTML =
+        '<div class="empty">対象の商品がありません。<br>先に「②商品マスタ・医院別在庫を生成」を実行してください。</div>';
+      return;
+    }
+    var html = '<div class="grid">';
+    var face = document.getElementById('faceMode').value;
+    products.forEach(function(p){
+      html += '<div class="card" data-id="'+esc(p.id)+'">'
+        + (face === 'photo'
+          ? (p.photoUrl ? '<img class="photo" src="'+esc(p.photoUrl)+'" alt="商品写真" loading="lazy">'
+                        : '<div class="photoEmpty">写真未登録</div>')
+          : '<img src="'+esc(p.imageUrl)+'" alt="QR" loading="lazy">')
+        + '<div class="name">'+esc(p.name)+'</div>'
+        + (face === 'photo' ? '<div class="kijun">発注基準：'+(p.orderRule === '' ? '未設定' : esc(p.orderRule))+'</div>' : '')
+        + (face === 'photo' && CLINIC ? '<div class="ruleEdit"><div class="ruleLabel">'+
+            (p.mode==='数量管理'?'発注基準数を入力':'発注する条件を文字で入力')+'</div><input type="'+
+            (p.mode==='数量管理'?'number':'text')+'" '+
+            (p.mode==='数量管理'?'min="0" step="1" ':'maxlength="60" ')+
+            'data-rule-id="'+esc(p.id)+'" value="'+esc(p.orderRule)+'" placeholder="'+
+            (p.mode==='数量管理'?'例：5':'例：半分になったら発注')+'"><button class="ruleSave" data-rule-save="'+esc(p.id)+'">発注基準を保存</button></div>' : '')
+        + (face === 'photo'
+          ? '<div class="photoBtns">'
+            + '<label class="photoBtn ghost">📷 撮影<input type="file" accept="image/*" capture="environment" data-photo-id="'+esc(p.id)+'" hidden></label>'
+            + '<label class="photoBtn ghost">🖼 写真を選ぶ<input type="file" accept="image/*" data-photo-id="'+esc(p.id)+'" hidden></label>'
+            + '</div>'
+          : '')
+        + (p.printed ? '<div class="printedBadge">印刷済み</div>' : '')
+        + (CLINIC ? ('<button class="ghost markBtn" data-id="'+esc(p.id)+'">'
+            + (p.printed ? '印刷済みを解除' : '✓ 印刷済みにする') + '</button>') : '')
+        + '</div>';
+    });
+    html += '</div>';
+    document.getElementById('wrap').innerHTML = html;
+
+    if (CLINIC) {
+      document.querySelectorAll('.markBtn').forEach(function(btn){
+        btn.onclick = function(){
+          var id = this.getAttribute('data-id');
+          var p = lastProducts.filter(function(x){ return x.id === id; })[0];
+          if (p && p.printed) unmark([id]); else mark([id]);
+        };
+      });
+    }
+    document.querySelectorAll('input[data-photo-id]').forEach(function(input){
+      input.onchange = function(){
+        var file = this.files && this.files[0];
+        // 同じ写真をもう一度選んでも change が起きるように、値を毎回クリアする
+        this.value = '';
+        if(file) uploadPhoto(this.getAttribute('data-photo-id'), file);
+      };
+    });
+    document.querySelectorAll('button[data-rule-save]').forEach(function(btn){
+      btn.onclick=function(){ saveOrderRule(this.getAttribute('data-rule-save')); };
+    });
+  }
+
+  function saveOrderRule(productId){
+    var input=document.querySelector('input[data-rule-id="'+productId+'"]');
+    if(!input) return;
+    google.script.run
+      .withSuccessHandler(function(){ load(); })
+      .withFailureHandler(function(err){ alert('発注基準を保存できませんでした：'+err.message); })
+      .saveQrOrderRule(CLINIC,productId,input.value.trim());
+  }
+
+  function uploadPhoto(productId, file){
+    var canvas=document.createElement('canvas'), img=new Image(), reader=new FileReader();
+    reader.onload=function(){ img.src=reader.result; };
+    reader.onerror=function(){ alert('写真を読み込めませんでした。'); };
+    img.onload=function(){
+      var max=1200, scale=Math.min(1,max/Math.max(img.width,img.height));
+      canvas.width=Math.max(1,Math.round(img.width*scale)); canvas.height=Math.max(1,Math.round(img.height*scale));
+      canvas.getContext('2d').drawImage(img,0,0,canvas.width,canvas.height);
+      var data=canvas.toDataURL('image/jpeg',0.8);
+      if(data.length>2000000){ alert('写真が大きすぎます。端末のカメラ設定で画像サイズを小さくしてお試しください。'); return; }
+      google.script.run
+        .withSuccessHandler(function(){ load(); })
+        .withFailureHandler(function(err){ alert('写真を保存できませんでした：'+err.message); })
+        .saveProductPhoto(productId,data);
+    };
+    reader.readAsDataURL(file);
+  }
+
+  function mark(ids){
+    google.script.run
+      .withSuccessHandler(function(){ load(); })
+      .withFailureHandler(function(err){ alert('印刷済みにできませんでした：'+err.message); })
+      .markQrPrinted(CLINIC, ids);
+  }
+  function unmark(ids){
+    google.script.run
+      .withSuccessHandler(function(){ load(); })
+      .withFailureHandler(function(err){ alert('解除できませんでした：'+err.message); })
+      .unmarkQrPrinted(CLINIC, ids);
+  }
+  function markAllVisible(){
+    if (!lastProducts.length) return;
+    if (!confirm('表示中の ' + lastProducts.length + ' 件をすべて印刷済みにします。よろしいですか？')) return;
+    mark(lastProducts.map(function(p){ return p.id; }));
+  }
+  function unmarkAllVisible(){
+    var printedIds = lastProducts.filter(function(p){ return p.printed; }).map(function(p){ return p.id; });
+    if (!printedIds.length) {
+      alert('表示中に印刷済みの商品がありません。\n「印刷済みも表示する」にチェックを入れてから実行してください。');
+      return;
+    }
+    if (!confirm('表示中の印刷済み ' + printedIds.length + ' 件をまとめて解除します。よろしいですか？')) return;
+    unmark(printedIds);
+  }
+
+  function esc(s){
+    return String(s==null?'':s).replace(/[&<>"']/g,function(c){
+      return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];
+    });
+  }
+</script>
+</body>
+</html>

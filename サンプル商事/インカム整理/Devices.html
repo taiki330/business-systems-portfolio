@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<base target="_top">
+<?!= include('Style'); ?>
+</head>
+<body>
+<header><h1 id="title">現況一覧</h1></header>
+<main>
+  <a class="back" id="homeLink" href="#">← ホームへ</a>
+  <div id="app"><div class="spin">読み込み中…</div></div>
+</main>
+
+<script>
+  var APP_URL = '<?= initParams && initParams.appUrl ? initParams.appUrl : "" ?>';
+  var CLINIC  = '<?= initParams && initParams.clinic ? initParams.clinic : "" ?>';
+</script>
+<?!= include('Common'); ?>
+<script>
+  // 破棄済みも含めて一度に受け取り、絞り込みは画面側で行う（全院でも100件程度なので
+  // サーバーへ何度も問い合わせるより速く、操作もひっかからない）。
+  var ITEMS = [];
+
+  $('homeLink').href = link('home');
+  if (requireClinic('title')) load();
+
+  function load(){
+    showLoading('app');
+    google.script.run.withSuccessHandler(function(res){
+      ITEMS = res.items;
+      $('title').innerHTML = '<span class="clinicTag">' + esc(CLINIC) + '</span> 現況一覧';
+      render(res.summary);
+    }).withFailureHandler(fail).getDeviceList(CLINIC, true);
+  }
+
+  function render(summary){
+    $('app').innerHTML =
+        '<div class="card">'
+      +   '<div class="filters">'
+      +     '<input type="text" id="q" placeholder="使用者・管理番号・シリアルで検索" oninput="draw()">'
+      +     '<select id="st" onchange="draw()">'
+      +       '<option value="">すべての状態</option>'
+      +       opt('使用中') + opt('予備') + opt('故障報告済') + opt('本部集約済')
+      +       opt('修理依頼中') + opt('返却待ち') + opt('破棄')
+      +       '<option value="__flag">要確認のみ</option>'
+      +     '</select>'
+      +   '</div>'
+      +   '<div class="scroll"><table id="tbl"></table></div>'
+      +   '<div class="note" id="cnt"></div>'
+      + '</div>'
+      + addForm();
+    draw();
+  }
+
+  function opt(v){ return '<option value="' + v + '">' + v + '</option>'; }
+
+  function draw(){
+    var q = ($('q').value || '').trim().toLowerCase();
+    var st = $('st').value;
+
+    var rows = ITEMS.filter(function(d){
+      if (st === '__flag') { if (!d.flag) return false; }
+      else if (st) { if (d.status !== st) return false; }
+      // 状態を指定していないときは破棄済みを隠す（普段見たいのは今ある機器だけ）
+      else if (d.status === '破棄') return false;
+      if (!q) return true;
+      return [d.mno, d.user, d.serial, d.serialRaw, d.model, d.note]
+        .join(' ').toLowerCase().indexOf(q) >= 0;
+    });
+
+    var html = '<tr><th>管理番号</th><th>使用者</th><th>状態</th><th>品番</th>'
+             + '<th>シリアル</th><th>保証期限</th><th class="wrap">備考</th><th></th></tr>';
+    rows.forEach(function(d){
+      html += '<tr>'
+        + '<td>' + esc(d.mno) + '</td>'
+        + '<td>' + esc(d.user || '—') + '</td>'
+        + '<td>' + statusChip(d.status)
+        +   (d.relation ? ' <span class="chip rel">' + esc(d.relation)
+             + (d.relation === '借用中' ? '（' + esc(d.clinic) + '）'
+                                        : '（' + esc(d.location) + '）') + '</span>' : '')
+        + '</td>'
+        + '<td>' + esc(d.model) + '</td>'
+        + '<td>' + esc(d.serial || d.serialRaw || '—') + '</td>'
+        + '<td>' + esc(d.warranty || '—') + '</td>'
+        + '<td class="wrap">' + esc(d.note)
+        +   (d.flag ? '<div class="flag">⚠ ' + esc(d.flag) + '</div>' : '') + '</td>'
+        + '<td>' + editButton(d) + '</td>'
+        + '</tr>';
+    });
+    $('tbl').innerHTML = html;
+    $('cnt').textContent = rows.length + ' 件を表示（破棄済みを含む全 ' + ITEMS.length + ' 件）'
+      + (st ? '' : '／破棄済みは「すべての状態」では表示していません');
+  }
+
+  // 使用者を変えられるのは、自院が今持っていて、修理の流れに乗っていない機器だけ。
+  // 修理中の機器の使用者を書き換えると台帳と修理案件がずれるため、
+  // サーバー側でも同じ条件で弾いている。
+  function editButton(d){
+    if (d.location !== CLINIC) return '';
+    if (d.status !== '使用中' && d.status !== '予備') return '';
+    return '<button class="sub" style="padding:5px 10px;font-size:12.5px;" '
+         + 'onclick="editUser(\'' + d.id + '\')">使用者</button>';
+  }
+
+  function editUser(id){
+    var d = null;
+    ITEMS.forEach(function(x){ if (x.id === id) d = x; });
+    if (!d) return;
+    var name = prompt('使用者を入力してください（空欄にすると「予備」になります）\n'
+                    + d.label, d.user);
+    if (name === null) return;
+    google.script.run.withSuccessHandler(function(){
+      toast('使用者を更新しました');
+      load();
+    }).withFailureHandler(fail).updateDeviceUser(CLINIC, id, name);
+  }
+
+  // --- 機器の追加 ---
+  // 故障機を修理せず新品に入れ替えたときや、増設したときに使う。
+  function addForm(){
+    return '<h2>機器を追加</h2>'
+      + '<div class="card">'
+      +   '<div class="row">'
+      +     '<div><label>種別</label><select id="a_kind">'
+      +       '<option>本体</option><option>中継器</option></select></div>'
+      +     '<div><label>管理番号（院内の呼び名）</label>'
+      +       '<input type="text" id="a_mno" placeholder="21 / ⑱ など"></div>'
+      +   '</div>'
+      +   '<div class="row">'
+      +     '<div><label>品番 ※必須</label>'
+      +       '<input type="text" id="a_model" placeholder="DJ-PX10S"></div>'
+      +     '<div><label>シリアルナンバー</label>'
+      +       '<input type="text" id="a_serial" placeholder="M020126"></div>'
+      +   '</div>'
+      +   '<div class="row">'
+      +     '<div><label>購入日</label><input type="date" id="a_buy" value="' + today() + '"></div>'
+      +     '<div><label>保証（月数）</label><input type="number" id="a_warr" value="12" min="0"></div>'
+      +     '<div><label>使用者（空欄なら予備）</label><input type="text" id="a_user"></div>'
+      +   '</div>'
+      +   '<label>備考</label><input type="text" id="a_note" placeholder="M007264の代替として購入 など">'
+      +   '<div class="actions"><button id="a_btn" onclick="addDeviceSubmit()">この内容で追加する</button></div>'
+      + '</div>';
+  }
+
+  function addDeviceSubmit(){
+    var model = $('a_model').value.trim();
+    if (!model) { toast('品番を入力してください。', true); return; }
+    $('a_btn').disabled = true;
+
+    google.script.run.withSuccessHandler(function(res){
+      toast('追加しました（' + res.id + ' ' + res.label + '）');
+      $('a_mno').value = ''; $('a_model').value = ''; $('a_serial').value = '';
+      $('a_user').value = ''; $('a_note').value = '';
+      $('a_btn').disabled = false;
+      load();
+    }).withFailureHandler(fail).addDevice(CLINIC, {
+      kind: $('a_kind').value,
+      mno: $('a_mno').value,
+      model: model,
+      serial: $('a_serial').value,
+      buyDate: $('a_buy').value,
+      warrantyMonths: $('a_warr').value,
+      user: $('a_user').value,
+      note: $('a_note').value
+    });
+  }
+</script>
+</body>
+</html>

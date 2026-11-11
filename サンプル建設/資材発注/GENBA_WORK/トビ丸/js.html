@@ -1,0 +1,1358 @@
+<script>
+    /* ==========================================================================
+       Global State
+       ========================================================================== */
+    const state = {
+        user: null, // { employeeId, name, totalScore, isAdmin, availableDates, playedDates, availableFridays }
+        todayQuiz: null, // { targetDate, isFriday, isCatchup, quizzes: [] }
+        currentQIndex: 0,
+        answers: [], // [{ id, selected, isCorrect }]
+        timerInterval: null,
+        timeLeft: 0,
+        startTimeClient: 0,
+        personalStats: null, // 週間スコア・月次グラフデータキャッシュ（一般ユーザーのみ使用）
+        reviewData: null,   // 復習問題キャッシュ（一般ユーザーのみ使用）
+        reviewSession: null // { pending: [], totalCount: 0 } 復習クイズセッション
+    };
+
+    // --- タッチスクロール検出（スクロール中の誤タップ防止） ---
+    let _touchScrolled = false;
+    document.addEventListener('touchstart', () => { _touchScrolled = false; }, { passive: true });
+    document.addEventListener('touchmove',  () => { _touchScrolled = true;  }, { passive: true });
+
+    // --- LINEブラウザ検出：警告バナーを表示 ---
+    (function() {
+        const ua = navigator.userAgent || '';
+        if (ua.includes('Line/') || ua.includes('FBAN') || ua.includes('FB_IAB')) {
+            const banner = document.getElementById('browserWarning');
+            if (banner) banner.classList.remove('hidden');
+        }
+    })();
+
+    // --- マスコット メッセージ定義（ランダム選択） ---
+    const MASCOT_MESSAGES = {
+        idle: [
+            'さあ、かかってこい！',
+            '今日も安全ヨシ！いくぞ！',
+            'ビシバシいくぞ！覚悟しろ！',
+            '気合い入れていけ！',
+            'このトビ丸様に挑むとはいい度胸だ！',
+        ],
+        correct: [
+            'ヨシ！完璧だ！さすがだな！！',
+            'おおっ！！やるじゃねえか！！',
+            'その調子だ！天才か！？',
+            'ヨシヨシヨシ！！指差し確認ヨシ！！',
+            'すげえ！一発で当てやがった！！',
+            '合格！現場監督犬が認めるぞ！！',
+            'ビシッ！！パーフェクトな判断だ！！',
+            '安全意識が高いな！！惚れるぜ！！',
+        ],
+        wrong: [
+            'ブッブー！！残念だったな！ニヤリ',
+            'あちゃ～～ そっちかよ！ダメダメ！',
+            'お前さん…現場で同じミスしたら大変だぞ？',
+            'ハズレ！復習しな！…まあ俺も昔は間違えたけどな',
+            'その答え…俺の尻尾ほどの価値もないぜ！',
+            'ダメだダメだ！もう一回解説読み直せ！',
+            'ぷぷぷ！引っかかったな！',
+            'トビ丸がっかり…嘘だけどな！ニヤリ',
+        ],
+        perfect: [
+            '全問正解！！お前は現場の星だ！！！',
+            'パーフェクト！！俺も尻尾ブンブンだ！！！',
+            '満点！！！俺様より優秀かもしれんな！！',
+            '完璧すぎる！！安全の神が降りてきたぞ！！！',
+            '文句なし！！今日はお前がボスだ！！！',
+        ],
+        resultGood: [
+            '良い調子だ！この調子でヨシ！',
+            'なかなかやるじゃねえか！明日も頼むぞ！',
+            'いいぞいいぞ！あと少しで完璧だ！',
+        ],
+        resultAverage: [
+            'まずまずだな。解説をしっかり読んで復習ダ！',
+            '悪くはないが…油断するなよ？',
+            'もうちょい頑張れ！お前ならできるはずだ！',
+        ],
+        resultBad: [
+            '喝！！！気合が足りないぞ！！',
+            'こりゃダメだ…今すぐ解説を100回読め！！',
+            'お前の安全意識が心配だ…明日リベンジしろ！',
+        ],
+    };
+
+    /** ランダムメッセージを取得 */
+    function getRandomMessage(category) {
+        const messages = MASCOT_MESSAGES[category] || MASCOT_MESSAGES.idle;
+        return messages[Math.floor(Math.random() * messages.length)];
+    }
+
+    /* ==========================================================================
+       Initialization & Navigation
+       ========================================================================== */
+    document.addEventListener("DOMContentLoaded", () => {
+        // SVGテンプレートを3箇所にクローン挿入
+        const svgTemplate = document.getElementById('tobimaruSvgTemplate');
+        ['homeMascotAvatar', 'quizMascotAvatar', 'resultMascotAvatar', 'reviewMascotAvatar'].forEach(id => {
+            const target = document.getElementById(id);
+            if (target && svgTemplate) {
+                target.appendChild(svgTemplate.content.cloneNode(true));
+            }
+        });
+
+        // Check if previously logged in (sessionStorage)
+        const savedUser = sessionStorage.getItem('tobimaruUser');
+        if (savedUser) {
+            state.user = JSON.parse(savedUser);
+            renderHome();
+            switchView('viewHome');
+        } else {
+            switchView('viewLogin');
+        }
+    });
+
+    function switchView(viewId) {
+        document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+        document.getElementById(viewId).classList.add('active');
+        window.scrollTo(0, 0);
+    }
+
+    function showLoading(text = '通信中...') {
+        document.getElementById('loadingText').innerText = text;
+        document.getElementById('loadingOverlay').classList.remove('hidden');
+    }
+
+    function hideLoading() {
+        document.getElementById('loadingOverlay').classList.add('hidden');
+    }
+
+    function showToast(msg) {
+        const toast = document.getElementById('toast');
+        toast.innerText = msg;
+        toast.classList.remove('hidden');
+        setTimeout(() => { toast.classList.add('hidden'); }, 3000);
+    }
+
+    /* ==========================================================================
+       1. Login Flow
+       ========================================================================== */
+    function handleLogout() {
+        sessionStorage.removeItem('tobimaruUser');
+        state.user = null;
+        document.getElementById('loginId').value = '';
+        document.getElementById('loginPass').value = '';
+        switchView('viewLogin');
+    }
+
+    function handleLogin() {
+        const idStr = document.getElementById('loginId').value.trim();
+        const passStr = document.getElementById('loginPass').value.trim();
+
+        if (!idStr || !passStr) {
+            showToast('IDとパスワードを入力してください');
+            return;
+        }
+
+        showLoading('ログイン中...');
+
+        google.script.run
+            .withSuccessHandler(res => {
+                hideLoading();
+                if (res.success) {
+                    state.user = res.data;
+                    sessionStorage.setItem('tobimaruUser', JSON.stringify(state.user));
+                    renderHome();
+                    switchView('viewHome');
+                    showToast(`ヨシ！よろしく頼むぞ、${state.user.name}さん！`);
+                } else {
+                    showToast(res.message);
+                }
+            })
+            .withFailureHandler(err => {
+                hideLoading();
+                showToast('エラーが発生しました');
+                console.error(err);
+            })
+            .doServerAction('login', { employeeId: idStr, password: passStr });
+    }
+
+    /* ==========================================================================
+       2. Home View Flow
+       ========================================================================== */
+    function renderHome() {
+        if (!state.user) return;
+        document.getElementById('homeUserName').innerText = state.user.name;
+        document.getElementById('homeTotalScore').innerText = state.user.totalScore;
+
+        if (state.user.isAdmin) {
+            document.getElementById('adminMenuBtn').classList.remove('hidden');
+            document.getElementById('scoreBadge').classList.add('hidden');
+        } else {
+            document.getElementById('adminMenuBtn').classList.add('hidden');
+            document.getElementById('quizRulesCard').classList.remove('hidden');
+            buildQuizSelectors();
+        }
+
+        // ホーム画面のマスコットをidle状態に設定
+        setMascotState('idle', null, 'mascot-container');
+
+        // 管理者以外のみ週間スコア・月次グラフを取得
+        if (!state.user.isAdmin) {
+            google.script.run
+                .withSuccessHandler(function(res) {
+                    if (res.success) {
+                        state.personalStats = res.data;
+                        renderPersonalStats(res.data);
+                    }
+                })
+                .withFailureHandler(function() {
+                    // サイレントフェイル（ホーム画面の必須機能ではない）
+                })
+                .doServerAction('getPersonalStats', { employeeId: state.user.employeeId });
+        }
+    }
+
+    /* ---------------------------------------------------------------
+       クイズセレクター構築
+    --------------------------------------------------------------- */
+    const DAY_NAMES_JP = ['日', '月', '火', '水', '木', '金', '土'];
+
+    function formatDateLabel(dateStr) {
+        // 'yyyy/MM/dd' → 'M/D（曜）'
+        const d = new Date(dateStr.replace(/\//g, '-') + 'T00:00:00+09:00');
+        return `${d.getMonth() + 1}/${d.getDate()}（${DAY_NAMES_JP[d.getDay()]}）`;
+    }
+
+    function formatFridayLabel(dateStr) {
+        // 'yyyy/MM/dd' → 'M/D の週（金）'
+        const d = new Date(dateStr.replace(/\//g, '-') + 'T00:00:00+09:00');
+        return `${d.getMonth() + 1}/${d.getDate()} の週（金）`;
+    }
+
+    function buildQuizSelectors() {
+        const availableDates   = state.user.availableDates   || [];
+        const playedDates      = state.user.playedDates      || [];
+        const availableFridays = state.user.availableFridays || [];
+        const playedSet        = new Set(playedDates);
+
+        // 通常テスト セレクター
+        const normalSection = document.getElementById('normalQuizSection');
+        const normalSelect  = document.getElementById('normalQuizSelector');
+        normalSelect.innerHTML = '';
+        if (availableDates.length > 0) {
+            availableDates.slice().reverse().forEach(dateStr => {
+                const opt = document.createElement('option');
+                opt.value = dateStr;
+                opt.textContent = formatDateLabel(dateStr) + (playedSet.has(dateStr) ? '　✓済み' : '');
+                opt.disabled = playedSet.has(dateStr);
+                normalSelect.appendChild(opt);
+            });
+            // 未受験の最初の選択肢をデフォルト選択
+            const firstUnplayed = Array.from(normalSelect.options).find(o => !o.disabled);
+            if (firstUnplayed) firstUnplayed.selected = true;
+            normalSection.classList.remove('hidden');
+        } else {
+            normalSection.classList.add('hidden');
+        }
+
+        // タイムアタック セレクター
+        const fridaySection = document.getElementById('fridayQuizSection');
+        const fridaySelect  = document.getElementById('fridayQuizSelector');
+        fridaySelect.innerHTML = '';
+        if (availableFridays.length > 0) {
+            availableFridays.slice().reverse().forEach(dateStr => {
+                const opt = document.createElement('option');
+                opt.value = dateStr;
+                opt.textContent = formatFridayLabel(dateStr) + (playedSet.has(dateStr) ? '　✓済み' : '');
+                opt.disabled = playedSet.has(dateStr);
+                fridaySelect.appendChild(opt);
+            });
+            const firstUnplayedFri = Array.from(fridaySelect.options).find(o => !o.disabled);
+            if (firstUnplayedFri) firstUnplayedFri.selected = true;
+            fridaySection.classList.remove('hidden');
+        } else {
+            fridaySection.classList.add('hidden');
+        }
+    }
+
+    function startQuizByDate(isFriday) {
+        const selectId = isFriday ? 'fridayQuizSelector' : 'normalQuizSelector';
+        const select = document.getElementById(selectId);
+        const targetDate = select.value;
+        if (!targetDate) {
+            showToast('日付を選択してください');
+            return;
+        }
+
+        showLoading('問題を取得中...');
+        google.script.run
+            .withSuccessHandler(res => {
+                hideLoading();
+                if (res.success) {
+                    state.todayQuiz = res.data;
+                    initQuizUI();
+                    switchView('viewQuiz');
+                } else if (res.status === 'already_played') {
+                    showToast('この日は既に回答済みです');
+                    buildQuizSelectors();
+                } else {
+                    showToast(res.message || '問題の取得に失敗しました');
+                }
+            })
+            .withFailureHandler(err => {
+                hideLoading();
+                showToast('エラーが発生しました');
+                console.error(err);
+            })
+            .doServerAction('getQuizByDate', {
+                employeeId: state.user.employeeId,
+                targetDate: targetDate,
+                isFriday: isFriday
+            });
+    }
+    function goHome() {
+        // 状態リセット
+        state.todayQuiz = null;
+        state.answers = [];
+        clearInterval(state.timerInterval);
+        renderHome(); // スコア等が更新されているかもしれないので再描画
+        switchView('viewHome');
+    }
+
+    /* ==========================================================================
+       3. Quiz View Flow (Swipe Deck)
+       ========================================================================== */
+    function abortQuiz() {
+        if (confirm("テストを中止してホームに戻りますか？記録は残りません。")) {
+            goHome();
+        }
+    }
+
+    function initQuizUI() {
+        state.currentQIndex = 0;
+        state.answers = [];
+        state.startTimeClient = Date.now();
+
+        // Reset Mascot
+        setMascotState('idle', null);
+
+        const container = document.getElementById('quizCardsContainer');
+        container.innerHTML = '';
+
+        // Timer setup for Friday
+        const timerBadge = document.getElementById('timerDisplay');
+        if (state.todayQuiz.isFriday) {
+            state.timeLeft = 120;
+            document.getElementById('timeLeft').innerText = state.timeLeft;
+            timerBadge.classList.remove('hidden');
+            startTimer();
+        } else {
+            timerBadge.classList.add('hidden');
+            clearInterval(state.timerInterval);
+        }
+
+        // Render cards
+        state.todayQuiz.quizzes.forEach((q, idx) => {
+            const card = document.createElement('div');
+            card.className = `quiz-card ${idx === 0 ? 'active' : ''}`;
+            card.id = `qCard_${idx}`;
+
+            // Shuffle options but keep track of original index for correctness check
+            const mappedOptions = q.options.map((text, i) => ({ text, originIdx: i + 1 }));
+            // Shuffle mappedOptions
+            for (let i = mappedOptions.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [mappedOptions[i], mappedOptions[j]] = [mappedOptions[j], mappedOptions[i]];
+            }
+
+            let html = `<div class="question-text">Q. ${q.text}</div>`;
+            mappedOptions.forEach(opt => {
+                // opt.originIdx が 1,2,3,4
+                html += `<button class="option-btn" onclick="selectAnswer(${idx}, ${opt.originIdx}, this)">
+                  <span class="opt-badge"></span>${opt.text}
+                </button>`;
+            });
+
+            card.innerHTML = html;
+            container.appendChild(card);
+        });
+
+        updateQuizHeader();
+    }
+
+    function startTimer() {
+        clearInterval(state.timerInterval);
+        state.timerInterval = setInterval(() => {
+            state.timeLeft--;
+            document.getElementById('timeLeft').innerText = state.timeLeft;
+
+            if (state.timeLeft <= 0) {
+                clearInterval(state.timerInterval);
+                showToast('タイムアップ！自動提出します。');
+                // 未回答のものを不正解として埋める
+                fillBlankAnswers();
+                submitResult();
+            }
+        }, 1000);
+    }
+
+    function updateQuizHeader() {
+        const total = state.todayQuiz.quizzes.length;
+        const current = state.currentQIndex + 1;
+        document.getElementById('quizCounter').innerText = `${Math.min(current, total)} / ${total}`;
+
+        const pct = (state.currentQIndex / total) * 100;
+        document.getElementById('quizProgressFill').style.width = `${pct}%`;
+    }
+
+    function selectAnswer(qIndex, selectedValue, btnElement) {
+        // スクロール中の誤タップを無視
+        if (_touchScrolled) return;
+        // 複数クリック防止
+        if (qIndex !== state.currentQIndex) return;
+
+        // スタイル適用と二重タップ完全防止
+        const sibs = btnElement.parentElement.querySelectorAll('.option-btn');
+        sibs.forEach(b => {
+            b.classList.remove('selected');
+            b.onclick = null; // 押せなくする
+            b.style.pointerEvents = 'none';
+        });
+        btnElement.classList.add('selected');
+
+        const qObj = state.todayQuiz.quizzes[qIndex];
+        const isCorrect = (selectedValue === qObj.correctAnswer);
+
+        // Mascot Action（ランダムメッセージ）
+        if (isCorrect) {
+            setMascotState('correct', null);
+        } else {
+            setMascotState('wrong', null);
+        }
+
+        // 回答記録
+        state.answers.push({
+            id: qObj.id,
+            selected: selectedValue,
+            isCorrect: isCorrect
+        });
+
+        // 次の問題へスライド (少し見せてから遷移)
+        setTimeout(() => {
+            nextQuestion();
+        }, 1200);
+    }
+
+    function nextQuestion() {
+        const currentCard = document.getElementById(`qCard_${state.currentQIndex}`);
+        if (currentCard) {
+            currentCard.classList.remove('active');
+            currentCard.classList.add('done');
+        }
+
+        state.currentQIndex++;
+
+        if (state.currentQIndex >= state.todayQuiz.quizzes.length) {
+            // 全問完了
+            clearInterval(state.timerInterval);
+            document.getElementById('quizProgressFill').style.width = '100%';
+            submitResult();
+        } else {
+            // 次のカード表示
+            const nextCard = document.getElementById(`qCard_${state.currentQIndex}`);
+            if (nextCard) {
+                nextCard.classList.add('active');
+            }
+            updateQuizHeader();
+        }
+    }
+
+    function fillBlankAnswers() {
+        const total = state.todayQuiz.quizzes.length;
+        while (state.answers.length < total) {
+            const qObj = state.todayQuiz.quizzes[state.answers.length];
+            state.answers.push({
+                id: qObj.id,
+                selected: 0,
+                isCorrect: false
+            });
+        }
+    }
+
+    /* ==========================================================================
+       4. Result Submission & View
+       ========================================================================== */
+    function submitResult() {
+        showLoading('採点中...ドキドキ...');
+
+        const timeSpentSec = Math.floor((Date.now() - state.startTimeClient) / 1000);
+
+        const payload = {
+            employeeId: state.user.employeeId,
+            targetDateStr: state.todayQuiz.targetDate,
+            isFriday: state.todayQuiz.isFriday,
+            answers: state.answers,
+            timeSpentSec: timeSpentSec
+        };
+
+        google.script.run
+            .withSuccessHandler(res => {
+                hideLoading();
+                if (res.success) {
+                    showToast(res.message);
+                    // ローカルのスコアを更新
+                    state.user.totalScore += res.data.score;
+                    // プレイ済み日付をリストに追加（ホーム画面セレクターの再構築用）
+                    if (!state.user.playedDates) state.user.playedDates = [];
+                    if (!state.user.playedDates.includes(state.todayQuiz.targetDate)) {
+                        state.user.playedDates.push(state.todayQuiz.targetDate);
+                    }
+                    buildQuizSelectors();
+                    sessionStorage.setItem('tobimaruUser', JSON.stringify(state.user));
+                    document.getElementById('homeTotalScore').innerText = state.user.totalScore;
+
+                    renderResultView(res.data.score, res.data.maxScore);
+                    switchView('viewResult');
+
+                } else {
+                    showToast(res.message);
+                    // 不正などで0点扱いになった場合など
+                    if (res.message.includes('0点')) {
+                        renderResultView(0, state.todayQuiz.quizzes.length);
+                        switchView('viewResult');
+                    } else {
+                        goHome();
+                    }
+                }
+            })
+            .withFailureHandler(err => {
+                hideLoading();
+                showToast('記録に失敗しました。');
+                goHome();
+            })
+            .doServerAction('submitResult', payload);
+    }
+
+    function renderResultView(score, maxScore) {
+        document.getElementById('resultScore').innerText = score;
+        document.getElementById('resultMax').innerText = maxScore;
+
+        // 円グラフのCSS用変数設定
+        const pct = (score / maxScore) * 100;
+        document.querySelector('.score-circle').style.setProperty('--score-pct', pct);
+
+        const titleEl = document.getElementById('resultTitle');
+        if (pct === 100) {
+            titleEl.innerText = "パーフェクト！";
+            setMascotState('perfect', null, 'resultMascotContainer');
+        } else if (pct >= 80) {
+            titleEl.innerText = "素晴らしい！";
+            setMascotState('correct', getRandomMessage('resultGood'), 'resultMascotContainer');
+        } else if (pct >= 50) {
+            titleEl.innerText = "テスト完了ダ！";
+            setMascotState('idle', getRandomMessage('resultAverage'), 'resultMascotContainer');
+        } else {
+            titleEl.innerText = "喝！";
+            setMascotState('wrong', getRandomMessage('resultBad'), 'resultMascotContainer');
+        }
+
+        // 間違えた問題のみレビュー表示
+        const rContainer = document.getElementById('reviewContainer');
+        rContainer.innerHTML = '';
+
+        let reviewHtml = '';
+        state.answers.forEach((ans, idx) => {
+            if (!ans.isCorrect) {
+                const qObj = state.todayQuiz.quizzes[idx];
+                let userAnsText = ans.selected > 0 ? qObj.options[ans.selected - 1] : "時間切れ / 未回答";
+                let correctAnsText = qObj.options[qObj.correctAnswer - 1];
+
+                reviewHtml += `
+        <div class="review-item">
+          <div class="review-q">Q. ${qObj.text}</div>
+          <div class="review-wrong">❌ あなたの回答: ${userAnsText}</div>
+          <div class="review-correct">⭕ 正解: ${correctAnsText}</div>
+          <div class="review-exp">【解説】<br>${qObj.explanation}</div>
+        </div>
+      `;
+            }
+        });
+
+        if (reviewHtml === '') {
+            reviewHtml = `<div class="text-center" style="font-weight:bold; color:var(--success); margin: 30px 0;">見直す箇所は無い！完璧ダ！</div>`;
+        }
+
+        rContainer.innerHTML = reviewHtml;
+    }
+
+    /* ==========================================================================
+       5. Leaderboard View (4タブ: 今週/今月/累計/月次テスト)
+       ========================================================================== */
+    let currentRankingPeriod = 'weekly';
+
+    function showLeaderboard() {
+        currentRankingPeriod = 'weekly';
+        // タブの初期状態をリセット
+        document.querySelectorAll('.tab-btn').forEach(btn => {
+            btn.classList.toggle('active', btn.dataset.period === 'weekly');
+        });
+        document.getElementById('monthSelectorWrap').classList.add('hidden');
+
+        // 管理者以外は復習タブを表示
+        var reviewTabBtn = document.querySelector('[data-period="review"]');
+        if (reviewTabBtn) {
+            if (state.user && !state.user.isAdmin) {
+                reviewTabBtn.classList.remove('hidden');
+            } else {
+                reviewTabBtn.classList.add('hidden');
+            }
+        }
+
+        // rankingListContainerを確実に表示、復習コンテナを非表示
+        document.getElementById('rankingListContainer').style.display = '';
+        document.getElementById('reviewQuizContainer').classList.add('hidden');
+        document.getElementById('reviewCompleteContainer').classList.add('hidden');
+
+        switchView('viewLeaderboard');
+        loadRanking('weekly');
+    }
+
+    function switchRankingTab(period) {
+        currentRankingPeriod = period;
+
+        // タブのactive切替
+        document.querySelectorAll('.tab-btn').forEach(btn => {
+            btn.classList.toggle('active', btn.dataset.period === period);
+        });
+
+        // 月次テストのみセレクター表示
+        const selectorWrap = document.getElementById('monthSelectorWrap');
+        if (period === 'monthlyTest') {
+            selectorWrap.classList.remove('hidden');
+        } else {
+            selectorWrap.classList.add('hidden');
+        }
+
+        // 復習タブの場合
+        if (period === 'review') {
+            document.getElementById('rankingListContainer').style.display = 'none';
+            document.getElementById('reviewQuizContainer').classList.remove('hidden');
+            startReviewSession();
+            return;
+        }
+
+        // 復習タブ以外はrankingListContainerを表示、復習コンテナを非表示
+        document.getElementById('rankingListContainer').style.display = '';
+        document.getElementById('reviewQuizContainer').classList.add('hidden');
+        document.getElementById('reviewCompleteContainer').classList.add('hidden');
+
+        loadRanking(period);
+    }
+
+    function loadRanking(period, targetMonth) {
+        showLoading('データ取得中...');
+
+        const params = { period: period };
+        if (targetMonth) params.targetMonth = targetMonth;
+
+        google.script.run
+            .withSuccessHandler(res => {
+                hideLoading();
+                if (res.success) {
+                    renderLeaderboard(res.data);
+
+                    // 月次テストの場合、セレクターを更新
+                    if (period === 'monthlyTest' && res.availableMonths) {
+                        updateMonthSelector(res.availableMonths, res.selectedMonth);
+                    }
+                } else {
+                    showToast(res.message);
+                }
+            })
+            .withFailureHandler(err => {
+                hideLoading();
+                showToast('エラーが発生しました');
+            })
+            .doServerAction('getLeaderboard', params);
+    }
+
+    function loadMonthlyTestRanking() {
+        const month = document.getElementById('monthSelector').value;
+        if (month) loadRanking('monthlyTest', month);
+    }
+
+    function updateMonthSelector(months, selectedMonth) {
+        const selector = document.getElementById('monthSelector');
+        selector.innerHTML = '';
+
+        if (months.length === 0) {
+            const opt = document.createElement('option');
+            opt.value = '';
+            opt.textContent = 'データなし';
+            selector.appendChild(opt);
+            return;
+        }
+
+        months.forEach(m => {
+            const opt = document.createElement('option');
+            opt.value = m;
+            opt.textContent = m;
+            if (m === selectedMonth) opt.selected = true;
+            selector.appendChild(opt);
+        });
+    }
+
+    function renderLeaderboard(data) {
+        const container = document.getElementById('rankingListContainer');
+        container.innerHTML = '';
+
+        if (data.length === 0) {
+            container.innerHTML = '<p class="text-center" style="padding:30px 0;color:var(--text-muted);">まだデータがありません</p>';
+            return;
+        }
+
+        let html = '';
+        data.forEach((user, idx) => {
+            const isMe = (user.name === state.user.name) ? 'style="border-color:var(--primary);"' : '';
+            html += `
+      <div class="rank-item rank-${idx + 1}" ${isMe}>
+        <div class="rank-num">${idx + 1}</div>
+        <div class="rank-name">${user.name}</div>
+        <div class="rank-score">${user.score} pt</div>
+      </div>
+    `;
+        });
+
+        container.innerHTML = html;
+    }
+
+    /* ==========================================================================
+       6. Admin Function
+       ========================================================================== */
+    function showAdminPanel() {
+        populatePdfMonthSelector();
+        switchView('viewAdmin');
+    }
+
+    function populatePdfMonthSelector() {
+        var selector = document.getElementById('pdfMonthSelector');
+        if (!selector) return;
+        selector.innerHTML = '<option value="">読み込み中...</option>';
+
+        google.script.run
+            .withSuccessHandler(function(res) {
+                selector.innerHTML = '';
+                if (res.success && res.data && res.data.length > 0) {
+                    res.data.forEach(function(month) {
+                        var parts = month.split('/');
+                        var opt = document.createElement('option');
+                        opt.value = month;
+                        opt.textContent = parts[0] + '年' + parseInt(parts[1], 10) + '月';
+                        selector.appendChild(opt);
+                    });
+                } else {
+                    selector.innerHTML = '<option value="">問題データなし</option>';
+                }
+            })
+            .withFailureHandler(function() {
+                selector.innerHTML = '<option value="">取得に失敗しました</option>';
+            })
+            .doServerAction('getAvailableTestMonths', { callerEmployeeId: state.user.employeeId });
+    }
+
+    function submitMonthlyScore() {
+        const month = document.getElementById('adminTargetMonth').value.trim();
+        const eId = document.getElementById('adminEmpId').value.trim();
+        const score = document.getElementById('adminScore').value.trim();
+
+        if (!month || !eId || !score) {
+            showToast('全ての項目を入力してください');
+            return;
+        }
+
+        showLoading('保存中...');
+
+        const payload = {
+            callerEmployeeId: state.user.employeeId,
+            employeeId: eId,
+            targetMonth: month,
+            score: score
+        };
+
+        google.script.run
+            .withSuccessHandler(res => {
+                hideLoading();
+                showToast(res.message);
+                if (res.success) {
+                    document.getElementById('adminEmpId').value = '';
+                    document.getElementById('adminScore').value = '';
+                }
+            })
+            .withFailureHandler(err => {
+                hideLoading();
+                showToast('エラーが発生しました');
+            })
+            .doServerAction('adminSubmitScore', payload);
+    }
+
+    /* ==========================================================================
+       Mascot State Manager
+       ========================================================================== */
+
+    /** 全ステートクラスのリスト */
+    const TOBI_STATE_CLASSES = ['tobi-state--idle', 'tobi-state--correct', 'tobi-state--wrong', 'tobi-state--perfect'];
+    const TOBI_BG_CLASSES = ['tobi-bg--correct', 'tobi-bg--wrong', 'tobi-bg--perfect'];
+
+    /**
+     * マスコットの表情・アニメーション・メッセージを切り替える
+     * @param {string} stateType - 'idle' | 'correct' | 'wrong' | 'perfect' | 'streak'
+     * @param {string|null} message - 指定メッセージ(nullならランダム選択)
+     * @param {string} containerId - 対象コンテナID
+     */
+    function setMascotState(stateType, message, containerId) {
+        containerId = containerId || 'quizMascotContainer';
+        const container = document.getElementById(containerId);
+        if (!container) return;
+
+        const avatarWrap = container.querySelector('.tobi-avatar-wrap');
+        const msgEl = container.querySelector('.speech-bubble');
+        if (!avatarWrap) return;
+
+        // 'streak' を 'perfect' にマッピング（後方互換）
+        if (stateType === 'streak') stateType = 'perfect';
+
+        // 全ステートクラスを除去
+        TOBI_STATE_CLASSES.forEach(cls => avatarWrap.classList.remove(cls));
+
+        // アニメーションリスタート用: reflow を強制
+        void avatarWrap.offsetWidth;
+
+        // 新しいステートクラスを付与
+        avatarWrap.classList.add('tobi-state--' + stateType);
+
+        // 背景エフェクトをコンテナ（mascot-area）に適用（idle以外）
+        TOBI_BG_CLASSES.forEach(cls => container.classList.remove(cls));
+        void container.offsetWidth;
+        if (stateType !== 'idle') {
+            container.classList.add('tobi-bg--' + stateType);
+        }
+
+        // 画面全体の背景エフェクト（.view に適用）
+        const viewEl = container.closest('.view');
+        if (viewEl) {
+            TOBI_BG_CLASSES.forEach(cls => viewEl.classList.remove(cls));
+            void viewEl.offsetWidth;
+            if (stateType !== 'idle') {
+                viewEl.classList.add('tobi-bg--' + stateType);
+            }
+
+            // 不正解: 画面全体をガタガタ揺らす
+            if (stateType === 'wrong') {
+                const appContainer = document.querySelector('.app-container');
+                if (appContainer) {
+                    appContainer.classList.remove('tobi-shake');
+                    void appContainer.offsetWidth;
+                    appContainer.classList.add('tobi-shake');
+                    setTimeout(() => appContainer.classList.remove('tobi-shake'), 600);
+                }
+            }
+        }
+
+        // メッセージ設定（指定がなければランダム）
+        if (msgEl) {
+            msgEl.innerText = message || getRandomMessage(stateType);
+        }
+    }
+
+    /* ==========================================================================
+       週間スコア・月次成長グラフ（一般ユーザーのみ）
+       ========================================================================== */
+
+    /**
+     * 週間スコア・月次グラフセクションを表示する
+     * @param {Object} data - { weekly: {...}, monthly: [...] }
+     */
+    function renderPersonalStats(data) {
+        const section = document.getElementById('personalStatsSection');
+        if (!section || !data) return;
+        renderWeeklyScores(data.weekly);
+        renderMonthlyChart(data.monthly);
+        section.classList.remove('hidden');
+    }
+
+    /**
+     * 今週の日別スコア表を描画する
+     * @param {Object} weeklyData - { "2026/02/23": 8, ... }
+     */
+    function renderWeeklyScores(weeklyData) {
+        const container = document.getElementById('weeklyScoreTable');
+        if (!container) return;
+
+        const DAY_LABELS = ['月', '火', '水', '木', '金'];
+        const today = new Date();
+        const dayOfWeek = today.getDay();
+        const mondayOffset = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+        const monday = new Date(today);
+        monday.setDate(today.getDate() + mondayOffset);
+
+        let html = '';
+        for (let i = 0; i < 5; i++) {
+            const d = new Date(monday);
+            d.setDate(monday.getDate() + i);
+            const key = d.getFullYear() + '/' +
+                String(d.getMonth() + 1).padStart(2, '0') + '/' +
+                String(d.getDate()).padStart(2, '0');
+            const score = weeklyData && weeklyData[key] !== undefined ? weeklyData[key] : null;
+            const hasScore = score !== null;
+            html += '<div class="weekly-score-day' + (hasScore ? ' clickable' : '') + '"'
+                + (hasScore ? ' onclick="showDayDetail(\'' + key + '\')"' : '') + '>';
+            html += '<span class="day-label">' + DAY_LABELS[i] + '</span>';
+            html += '<span class="day-score' + (hasScore ? ' has-score' : '') + '">' +
+                (hasScore ? score : '-') + '</span>';
+            if (hasScore) {
+                html += '<span class="day-tap-icon material-symbols-outlined">search</span>';
+            }
+            html += '</div>';
+        }
+        container.innerHTML = html;
+    }
+
+    /**
+     * 過去6ヶ月の月次成長バーチャートを描画する（横バー・縦並び）
+     * @param {Array} monthlyData - [{ month: "2026/02", score: 52 }, ...]
+     */
+    function renderMonthlyChart(monthlyData) {
+        const container = document.getElementById('monthlyGrowthChart');
+        if (!container || !monthlyData || monthlyData.length === 0) return;
+
+        const BAR_MAX_WIDTH_PX = 160;
+        const maxScore = Math.max(...monthlyData.map(function(d) { return d.score; }), 1);
+
+        let html = '';
+        monthlyData.forEach(function(item) {
+            const widthPx = Math.round((item.score / maxScore) * BAR_MAX_WIDTH_PX);
+            const label = item.month.slice(5);
+            html += '<div class="monthly-chart-bar-wrap">';
+            html += '<span class="monthly-chart-label">' + label + '月</span>';
+            html += '<div class="monthly-chart-bar" style="width:' + widthPx + 'px;"></div>';
+            html += '<span class="monthly-chart-score">' + item.score + '</span>';
+            html += '</div>';
+        });
+        container.innerHTML = html;
+    }
+
+    /**
+     * XSS対策：文字列をHTMLエスケープする
+     * @param {string} str
+     * @returns {string}
+     */
+    function escapeHtml(str) {
+        if (str === null || str === undefined) return '';
+        return String(str)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
+    }
+
+    /* ==========================================================================
+       総合テストPDF出力
+       ========================================================================== */
+
+    /**
+     * 総合テスト問題を取得してPDFプレビュー画面に遷移する
+     */
+    function generateMonthlyTestPdf() {
+        if (!state.user || !state.user.isAdmin) {
+            showToast('管理者のみ使用できます');
+            return;
+        }
+
+        var monthSelector = document.getElementById('pdfMonthSelector');
+        var targetMonth = monthSelector ? monthSelector.value : null;
+
+        showLoading('問題を生成中...');
+
+        google.script.run
+            .withSuccessHandler(function(res) {
+                hideLoading();
+                if (res.success) {
+                    renderPdfContent(res.data, targetMonth);
+                    switchView('viewPdf');
+                } else {
+                    showToast(res.message || '問題の生成に失敗しました');
+                }
+            })
+            .withFailureHandler(function() {
+                hideLoading();
+                showToast('エラーが発生しました');
+            })
+            .doServerAction('getMonthlyTestQuestions', {
+                callerEmployeeId: state.user.employeeId,
+                targetMonth: targetMonth
+            });
+    }
+
+    /**
+     * PDFプレビューコンテンツを描画する
+     * @param {Object} sections - { "足場の法令": { 択一: [...], 筆記: [...] }, ... }
+     */
+    /**
+     * PDFプレビューコンテンツを描画する
+     * @param {Array} data - [{ category, choices: [...9問], written: [...1問] }, ...]
+     */
+    function renderPdfContent(data, targetMonth) {
+        const container = document.getElementById('pdfContent');
+        if (!container) return;
+
+        // 記述問題の配点マップ（カテゴリ名 → 点数）
+        const WRITTEN_SCORE = {
+            '足場の法令':     6,
+            '足場の設置基準': 6,
+            'サンプル建設ルール':     7
+        };
+        const CHOICE_SCORE = 3;
+
+        // ヘッダー：対象月と氏名欄
+        let monthStr = '';
+        if (targetMonth) {
+            var parts = targetMonth.split('/');
+            monthStr = parts[0] + '年' + parseInt(parts[1], 10) + '月分　';
+        }
+
+        let html = '<div class="pdf-title">トビ丸テスト 総合テスト</div>';
+        html += '<div class="pdf-meta">' + monthStr + '氏名：_______________　　満点：100点</div>';
+
+        let questionNum = 1;
+
+        // 解答ページ用データ収集
+        const answerChoices = []; // { qNum, category, correctAnswer }
+        const answerWritten = []; // { qNum, category, explanation, score }
+
+        data.forEach(function(section) {
+            const writtenScore = WRITTEN_SCORE[section.category] || 6;
+            html += '<div class="pdf-section-title">【' + escapeHtml(section.category) + '】</div>';
+
+            // 4択問題 (choices)
+            if (section.choices && section.choices.length > 0) {
+                section.choices.forEach(function(q) {
+                    html += '<div class="pdf-question">';
+                    html += '<div class="pdf-question-text">Q' + questionNum +
+                        '. <span class="pdf-score-badge">' + CHOICE_SCORE + '点</span>' +
+                        escapeHtml(q.text) + '</div>';
+                    if (q.options && q.options.length > 0) {
+                        html += '<div class="pdf-options">';
+                        q.options.forEach(function(opt, idx) {
+                            html += '<div class="pdf-option">（' + (idx + 1) + '）' +
+                                escapeHtml(opt) + '</div>';
+                        });
+                        html += '</div>';
+                    }
+                    html += '</div>';
+                    answerChoices.push({ qNum: questionNum, category: section.category, correctAnswer: q.correctAnswer });
+                    questionNum++;
+                });
+            }
+
+            // 筆記問題 (written)
+            if (section.written && section.written.length > 0) {
+                section.written.forEach(function(q) {
+                    html += '<div class="pdf-question">';
+                    html += '<div class="pdf-question-text">Q' + questionNum +
+                        '. 【記述】<span class="pdf-score-badge">' + writtenScore + '点</span>' +
+                        escapeHtml(q.text) + '</div>';
+                    html += '<div class="pdf-written-space"></div>';
+                    html += '</div>';
+                    answerWritten.push({ qNum: questionNum, category: section.category, explanation: q.explanation, score: writtenScore });
+                    questionNum++;
+                });
+            }
+        });
+
+        // --- 解答ページ（改ページ後） ---
+        html += '<div class="pdf-answer-page">';
+        html += '<div class="pdf-answer-page-title">解答一覧（採点者用）</div>';
+
+        // カテゴリ別に4択解答を出力
+        const categoryGroups = {};
+        answerChoices.forEach(function(item) {
+            if (!categoryGroups[item.category]) categoryGroups[item.category] = [];
+            categoryGroups[item.category].push(item);
+        });
+        Object.keys(categoryGroups).forEach(function(cat) {
+            const items = categoryGroups[cat];
+            html += '<div class="pdf-answer-section">';
+            html += '<div class="pdf-answer-section-title">■ ' + escapeHtml(cat) +
+                '（各' + CHOICE_SCORE + '点）</div>';
+            html += '<div class="pdf-answer-grid">';
+            items.forEach(function(item) {
+                html += '<div class="pdf-answer-item">Q' + item.qNum + '：<strong>' + item.correctAnswer + '</strong></div>';
+            });
+            html += '</div>';
+            html += '</div>';
+        });
+
+        // 記述解答
+        if (answerWritten.length > 0) {
+            html += '<div class="pdf-answer-section">';
+            html += '<div class="pdf-answer-section-title">■ 記述解答</div>';
+            answerWritten.forEach(function(item) {
+                html += '<div class="pdf-answer-written">';
+                html += '<span class="pdf-answer-written-label">Q' + item.qNum +
+                    '【' + escapeHtml(item.category) + '（筆記）' + item.score + '点】</span>';
+                html += '<div class="pdf-answer-written-text">' + escapeHtml(item.explanation || '（模範解答なし）') + '</div>';
+                html += '</div>';
+            });
+            html += '</div>';
+        }
+
+        html += '</div>'; // .pdf-answer-page
+
+        container.innerHTML = html;
+    }
+
+    /* ==========================================================================
+       復習クイズ（一問一答モード）
+       ========================================================================== */
+
+    /** 復習セッションを開始する */
+    function startReviewSession() {
+        // キャッシュがあればそのまま使う
+        if (state.reviewData !== null) {
+            _initReviewSession(state.reviewData);
+            return;
+        }
+        showLoading('データ取得中...');
+        google.script.run
+            .withSuccessHandler(function(res) {
+                hideLoading();
+                if (res.success) {
+                    state.reviewData = res.data;
+                    _initReviewSession(res.data);
+                } else {
+                    showToast(res.message || 'データの取得に失敗しました');
+                }
+            })
+            .withFailureHandler(function() {
+                hideLoading();
+                showToast('エラーが発生しました');
+            })
+            .doServerAction('getWrongAnswers', { employeeId: state.user.employeeId });
+    }
+
+    /** 問題リストからセッションを初期化して1問目を表示する */
+    function _initReviewSession(questions) {
+        if (!questions || questions.length === 0) {
+            _showReviewComplete();
+            return;
+        }
+        // シャッフル
+        const shuffled = questions.slice().sort(function() { return Math.random() - 0.5; });
+        state.reviewSession = { pending: shuffled, totalCount: shuffled.length };
+        renderReviewQuestion();
+    }
+
+    /** 現在の問題を描画する */
+    function renderReviewQuestion() {
+        const session = state.reviewSession;
+        if (!session || session.pending.length === 0) {
+            _showReviewComplete();
+            return;
+        }
+        const q = session.pending[0];
+        const OPTION_LABELS = ['①', '②', '③', '④'];
+
+        document.getElementById('reviewProgressText').textContent = '残り ' + session.pending.length + ' 問';
+        document.getElementById('reviewQuizQuestion').textContent = q.text;
+
+        var optionsHtml = '';
+        q.options.forEach(function(opt, idx) {
+            optionsHtml += '<button class="review-quiz-option-btn" onclick="handleReviewAnswer(' + (idx + 1) + ')">'
+                + OPTION_LABELS[idx] + ' ' + escapeHtml(opt)
+                + '</button>';
+        });
+        document.getElementById('reviewQuizOptions').innerHTML = optionsHtml;
+
+        // マスコットをidleに戻す・フィードバックエリアをリセット
+        setMascotState('idle', null, 'reviewMascotContainer');
+        var feedback = document.getElementById('reviewQuizFeedback');
+        feedback.classList.add('hidden');
+        feedback.classList.remove('is-correct');
+    }
+
+    /** 選択肢が選ばれたときの処理 */
+    function handleReviewAnswer(selectedIndex) {
+        var session = state.reviewSession;
+        if (!session || session.pending.length === 0) return;
+        var q = session.pending[0];
+
+        // ボタンを全部無効化
+        document.querySelectorAll('.review-quiz-option-btn').forEach(function(btn) {
+            btn.disabled = true;
+        });
+
+        var isCorrect = (selectedIndex === q.correctAnswer);
+        var buttons = document.querySelectorAll('.review-quiz-option-btn');
+        // 選んだボタン
+        if (buttons[selectedIndex - 1]) {
+            buttons[selectedIndex - 1].classList.add(isCorrect ? 'correct' : 'wrong');
+        }
+        // 正解ボタンを緑に（不正解時）
+        if (!isCorrect && buttons[q.correctAnswer - 1]) {
+            buttons[q.correctAnswer - 1].classList.add('correct');
+        }
+
+        // マスコット演出（setMascotStateが表情・背景・揺れ・セリフをすべて担う）
+        setMascotState(isCorrect ? 'correct' : 'wrong', null, 'reviewMascotContainer');
+
+        // フィードバック: 不正解時のみ解説を表示、正解時は非表示
+        var feedback = document.getElementById('reviewQuizFeedback');
+        var feedbackExp = document.getElementById('reviewFeedbackExplanation');
+        if (isCorrect) {
+            feedback.classList.add('hidden');
+        } else {
+            feedbackExp.textContent = q.explanation || '';
+            feedback.classList.remove('is-correct');
+            feedback.classList.remove('hidden');
+        }
+
+        if (isCorrect) {
+            // 正解: バックエンドに即時保存 → pending から除外
+            google.script.run
+                .withSuccessHandler(function() {})
+                .withFailureHandler(function() {})
+                .doServerAction('clearReviewQuestion', { employeeId: state.user.employeeId, questionId: q.id });
+            state.reviewData = null; // キャッシュ無効化
+            session.pending.shift(); // 先頭を削除
+            setTimeout(function() { nextReviewQuestion(); }, 1200);
+        } else {
+            // 不正解: 末尾に移動
+            session.pending.shift();
+            session.pending.push(q);
+            setTimeout(function() { nextReviewQuestion(); }, 2500);
+        }
+    }
+
+    /** 次の問題へ進む（またはクリア画面を表示） */
+    function nextReviewQuestion() {
+        var session = state.reviewSession;
+        if (!session || session.pending.length === 0) {
+            _showReviewComplete();
+        } else {
+            renderReviewQuestion();
+        }
+    }
+
+    /** 全問クリア画面を表示する */
+    function _showReviewComplete() {
+        document.getElementById('reviewQuizContainer').classList.add('hidden');
+        document.getElementById('reviewCompleteContainer').classList.remove('hidden');
+        state.reviewSession = null;
+    }
+
+    /* ==========================================================================
+       復習リスト（一般ユーザーのみ）※現在は未使用（クイズモードに移行）
+       ========================================================================== */
+    function loadReviewList() {
+        // キャッシュがあればそのまま表示
+        if (state.reviewData) {
+            renderReviewList(state.reviewData);
+            return;
+        }
+        showLoading('データ取得中...');
+        google.script.run
+            .withSuccessHandler(function(res) {
+                hideLoading();
+                if (res.success) {
+                    state.reviewData = res.data;
+                    renderReviewList(res.data);
+                } else {
+                    showToast(res.message || 'データの取得に失敗しました');
+                }
+            })
+            .withFailureHandler(function() {
+                hideLoading();
+                showToast('エラーが発生しました');
+            })
+            .doServerAction('getWrongAnswers', { employeeId: state.user.employeeId });
+    }
+
+    function renderReviewList(questions) {
+        const container = document.getElementById('reviewListContainer');
+        if (!container) return;
+        if (!questions || questions.length === 0) {
+            container.innerHTML = '<p class="text-center" style="padding:30px 0;color:var(--text-muted);">間違えた問題はありません！</p>';
+            return;
+        }
+        let html = '';
+        questions.forEach(function(q) {
+            html += '<div class="review-card">';
+            html += '<div class="review-card-header">';
+            html += '<span class="review-question-text">' + escapeHtml(q.text) + '</span>';
+            html += '<span class="review-wrong-count">✕ ' + q.wrongCount + '回</span>';
+            html += '</div>';
+            html += '<div class="review-answer">正解：' + escapeHtml(q.correctAnswer || '') + '</div>';
+            if (q.explanation) {
+                html += '<div class="review-explanation">' + escapeHtml(q.explanation) + '</div>';
+            }
+            html += '</div>';
+        });
+        container.innerHTML = html;
+    }
+
+    /* ==========================================================================
+       日別スコアクリック → その日の間違え解説表示
+       ========================================================================== */
+    function showDayDetail(dateKey) {
+        var panel = document.getElementById('dayDetailPanel');
+        var title = document.getElementById('dayDetailTitle');
+        var content = document.getElementById('dayDetailContent');
+        if (!panel) return;
+
+        // 日付を "YYYY/MM/DD" → "M月D日" 形式に変換して表示
+        var parts = dateKey.split('/');
+        title.textContent = parseInt(parts[1], 10) + '月' + parseInt(parts[2], 10) + '日 の間違い';
+        content.innerHTML = '<p style="padding:16px;color:var(--text-muted);">読み込み中...</p>';
+        panel.classList.remove('hidden');
+
+        google.script.run
+            .withSuccessHandler(function(res) {
+                if (res.success) {
+                    renderDayDetail(res.data);
+                } else {
+                    content.innerHTML = '<p style="padding:16px;color:var(--text-muted);">データを取得できませんでした</p>';
+                }
+            })
+            .withFailureHandler(function() {
+                content.innerHTML = '<p style="padding:16px;color:var(--text-muted);">エラーが発生しました</p>';
+            })
+            .doServerAction('getWrongAnswers', { employeeId: state.user.employeeId, targetDate: dateKey });
+    }
+
+    function closeDayDetail() {
+        var panel = document.getElementById('dayDetailPanel');
+        if (panel) panel.classList.add('hidden');
+    }
+
+    function renderDayDetail(questions) {
+        var container = document.getElementById('dayDetailContent');
+        if (!container) return;
+        if (!questions || questions.length === 0) {
+            container.innerHTML = '<p style="padding:16px;color:var(--text-muted);">この日は全問正解です！</p>';
+            return;
+        }
+        var html = '';
+        questions.forEach(function(q) {
+            html += '<div class="review-card">';
+            html += '<div class="review-question-text">' + escapeHtml(q.text) + '</div>';
+            html += '<div class="review-answer">正解：' + escapeHtml(String(q.correctAnswer || '')) + '</div>';
+            if (q.explanation) {
+                html += '<div class="review-explanation">' + escapeHtml(q.explanation) + '</div>';
+            }
+            html += '</div>';
+        });
+        container.innerHTML = html;
+    }
+</script>

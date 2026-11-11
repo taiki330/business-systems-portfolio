@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<base target="_top">
+<style>
+  :root{ --line:#d8dde5; --ink:#1a1a1a; --sub:#5a6270; --accent:#1e5aa8;
+         --soft:#f4f6f9; --ok:#1e7a4d; --warn:#b3541e; --err:#c0392b; }
+  *{box-sizing:border-box;}
+  body{margin:0;font-family:"Yu Gothic",YuGothic,"Hiragino Kaku Gothic ProN","Meiryo",sans-serif;
+       color:var(--ink);background:#eef1f5;font-size:15px;}
+  header{background:#fff;border-bottom:2px solid var(--accent);padding:10px 14px;position:sticky;top:0;z-index:10;}
+  .back{display:inline-block;margin-bottom:6px;font-size:13px;font-weight:700;color:var(--accent);text-decoration:none;}
+  h1{font-size:16px;margin:0;display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+  .clinicTag{background:var(--accent);color:#fff;font-size:13px;padding:2px 10px;border-radius:4px;font-weight:700;}
+  main{padding:12px 14px 40px;max-width:640px;margin:0 auto;}
+  .panel{background:#fff;border:1px solid var(--line);border-radius:8px;padding:12px;margin-bottom:12px;}
+  .row{display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
+  label{font-size:13px;color:var(--sub);font-weight:700;}
+  input,select{font-size:15px;padding:8px 10px;border:1px solid var(--line);border-radius:6px;background:#fff;}
+  button{cursor:pointer;font-size:15px;padding:10px 16px;border:none;border-radius:6px;background:var(--accent);color:#fff;font-weight:700;}
+  button.ghost{background:#fff;color:var(--accent);border:1px solid var(--accent);}
+  button:disabled{opacity:.5;cursor:not-allowed;}
+  #reader{width:100%;border-radius:8px;overflow:hidden;margin-top:10px;}
+  .photoBtn{display:inline-block;cursor:pointer;font-size:15px;padding:10px 16px;border-radius:6px;
+            background:#fff;color:var(--accent);border:1px solid var(--accent);font-weight:700;}
+  .badge{background:var(--soft);border:1px solid var(--line);border-radius:20px;padding:3px 10px;font-size:12.5px;}
+  .toast{min-height:22px;font-size:13.5px;margin-top:8px;}
+  .toast.ok{color:var(--ok);} .toast.err{color:var(--err);} .toast.warn{color:var(--warn);}
+  .arrow{font-weight:800;color:var(--accent);margin:0 6px;}
+  .sel{background:#eef7f0;border:1px solid #cfe6d8;border-radius:8px;padding:12px;}
+  .sel .nm{font-weight:800;font-size:16px;}
+  .sel .sub{font-size:12px;color:var(--sub);margin-top:2px;}
+  .qtybox{display:flex;align-items:center;gap:8px;margin-top:10px;}
+  .qtybtn{width:40px;height:40px;padding:0;border-radius:8px;background:var(--soft);color:var(--ink);border:1px solid var(--line);font-size:22px;}
+  .qtyval{width:70px;text-align:center;font-weight:800;font-size:18px;}
+  .go{background:var(--ok);width:100%;padding:13px;font-size:16px;margin-top:12px;}
+  .result{margin-top:12px;padding:12px;border-radius:8px;background:#eaf4ee;border:1px solid #bfe0cc;font-size:14px;}
+  .result.err{background:#fbe9e7;border-color:#f0b7ae;}
+  .muted{color:var(--sub);font-size:12.5px;}
+</style>
+</head>
+<body>
+<header>
+  <a class="back" id="homeBack" href="#">← 医院ホームに戻る</a>
+  <h1>資材移動（貸し借り） <span class="clinicTag" id="fromTag">医院未選択</span></h1>
+</header>
+<main>
+  <div id="app"><div class="panel muted">読み込み中…</div></div>
+</main>
+
+<!-- QR写真解析。jsQRを優先し、html5-qrcodeを予備解析に使う。 -->
+<script async src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
+<script async src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+<script>
+  var CLINIC_KEY = 'tanaoroshi_clinic';
+  var APP_URL = '<?= initParams && initParams.appUrl ? initParams.appUrl : "" ?>';
+  var FROM    = '<?= initParams && initParams.clinic ? initParams.clinic : "" ?>';
+  var ALL_CLINICS = [];
+  var products = {};      // 商品ID -> {name, mode, stock, trigger}
+  var selected = null;    // {id, name, stock}
+  var qty = 1;
+  var html5Qr = null;
+  var $ = function(id){ return document.getElementById(id); };
+
+  if(!FROM){ try { FROM = localStorage.getItem(CLINIC_KEY) || ''; } catch(e){} }
+  else { try { localStorage.setItem(CLINIC_KEY, FROM); } catch(e){} }
+  $('homeBack').href = APP_URL + '?page=home' + (FROM ? '&clinic=' + encodeURIComponent(FROM) : '');
+  if(!FROM){
+    $('app').innerHTML = '<div class="panel" style="color:var(--err);">医院が指定されていません。医院ホームから開いてください。</div>';
+  } else {
+    $('fromTag').textContent = FROM + '（移動元）';
+    boot();
+  }
+
+  function boot(){
+    // 医院一覧（移動先候補）と、この医院の商品情報を取得
+    google.script.run.withSuccessHandler(function(list){
+      ALL_CLINICS = list || [];
+      google.script.run
+        .withSuccessHandler(function(ctx){ products = ctx.products || {}; renderUI(); })
+        .withFailureHandler(function(err){ $('app').innerHTML = '<div class="panel" style="color:var(--err);">'+esc(err.message)+'</div>'; })
+        .getUsageContext(FROM);
+    }).getClinicList();
+  }
+
+  function renderUI(){
+    var destOpts = '<option value="">選択してください</option>'
+      + ALL_CLINICS.filter(function(c){ return c !== FROM; })
+          .map(function(c){ return '<option value="'+esc(c)+'">'+esc(c)+'</option>'; }).join('');
+    $('app').innerHTML =
+      '<div class="panel">'
+      +  '<div class="row" style="justify-content:space-between;">'
+      +    '<span><b>'+esc(FROM)+'</b><span class="arrow">→</span>'
+      +      '<select id="dest">'+destOpts+'</select></span>'
+      +  '</div>'
+      +  '<div class="row" style="margin-top:8px;">'
+      +    '<label>担当者：<input type="text" id="operator" placeholder="お名前（任意）" style="width:160px;"></label>'
+      +  '</div>'
+      +  '<div class="muted" style="margin-top:6px;">移動元は「'+esc(FROM)+'」固定です。数量管理の資材のみ移動できます。</div>'
+      + '</div>'
+      + '<div class="panel">'
+      +  '<div class="row" style="justify-content:space-between;">'
+      +    '<span class="badge" id="scanState">QR撮影待ち</span>'
+      +    '<label class="photoBtn">📷 QRを撮影'
+      +      '<input type="file" id="qrPhoto" accept="image/*" capture="environment" hidden>'
+      +    '</label>'
+      +  '</div>'
+      +  '<div id="reader" style="display:none;"></div>'
+      +  '<div class="toast" id="toast">「QRを撮影」を押して、QR全体を正面から撮影してください。</div>'
+      + '</div>'
+      + '<div class="panel" id="selPanel" style="display:none;"></div>'
+      + '<div id="resultWrap"></div>';
+
+    $('operator').value = localStorage.getItem('tanaoroshi_registrant') || '';
+    $('operator').oninput = function(){ localStorage.setItem('tanaoroshi_registrant', this.value); };
+    $('qrPhoto').onchange = scanQrPhoto;
+  }
+
+  function scanQrPhoto(){
+    var input = $('qrPhoto');
+    var file = input.files && input.files[0];
+    if(!file) return;
+    $('scanState').textContent = 'QR解析中…';
+    toast('撮影したQRを読み取っています…','');
+
+    decodeQrPhoto(file)
+      .then(function(text){
+        input.value = '';
+        $('scanState').textContent = '読取完了';
+        onScan(text);
+      })
+      .catch(function(){
+        input.value = '';
+        $('scanState').textContent = '読取失敗';
+        feedback(false);
+        toast('QRコードを読み取れませんでした。QR全体を明るく、正面から大きく撮影してください。','err');
+      });
+  }
+
+  /** 向き補正済み画像を、全体・中央切り抜きの複数パターンで解析する。 */
+  function decodeQrPhoto(file){
+    return loadPhoto(file).then(function(source){
+      try{
+        if(window.jsQR){
+          var crops = [1, .9, .75, .6];
+          for(var i=0;i<crops.length;i++){
+            var text = decodeSourceCrop(source, crops[i]);
+            if(text){ closePhoto(source); return text; }
+          }
+        }
+      }catch(e){}
+      closePhoto(source);
+      return decodeWithHtml5(file);
+    });
+  }
+
+  function loadPhoto(file){
+    if(window.createImageBitmap){
+      return createImageBitmap(file, {imageOrientation:'from-image'})
+        .catch(function(){ return loadPhotoWithImage(file); });
+    }
+    return loadPhotoWithImage(file);
+  }
+
+  function loadPhotoWithImage(file){
+    return new Promise(function(resolve, reject){
+      var url = URL.createObjectURL(file);
+      var img = new Image();
+      img.onload = function(){ img._objectUrl = url; resolve(img); };
+      img.onerror = function(){ URL.revokeObjectURL(url); reject(new Error('画像を開けません。')); };
+      img.src = url;
+    });
+  }
+
+  function closePhoto(source){
+    try{ if(source.close) source.close(); }catch(e){}
+    try{ if(source._objectUrl) URL.revokeObjectURL(source._objectUrl); }catch(e){}
+  }
+
+  function decodeSourceCrop(source, ratio){
+    var sw = source.width || source.naturalWidth;
+    var sh = source.height || source.naturalHeight;
+    var sideW = Math.max(1, Math.floor(sw * ratio));
+    var sideH = Math.max(1, Math.floor(sh * ratio));
+    var sx = Math.floor((sw-sideW)/2), sy = Math.floor((sh-sideH)/2);
+    var maxSide = 1800;
+    var scale = Math.min(1, maxSide/Math.max(sideW,sideH));
+    var canvas = document.createElement('canvas');
+    canvas.width = Math.max(1, Math.floor(sideW*scale));
+    canvas.height = Math.max(1, Math.floor(sideH*scale));
+    var ctx = canvas.getContext('2d', {willReadFrequently:true});
+    ctx.drawImage(source, sx, sy, sideW, sideH, 0, 0, canvas.width, canvas.height);
+    var data = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    var code = window.jsQR(data.data, data.width, data.height, {inversionAttempts:'attemptBoth'});
+    return code && code.data ? code.data : '';
+  }
+
+  function decodeWithHtml5(file){
+    if(!window.Html5Qrcode) return Promise.reject(new Error('QRライブラリを読み込めません。'));
+    if(html5Qr){ try{ html5Qr.clear(); }catch(e){} }
+    html5Qr = new Html5Qrcode('reader');
+    return html5Qr.scanFile(file, false).then(function(text){
+      try{ html5Qr.clear(); }catch(e){} html5Qr=null; return text;
+    }).catch(function(err){
+      try{ html5Qr.clear(); }catch(e){} html5Qr=null; throw err;
+    });
+  }
+
+  function onScan(text){
+    var id = parseId(text);
+    if(!id){ feedback(false); toast('このシステムのQRではありません。','err'); return; }
+    var p = products[id];
+    if(!p){ feedback(false); toast('この医院に無い資材です（'+id+'）。','err'); return; }
+    if(p.mode !== '数量管理'){ feedback(false); toast('数量管理の資材のみ移動できます（'+esc(p.name)+'）。','err'); return; }
+    feedback(true);
+    selectProduct(id, p);
+  }
+
+  function selectProduct(id, p){
+    selected = { id:id, name:p.name, stock:p.stock };
+    qty = 1;
+    var panel = $('selPanel');
+    panel.style.display = 'block';
+    panel.innerHTML =
+      '<div class="sel">'
+      +  '<div class="nm">'+esc(p.name)+'</div>'
+      +  '<div class="sub">'+esc(id)+' ／ '+esc(FROM)+'の在庫：'+esc(String(p.stock))+'</div>'
+      +  '<div class="qtybox"><label>移動数量</label>'
+      +    '<button class="qtybtn" id="qm">－</button>'
+      +    '<input class="qtyval" id="qv" type="number" min="1" step="1" value="1">'
+      +    '<button class="qtybtn" id="qp">＋</button>'
+      +  '</div>'
+      +  '<button class="go" id="goBtn">この内容で移動する</button>'
+      + '</div>';
+    $('qm').onclick = function(){ setQty(qty-1); };
+    $('qp').onclick = function(){ setQty(qty+1); };
+    $('qv').oninput = function(){ setQty(parseInt(this.value,10)); };
+    $('goBtn').onclick = doTransfer;
+    toast('資材を選択しました：'+esc(p.name),'ok');
+    panel.scrollIntoView({behavior:'smooth', block:'nearest'});
+  }
+  function setQty(v){
+    if(isNaN(v) || v < 1) v = 1;
+    qty = v; if($('qv')) $('qv').value = v;
+  }
+
+  function doTransfer(){
+    var dest = $('dest').value;
+    if(!dest){ toast('移動先の医院を選んでください。','err'); $('dest').focus(); return; }
+    if(!selected){ toast('先に資材のQRを読み取ってください。','err'); return; }
+    var operator = $('operator').value.trim();
+    if(!confirm(selected.name + ' を ' + qty + ' 個\n' + FROM + ' → ' + dest + ' へ移動します。よろしいですか？')) return;
+
+    $('goBtn').disabled = true;
+    toast('移動中…','');
+    google.script.run
+      .withSuccessHandler(function(res){
+        if(res.duplicated){ showResult(res.message, false); return; }
+        var extra = res.createdAtDestination ? '（移動先に新規作成）' : '';
+        showResult('✓ 移動しました：'+esc(res.name)+' '+res.qty+'個　'
+          + res.from+'（残 '+res.fromStock+'）→ '+res.to+'（在庫 '+res.toStock+'）'+extra, true);
+        // 移動元の最新在庫を取り直す（連続移動に備える）
+        google.script.run.withSuccessHandler(function(ctx){ products = ctx.products || products; }).getUsageContext(FROM);
+        // 選択パネルをリセット
+        selected = null; $('selPanel').style.display='none'; $('selPanel').innerHTML='';
+      })
+      .withFailureHandler(function(err){
+        $('goBtn').disabled = false;
+        showResult('移動できませんでした：'+esc(err.message), false);
+      })
+      .transferStock(FROM, dest, selected.id, qty, operator, genId());
+  }
+
+  function showResult(msg, ok){
+    $('resultWrap').innerHTML = '<div class="result'+(ok?'':' err')+'">'+msg+'</div>';
+    $('resultWrap').scrollIntoView({behavior:'smooth', block:'nearest'});
+  }
+
+  function parseId(text){
+    var s = String(text||'').trim();
+    var m = s.match(/[?&]p=([^&]+)/);
+    if(m){ try{ return decodeURIComponent(m[1])||null; }catch(e){ return m[1]||null; } }
+    if(s.indexOf('INV-')===0){ var id = s.substring(4); return id||null; }
+    return null;
+  }
+  function feedback(ok){ try{ if(navigator.vibrate) navigator.vibrate(ok?60:[40,40,40]); }catch(e){} }
+  function toast(msg, kind){ var t=$('toast'); if(t){ t.textContent=msg||''; t.className='toast '+(kind||''); } }
+  function genId(){
+    if(window.crypto && crypto.randomUUID) return crypto.randomUUID();
+    return 't-'+Date.now()+'-'+Math.random().toString(16).slice(2);
+  }
+  function esc(s){
+    return String(s==null?'':s).replace(/[&<>"']/g,function(c){
+      return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];
+    });
+  }
+</script>
+</body>
+</html>

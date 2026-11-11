@@ -1,0 +1,517 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>職人報告システム</title>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600&family=Noto+Sans+JP:wght@300;400;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --primary: #6366f1;
+      --primary-dark: #4f46e5;
+      --bg-dark: #0f172a;
+      --card-bg: #1e293b;
+      --text-main: #f8fafc;
+      --text-dim: #94a3b8;
+      --accent: #10b981;
+      --warning: #f59e0b;
+      --glass: rgba(255, 255, 255, 0.05);
+      --glass-border: rgba(255, 255, 255, 0.1);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Outfit', 'Noto Sans JP', sans-serif;
+      background-color: var(--bg-dark);
+      color: var(--text-main);
+      line-height: 1.6;
+      padding: 20px;
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 500px;
+    }
+
+    header {
+      margin-bottom: 30px;
+      text-align: center;
+    }
+
+    h1 {
+      font-size: 1.8rem;
+      background: linear-gradient(135deg, #fff 0%, #94a3b8 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-bottom: 5px;
+    }
+
+    .status-badge {
+      display: inline-block;
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-size: 0.75rem;
+      background: var(--glass);
+      border: 1px solid var(--glass-border);
+      color: var(--text-dim);
+    }
+
+    .card {
+      background: var(--card-bg);
+      border-radius: 20px;
+      padding: 24px;
+      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3);
+      border: 1px solid var(--glass-border);
+      backdrop-filter: blur(10px);
+      margin-bottom: 20px;
+    }
+
+    .form-group {
+      margin-bottom: 20px;
+    }
+
+    label {
+      display: block;
+      margin-bottom: 8px;
+      font-size: 0.9rem;
+      color: var(--text-dim);
+      font-weight: 400;
+    }
+
+    select, input, textarea {
+      width: 100%;
+      padding: 12px 16px;
+      background: rgba(15, 23, 42, 0.5);
+      border: 1px solid var(--glass-border);
+      border-radius: 12px;
+      color: white;
+      font-size: 1rem;
+      transition: all 0.3s ease;
+      outline: none;
+    }
+
+    select:focus, input:focus, textarea:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2);
+    }
+
+    ::placeholder {
+      color: #475569;
+    }
+
+    .btn-group {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-top: 30px;
+    }
+
+    .btn {
+      padding: 14px;
+      border-radius: 14px;
+      border: none;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+
+    .btn-primary {
+      background: var(--primary);
+      color: white;
+      grid-column: span 2;
+    }
+
+    .btn-primary:hover {
+      background: var(--primary-dark);
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(99, 102, 241, 0.4);
+    }
+
+    .btn-secondary {
+      background: var(--glass);
+      color: var(--text-main);
+      border: 1px solid var(--glass-border);
+    }
+
+    .btn-secondary:hover {
+      background: rgba(255, 255, 255, 0.1);
+    }
+
+    .loading-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: var(--bg-dark);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+      transition: opacity 0.5s ease;
+    }
+
+    .spinner {
+      width: 40px;
+      height: 40px;
+      border: 4px solid var(--glass);
+      border-top: 4px solid var(--primary);
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin-bottom: 15px;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    #auto-save-indicator {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      background: var(--accent);
+      color: white;
+      padding: 6px 12px;
+      border-radius: 30px;
+      font-size: 0.7rem;
+      opacity: 0;
+      transition: opacity 0.5s ease;
+      pointer-events: none;
+    }
+
+    .modal {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0,0,0,0.8);
+      z-index: 2000;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    .modal-content {
+      background: var(--card-bg);
+      border-radius: 20px;
+      padding: 30px;
+      width: 100%;
+      max-width: 400px;
+      text-align: center;
+      border: 1px solid var(--glass-border);
+    }
+
+    .modal-title {
+      font-size: 1.2rem;
+      font-weight: 600;
+      margin-bottom: 15px;
+    }
+
+    .modal-msg {
+      color: var(--text-dim);
+      margin-bottom: 25px;
+    }
+  </style>
+</head>
+<body>
+
+  <div id="loading" class="loading-overlay">
+    <div class="spinner"></div>
+    <p>Loading...</p>
+  </div>
+
+  <div id="auto-save-indicator">Saved!</div>
+
+  <div id="restore-modal" class="modal">
+    <div class="modal-content">
+      <div class="modal-title">未送信のデータがあります</div>
+      <p class="modal-msg">前回の入力内容を復元しますか？</p>
+      <div class="btn-group" style="grid-template-columns: 1fr 1fr;">
+        <button class="btn btn-secondary" onclick="discardDraft()">破棄する</button>
+        <button class="btn btn-primary" style="grid-column: span 1;" onclick="restoreDraft()">復元する</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="container">
+    <header>
+      <h1>職人報告</h1>
+      <span class="status-badge" id="last-sync-time">Ready</span>
+    </header>
+
+    <form id="report-form" onsubmit="handleFormSubmit(event)">
+      <div class="card">
+        <div class="form-group">
+          <label for="report-type">報告種別</label>
+          <select id="report-type" required onchange="renderDynamicFields()">
+            <!-- JSで動的に追加 -->
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="site-id">現場</label>
+          <select id="site-id" required>
+            <option value="">選択してください</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="worker-id">報告者</label>
+          <select id="worker-id" required>
+            <option value="">選択してください</option>
+          </select>
+        </div>
+      </div>
+
+      <div id="dynamic-fields" class="card">
+        <!-- JSで動的に追加 -->
+      </div>
+
+      <div class="btn-group">
+        <button type="button" class="btn btn-secondary" onclick="manualSave()">一時保存</button>
+        <button type="submit" class="btn btn-primary" id="submit-btn">報告を送信する</button>
+      </div>
+    </form>
+  </div>
+
+  <script>
+    let masterData = null;
+    let autoSaveTimer = null;
+    const STORAGE_KEY = 'worker_report_draft';
+
+    window.onload = function() {
+      google.script.run
+        .withSuccessHandler(initApp)
+        .withFailureHandler(err => alert('初期化エラー: ' + err))
+        .getFormInitialData();
+    };
+
+    function initApp(data) {
+      masterData = data;
+      
+      // 報告種別のユニークリスト作成
+      const types = [...new Set(data.formConfig.map(f => f['報告種別']))];
+      const typeSelect = document.getElementById('report-type');
+      types.forEach(t => {
+        const opt = document.createElement('option');
+        opt.value = t;
+        opt.textContent = t;
+        typeSelect.appendChild(opt);
+      });
+
+      // 現場リスト
+      const siteSelect = document.getElementById('site-id');
+      data.sites.forEach(s => {
+        const opt = document.createElement('option');
+        opt.value = s.id;
+        opt.textContent = s.name;
+        siteSelect.appendChild(opt);
+      });
+
+      // 作業員リスト
+      const workerSelect = document.getElementById('worker-id');
+      data.workers.forEach(w => {
+        const opt = document.createElement('option');
+        opt.value = w.id;
+        opt.textContent = w.name;
+        workerSelect.appendChild(opt);
+      });
+
+      renderDynamicFields();
+      
+      // 読み込み完了
+      document.getElementById('loading').style.opacity = '0';
+      setTimeout(() => document.getElementById('loading').style.display = 'none', 500);
+
+      // 下書きチェック
+      checkDraft();
+
+      // 30秒おきの自動保存開始
+      startAutoSave();
+    }
+
+    function renderDynamicFields() {
+      const type = document.getElementById('report-type').value;
+      const container = document.getElementById('dynamic-fields');
+      container.innerHTML = '';
+
+      const fields = masterData.formConfig.filter(f => f['報告種別'] === type);
+      fields.sort((a, b) => a['順番'] - b['順番']);
+
+      fields.forEach(f => {
+        const div = document.createElement('div');
+        div.className = 'form-group';
+        
+        const label = document.createElement('label');
+        label.textContent = f['項目名'] + (f['必須'] === 'TRUE' ? ' *' : '');
+        div.appendChild(label);
+
+        let input;
+        if (f['入力タイプ'] === 'textarea') {
+          input = document.createElement('textarea');
+          input.rows = 3;
+        } else if (f['入力タイプ'] === 'select') {
+          input = document.createElement('select');
+          const options = f['選択肢'].split(',');
+          options.forEach(o => {
+            const opt = document.createElement('option');
+            opt.value = o.trim();
+            opt.textContent = o.trim();
+            input.appendChild(opt);
+          });
+        } else {
+          input = document.createElement('input');
+          input.type = f['入力タイプ'];
+        }
+
+        input.id = 'field-' + f['項目ID'];
+        input.name = f['項目ID'];
+        input.placeholder = f['プレースホルダ'] || '';
+        if (f['必須'] === 'TRUE') input.required = true;
+        
+        div.appendChild(input);
+        
+        if (f['補足']) {
+          const small = document.createElement('small');
+          small.style.color = 'var(--text-dim)';
+          small.style.fontSize = '0.8rem';
+          small.textContent = f['補足'];
+          div.appendChild(document.createElement('br'));
+          div.appendChild(small);
+        }
+
+        container.appendChild(div);
+      });
+    }
+
+    // --- 保存機能 ---
+
+    function getFormData() {
+      const form = document.getElementById('report-form');
+      const formData = new FormData(form);
+      const data = {
+        reportType: document.getElementById('report-type').value,
+        siteId: document.getElementById('site-id').value,
+        workerId: document.getElementById('worker-id').value,
+        answers: {}
+      };
+      
+      // 動的フィールドの収集
+      const dynamicFields = document.querySelectorAll('#dynamic-fields [name]');
+      dynamicFields.forEach(field => {
+        data.answers[field.name] = field.value;
+      });
+
+      return data;
+    }
+
+    function manualSave() {
+      saveToStorage();
+      alert('一時保存しました。');
+    }
+
+    function saveToStorage() {
+      const data = getFormData();
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({
+        data: data,
+        timestamp: new Date().getTime()
+      }));
+      showIndicator();
+    }
+
+    function showIndicator() {
+      const el = document.getElementById('auto-save-indicator');
+      el.style.opacity = '1';
+      setTimeout(() => el.style.opacity = '0', 2000);
+      document.getElementById('last-sync-time').textContent = 'Last Saved: ' + new Date().toLocaleTimeString();
+    }
+
+    function startAutoSave() {
+      if (autoSaveTimer) clearInterval(autoSaveTimer);
+      autoSaveTimer = setInterval(() => {
+        saveToStorage();
+      }, 30000); // 30秒
+    }
+
+    function checkDraft() {
+      const draftStr = localStorage.getItem(STORAGE_KEY);
+      if (draftStr) {
+        document.getElementById('restore-modal').style.display = 'flex';
+      }
+    }
+
+    function restoreDraft() {
+      const draft = JSON.parse(localStorage.getItem(STORAGE_KEY));
+      if (!draft) return;
+      
+      const data = draft.data;
+      document.getElementById('report-type').value = data.reportType;
+      renderDynamicFields(); // フィールド再描画
+
+      document.getElementById('site-id').value = data.siteId;
+      document.getElementById('worker-id').value = data.workerId;
+
+      for (const [key, value] of Object.entries(data.answers)) {
+        const el = document.getElementById('field-' + key);
+        if (el) el.value = value;
+      }
+
+      document.getElementById('restore-modal').style.display = 'none';
+    }
+
+    function discardDraft() {
+      localStorage.removeItem(STORAGE_KEY);
+      document.getElementById('restore-modal').style.display = 'none';
+    }
+
+    // --- 送信機能 ---
+
+    function handleFormSubmit(e) {
+      e.preventDefault();
+      const btn = document.getElementById('submit-btn');
+      btn.disabled = true;
+      btn.textContent = '送信中...';
+
+      const data = getFormData();
+      const selectedSite = masterData.sites.find(s => s.id === data.siteId);
+      const selectedWorker = masterData.workers.find(w => w.id === data.workerId);
+
+      const payload = {
+        ...data,
+        siteName: selectedSite ? selectedSite.name : '',
+        workerName: selectedWorker ? selectedWorker.name : '',
+        userAgent: navigator.userAgent
+      };
+
+      google.script.run
+        .withSuccessHandler(() => {
+          alert('報告を送信しました。');
+          localStorage.removeItem(STORAGE_KEY); // 送信成功で下書き削除
+          location.reload();
+        })
+        .withFailureHandler(err => {
+          alert('送信エラー: ' + err);
+          btn.disabled = false;
+          btn.textContent = '報告を送信する';
+        })
+        .submitReport(payload);
+    }
+  </script>
+</body>
+</html>

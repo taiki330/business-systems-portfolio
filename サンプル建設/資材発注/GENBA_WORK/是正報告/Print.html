@@ -1,0 +1,1225 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>自主安全パトロール是正報告書（帳票）</title>
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    @page {
+      size: A4 portrait;
+      margin: 10mm 12mm 14mm 12mm;
+    }
+
+    body {
+      margin: 0;
+      font-family: "Noto Sans JP", "Hiragino Sans", "MS PGothic", "Yu Gothic", sans-serif;
+      color: #0f172a;
+      background: #f1f5f9;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+
+    .no-print {
+      padding: 12px 16px;
+      background: #fff;
+      border-bottom: 1px solid #e2e8f0;
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+
+    .no-print-toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .no-print button {
+      padding: 10px 18px;
+      border: none;
+      border-radius: 8px;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    .btn-print {
+      background: #0ea5e9;
+      color: #fff;
+    }
+
+    .btn-pdf {
+      background: #0f766e;
+      color: #fff;
+    }
+
+    .btn-back {
+      background: #e2e8f0;
+      color: #334155;
+      margin-left: auto;
+    }
+
+    .no-print-hint {
+      margin: 10px 0 0;
+      font-size: 0.82rem;
+      line-height: 1.45;
+      color: #475569;
+    }
+
+    .no-print-hint--pdf {
+      margin-top: 6px;
+      padding: 8px 10px;
+      background: #f0fdfa;
+      border: 1px solid #99f6e4;
+      border-radius: 8px;
+      color: #0f766e;
+      font-weight: 600;
+    }
+
+    .hidden {
+      display: none !important;
+    }
+
+    #report-root {
+      max-width: 210mm;
+      margin: 0 auto;
+      padding: 16px 12px 32px;
+      background: #fff;
+    }
+
+    .err-box {
+      padding: 20px;
+      background: #fef2f2;
+      color: #b91c1c;
+      border-radius: 8px;
+    }
+
+    /* ── ページ単位 ── */
+    .r-page {
+      background: #fff;
+      page-break-after: always;
+      break-after: page;
+      margin-bottom: 24px;
+      padding-bottom: 8px;
+    }
+
+    .r-page:last-child {
+      page-break-after: auto;
+      break-after: auto;
+      margin-bottom: 0;
+    }
+
+    /* 帳票レイアウト定数（行高は render 後に JS で実測 chrome を引いて算出） */
+    :root {
+      --r-page-h: calc(297mm - 10mm - 14mm);
+      /* フォールバック（JS 実行前のみ。chrome 過小見積もりを避けるため控えめ） */
+      --r-detail-row-h-first: 72px;
+      --r-detail-row-h-compact: 68px;
+    }
+
+    /* ── 1ページ目ヘッダー ── */
+    .r-main-title {
+      font-size: 1.05rem;
+      font-weight: 800;
+      text-align: center;
+      margin: 0 0 8px 0;
+      line-height: 1.4;
+      text-decoration: underline;
+      text-underline-offset: 4px;
+    }
+
+    .r-subhead {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 8px 12px;
+      margin-bottom: 8px;
+    }
+
+    .r-notes {
+      flex: 1 1 240px;
+      min-width: 0;
+    }
+
+    .r-notes p {
+      margin: 0 0 2px 0;
+      font-size: 0.68rem;
+      line-height: 1.35;
+      color: #b91c1c;
+    }
+
+    .r-corp-block {
+      flex: 0 0 auto;
+      border: 1px solid #0f172a;
+      font-size: 0.72rem;
+      min-width: 190px;
+      max-width: 100%;
+    }
+
+    .r-corp-row {
+      display: flex;
+      border-bottom: 1px solid #0f172a;
+    }
+
+    .r-corp-row:last-child {
+      border-bottom: none;
+    }
+
+    .r-corp-row span:first-child {
+      flex: 0 0 5.5em;
+      background: #f1f5f9;
+      font-weight: 700;
+      padding: 4px 6px;
+      border-right: 1px solid #0f172a;
+    }
+
+    .r-corp-row span:last-child {
+      flex: 1 1 auto;
+      padding: 4px 8px;
+    }
+
+    /* ── メタ情報（1ページ目） ── */
+    .r-meta {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.72rem;
+      border: 2px solid #0f172a;
+      margin: 0 0 10px 0;
+      table-layout: fixed;
+    }
+
+    .r-meta th {
+      width: 18%;
+      border: 1px solid #0f172a;
+      background: #f1f5f9;
+      font-weight: 700;
+      text-align: center;
+      padding: 4px 6px;
+      vertical-align: middle;
+    }
+
+    .r-meta td {
+      border: 1px solid #0f172a;
+      padding: 4px 8px;
+      vertical-align: middle;
+    }
+
+    /* ── 2ページ目以降コンパクトヘッダー ── */
+    .r-meta-compact {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.72rem;
+      border: 2px solid #0f172a;
+      margin: 0 0 10px 0;
+      table-layout: fixed;
+    }
+
+    .r-meta-compact th {
+      width: 18%;
+      border: 1px solid #0f172a;
+      background: #f1f5f9;
+      font-weight: 700;
+      text-align: center;
+      padding: 4px 6px;
+      vertical-align: middle;
+    }
+
+    .r-meta-compact td {
+      border: 1px solid #0f172a;
+      padding: 4px 8px;
+      vertical-align: middle;
+    }
+
+    .r-section {
+      text-align: center;
+      font-size: 0.85rem;
+      font-weight: 800;
+      margin: 0 0 6px 0;
+      padding: 2px 0 3px 0;
+      border-bottom: 2px solid #0f172a;
+    }
+
+    /* ── 明細テーブル ── */
+    .r-sheet {
+      width: 100%;
+      border-collapse: collapse;
+      table-layout: fixed;
+      font-size: 0.72rem;
+      border: 2px solid #0f172a;
+    }
+
+    .r-sheet th,
+    .r-sheet td {
+      border: 1px solid #0f172a;
+      padding: 4px 5px;
+      vertical-align: top;
+      word-break: break-word;
+    }
+
+    .r-sheet thead th {
+      background: #f1f5f9;
+      font-weight: 700;
+      text-align: center;
+      font-size: 0.7rem;
+    }
+
+    .r-kubun {
+      width: 2.2em;
+      text-align: center;
+      font-weight: 700;
+      vertical-align: middle;
+    }
+
+    .r-col-mid {
+      min-width: 0;
+      width: 42%;
+    }
+
+    .r-col-photo {
+      width: 25%;
+    }
+
+    .mid-block {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      gap: 1px;
+      height: calc(var(--r-detail-row-h, 72px) - 6px);
+      max-height: calc(var(--r-detail-row-h, 72px) - 6px);
+      overflow: hidden;
+      font-size: 0.68rem;
+      line-height: 1.32;
+    }
+
+    .mid-part {
+      flex: 1 1 0;
+      min-height: 0;
+      overflow: hidden;
+      line-height: 1.32;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+
+    .mid-arrow {
+      flex: 0 0 auto;
+      text-align: center;
+      font-size: 0.72rem;
+      line-height: 1;
+      color: #64748b;
+      padding: 0;
+      margin: 0;
+    }
+
+    .r-sheet td.r-col-photo {
+      padding: 0 1px;
+      vertical-align: middle;
+    }
+
+    .r-page--first {
+      --r-detail-row-h: var(--r-detail-row-h-first);
+      --r-photo-h: var(--r-detail-row-h-first);
+    }
+
+    .r-page--compact {
+      --r-detail-row-h: var(--r-detail-row-h-compact);
+      --r-photo-h: var(--r-detail-row-h-compact);
+    }
+
+    tr.r-data-row:not(.r-empty-block-row) {
+      height: var(--r-detail-row-h, 72px);
+      max-height: var(--r-detail-row-h, 72px);
+    }
+
+    tr.r-data-row:not(.r-empty-block-row) td {
+      vertical-align: middle;
+      overflow: hidden;
+    }
+
+    .ph-cell {
+      height: var(--r-detail-row-h, 72px);
+      max-height: var(--r-detail-row-h, 72px);
+      padding: 0;
+      vertical-align: middle;
+      overflow: hidden;
+      display: flex;
+      align-items: stretch;
+      justify-content: stretch;
+      box-sizing: border-box;
+    }
+
+    .ph-imgwrap {
+      text-align: center;
+      border: 1px solid #e2e8f0;
+      background: #f8fafc;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      max-height: none;
+      min-height: 0;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      line-height: 0;
+      box-sizing: border-box;
+    }
+
+    .ph-imgwrap img {
+      max-width: 100%;
+      max-height: 100%;
+      width: auto;
+      height: auto;
+      object-fit: contain;
+      display: block;
+      margin: 0;
+      flex-shrink: 0;
+    }
+
+    .ph-cell--with-time {
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .ph-cell--with-time .ph-imgwrap {
+      flex: 1 1 auto;
+      min-height: 0;
+    }
+
+    .ph-submitted-at {
+      flex: 0 0 auto;
+      font-size: 0.56rem;
+      line-height: 1.2;
+      color: #334155;
+      text-align: center;
+      padding: 1px 2px 2px;
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-top: none;
+    }
+
+    .ph-empty {
+      text-align: center;
+      color: #94a3b8;
+      font-size: 0.68rem;
+      width: 100%;
+      height: 100%;
+      min-height: 0;
+      border: 1px dashed #cbd5e1;
+      background: #f8fafc;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      box-sizing: border-box;
+    }
+
+    .after-good {
+      background: #dcfce7;
+      color: #14532d;
+      font-weight: 700;
+      text-align: center;
+      width: 100%;
+      height: 100%;
+      min-height: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.72rem;
+      border: 1px solid #bbf7d0;
+      overflow: hidden;
+      box-sizing: border-box;
+    }
+
+    .mid-part--issue {
+      color: #0f172a;
+    }
+
+    .mid-part--correction {
+      color: #b91c1c;
+      font-weight: 600;
+    }
+
+    .mid-good {
+      color: #15803d;
+      font-weight: 700;
+      text-align: center;
+      padding: 4px;
+      overflow: hidden;
+    }
+
+    .r-page-footer {
+      margin-top: 10px;
+      text-align: center;
+    }
+
+    .r-page-no {
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: #0f172a;
+    }
+
+    tr.r-data-row {
+      page-break-inside: avoid;
+      break-inside: avoid;
+    }
+
+    /* ── 空欄ブロック（余白枠・斜線は領域全体に1本） ── */
+    tr.r-empty-block-row {
+      page-break-inside: avoid;
+      break-inside: avoid;
+      height: calc(var(--r-detail-row-h, 72px) * var(--r-empty-rows, 1));
+      max-height: calc(var(--r-detail-row-h, 72px) * var(--r-empty-rows, 1));
+    }
+
+    tr.r-empty-block-row td.r-empty-kubun-col,
+    tr.r-empty-block-row td.r-empty-block-area {
+      height: calc(var(--r-detail-row-h, 72px) * var(--r-empty-rows, 1));
+      min-height: calc(var(--r-detail-row-h, 72px) * var(--r-empty-rows, 1));
+    }
+
+    tr.r-empty-block-row td {
+      padding: 0;
+      vertical-align: top;
+    }
+
+    .r-empty-kubun-col {
+      padding: 0;
+      background: #fff;
+    }
+
+    .r-empty-kubun-item {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      box-sizing: border-box;
+      height: var(--r-detail-row-h, 72px);
+      border-bottom: 1px solid #0f172a;
+    }
+
+    .r-empty-kubun-item:last-child {
+      border-bottom: none;
+    }
+
+    .r-empty-block-area {
+      position: relative;
+      padding: 0;
+      vertical-align: top;
+    }
+
+    .r-empty-block-inner {
+      position: relative;
+      width: 100%;
+      box-sizing: border-box;
+      overflow: hidden;
+      background-color: #fff;
+      background-image: repeating-linear-gradient(
+        to bottom,
+        transparent 0,
+        transparent calc(var(--empty-row-h, 76px) - 0.5px),
+        #0f172a calc(var(--empty-row-h, 76px) - 0.5px),
+        #0f172a calc(var(--empty-row-h, 76px) + 0.5px)
+      );
+    }
+
+    .r-empty-block-cols {
+      position: absolute;
+      inset: 0;
+      display: grid;
+      grid-template-columns: 42fr 25fr 25fr;
+      pointer-events: none;
+    }
+
+    .r-empty-block-col {
+      border-right: 1px solid #0f172a;
+    }
+
+    .r-empty-block-col:last-child {
+      border-right: none;
+    }
+
+    .r-empty-diagonal-svg {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      display: block;
+      pointer-events: none;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+
+    @media print {
+      body {
+        background: #fff;
+      }
+
+      .no-print {
+        display: none !important;
+      }
+
+      #report-root {
+        max-width: 100%;
+        padding: 0;
+      }
+
+      .r-page {
+        margin-bottom: 0;
+        padding-bottom: 0;
+        page-break-after: always;
+        break-after: page;
+        page-break-inside: avoid;
+        break-inside: avoid-page;
+      }
+
+      .r-page:last-child {
+        page-break-after: auto;
+        break-after: auto;
+      }
+
+      .r-page-footer {
+        margin-top: 6px;
+      }
+
+      /* 印刷時：空欄ブロック（tr の height は Chrome 印刷で無視されるため td に明示） */
+      tr.r-empty-block-row td.r-empty-kubun-col,
+      tr.r-empty-block-row td.r-empty-block-area {
+        height: calc(var(--r-detail-row-h) * var(--r-empty-rows, 1)) !important;
+        min-height: calc(var(--r-detail-row-h) * var(--r-empty-rows, 1)) !important;
+        overflow: visible;
+        vertical-align: top;
+      }
+
+      .r-empty-block-inner {
+        min-height: 100%;
+        height: 100%;
+        overflow: visible;
+      }
+
+      .r-empty-diagonal-svg {
+        overflow: visible;
+      }
+
+      /* 印刷時：列幅（写真列を広く） */
+      .r-col-mid {
+        width: 42%;
+      }
+
+      .r-col-photo {
+        width: 25%;
+      }
+
+      .r-sheet td.r-col-mid {
+        padding: 2px 3px;
+        font-size: 0.66rem;
+      }
+
+      /* 印刷時：写真枠を行高いっぱいに使う */
+      tr.r-data-row:not(.r-empty-block-row) td.r-col-photo {
+        height: var(--r-detail-row-h);
+        padding: 0 1px;
+        vertical-align: top;
+      }
+
+      .ph-cell {
+        display: block;
+        padding: 0;
+        height: 100%;
+        min-height: var(--r-detail-row-h);
+        max-height: var(--r-detail-row-h);
+        line-height: 0;
+      }
+
+      .ph-imgwrap {
+        width: 100%;
+        height: 100%;
+        max-height: none;
+        min-height: 0;
+        border-width: 0.5px;
+        padding: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .ph-imgwrap img {
+        max-width: 100%;
+        max-height: 100%;
+        width: auto;
+        height: auto;
+        object-fit: contain;
+        margin: 0;
+      }
+
+      .ph-empty,
+      .after-good {
+        width: 100%;
+        height: 100%;
+        min-height: 0;
+      }
+
+      .mid-block {
+        height: calc(var(--r-detail-row-h, 72px) - 4px);
+        max-height: calc(var(--r-detail-row-h, 72px) - 4px);
+        font-size: 0.66rem;
+        line-height: 1.28;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <script>
+    var __REPORT_CASE_ID__ = <?!= embeddedCaseId ?>;
+    var __DEPLOY_URL__ = <?!= deployUrl ?>;
+  </script>
+  <div class="no-print">
+    <div class="no-print-toolbar">
+      <button type="button" class="btn-print" id="btn-print">印刷</button>
+      <button type="button" class="btn-pdf" id="btn-pdf">PDFダウンロード</button>
+      <button type="button" class="btn-back" id="btn-close">管理画面に戻る</button>
+    </div>
+    <p class="no-print-hint">
+      ※「PDFダウンロード」または「印刷」を押すと印刷画面が開きます。送信先で「PDFに保存」を選ぶとPDFとして保存できます。
+    </p>
+    <p class="no-print-hint no-print-hint--pdf hidden" id="pdf-intent-hint">
+      PDF保存手順：送信先を「PDFに保存」にし、「保存」を押してください。
+    </p>
+  </div>
+  <div id="report-root">
+    <p id="loading">帳票データを読み込み中…</p>
+  </div>
+
+  <script>
+    (function () {
+      /** 帳票ページ分割：1ページ目の明細件数 */
+      var PAGE1_ITEM_COUNT = 4;
+      /** 帳票ページ分割：2ページ目以降の明細件数 */
+      var PAGE2_PLUS_ITEM_COUNT = 5;
+
+      var root = document.getElementById('report-root');
+      var loading = document.getElementById('loading');
+
+      var q = (function () {
+        var s = (window.location.search || '').replace(/^\?/, '');
+        var o = {};
+        s.split('&').forEach(function (pair) {
+          var i = pair.indexOf('=');
+          if (i < 0) return;
+          var k = decodeURIComponent(pair.slice(0, i).replace(/\+/g, ' '));
+          var v = decodeURIComponent(pair.slice(i + 1).replace(/\+/g, ' '));
+          o[k] = v;
+        });
+        return o;
+      })();
+
+      function triggerPrintDialog() {
+        tunePageRowHeights();
+        window.print();
+      }
+
+      function showPdfIntentHint() {
+        var hint = document.getElementById('pdf-intent-hint');
+        if (hint) hint.classList.remove('hidden');
+      }
+
+      var printIntent = String(q.intent || '').toLowerCase();
+      if (printIntent === 'pdf') {
+        showPdfIntentHint();
+      }
+
+      var caseId =
+        (typeof __REPORT_CASE_ID__ === 'string' && __REPORT_CASE_ID__.length > 0
+          ? __REPORT_CASE_ID__
+          : q.id || q.caseId) || '';
+
+      function esc(s) {
+        if (s == null || s === undefined) return '';
+        return String(s)
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;')
+          .replace(/"/g, '&quot;');
+      }
+
+      function escAttrUrl(u) {
+        if (!u) return '';
+        return String(u).replace(/&/g, '&amp;').replace(/"/g, '&quot;');
+      }
+
+      function toImgUrl(idOrUrl) {
+        if (!idOrUrl) return '';
+        var src = String(idOrUrl);
+        if (src.indexOf('data:') === 0) return src;
+        if (src.indexOf('drive.google.com') >= 0) {
+          var m = src.match(/\/d\/(.+?)\//) || src.match(/[?&]id=([^&]+)/);
+          if (m) return 'https://lh3.googleusercontent.com/d/' + m[1];
+        }
+        if (src.indexOf('http') !== 0) {
+          return 'https://lh3.googleusercontent.com/d/' + src;
+        }
+        return src;
+      }
+
+      window.onImgErr = function (img) {
+        img.onerror = null;
+        var s = img.src || '';
+        if (s.indexOf('lh3.googleusercontent.com/d/') >= 0) {
+          var idm = s.match(/\/d\/(.+?)$/);
+          if (idm) {
+            img.src = 'https://drive.google.com/thumbnail?id=' + idm[1] + '&sz=w800';
+            return;
+          }
+        }
+        img.style.display = 'none';
+        var ph = document.createElement('div');
+        ph.className = 'ph-empty';
+        ph.textContent = '（表示不可）';
+        if (img.parentNode) img.parentNode.appendChild(ph);
+      };
+
+      function isNoAfterPhotoKind(kind) {
+        var k = String(kind || '').trim();
+        return k === '良好' || k === '注意';
+      }
+
+      function kubunLabel(detail, fallbackIndex) {
+        if (detail.kubunNo && String(detail.kubunNo).trim()) {
+          return String(detail.kubunNo).trim();
+        }
+        var ord = Number(detail.order);
+        if (ord > 0) return String(ord);
+        return String(fallbackIndex + 1);
+      }
+
+      function midColHtml(detail) {
+        if (isNoAfterPhotoKind(detail.kind) && String(detail.kind || '').trim() === '良好') {
+          var t = (detail.issue && String(detail.issue).trim()) || '良好';
+          return '<div class="mid-good">' + esc(t) + '</div>';
+        }
+
+        var issueRaw = detail.issueText != null ? detail.issueText : detail.issue;
+        var issueText = (issueRaw && String(issueRaw).trim()) ? esc(issueRaw) : '—';
+        if (detail.remark && String(detail.remark).trim()) {
+          issueText += '<br><span style="font-size:0.9em;color:#64748b;">' + esc(detail.remark) + '</span>';
+        }
+
+        var corrRaw = detail.correctionRequestText != null
+          ? String(detail.correctionRequestText).trim()
+          : '';
+        if (!corrRaw) {
+          corrRaw = detail.correctionText != null
+            ? String(detail.correctionText).trim()
+            : String(detail.correction || detail.correctionRequest || '').trim();
+        }
+        var corrText = corrRaw ? esc(corrRaw) : '—';
+
+        return (
+          '<div class="mid-block">' +
+            '<div class="mid-part mid-part--issue">' + issueText + '</div>' +
+            '<div class="mid-arrow" aria-hidden="true">↓</div>' +
+            '<div class="mid-part mid-part--correction">' + corrText + '</div>' +
+          '</div>'
+        );
+      }
+
+      function photoHtml(url, alt, emptyLabel, submittedAt) {
+        var u = toImgUrl(url);
+        if (u) {
+          var timeHtml = submittedAt
+            ? '<div class="ph-submitted-at">写真提出日時：' + esc(String(submittedAt)) + '</div>'
+            : '';
+          return (
+            '<div class="ph-cell' + (timeHtml ? ' ph-cell--with-time' : '') + '">' +
+              '<div class="ph-imgwrap">' +
+                '<img src="' + escAttrUrl(u) + '" alt="' + esc(alt) + '" onerror="window.onImgErr(this)" />' +
+              '</div>' +
+              timeHtml +
+            '</div>'
+          );
+        }
+        return '<div class="ph-cell"><div class="ph-empty">' + esc(emptyLabel || '未登録') + '</div></div>';
+      }
+
+      function beforeHtml(before) {
+        return photoHtml(before, '是正前', '未登録');
+      }
+
+      function afterHtml(detail) {
+        if (isNoAfterPhotoKind(detail.kind)) {
+          var k = String(detail.kind || '').trim();
+          var label = k === '注意' ? '注意 是正不要' : '良好 是正不要';
+          return '<div class="ph-cell"><div class="after-good">' + esc(label) + '</div></div>';
+        }
+        return photoHtml(detail.afterPhotoUrl, '是正後', '未登録', detail.afterUploadedAt);
+      }
+
+      function renderNoticeHtml(d) {
+        var lines = d.noticeLines;
+        if (lines && lines.length) {
+          var out = '<div class="r-notes">';
+          for (var i = 0; i < lines.length; i++) {
+            out += '<p>' + esc(String(lines[i])) + '</p>';
+          }
+          out += '</div>';
+          return out;
+        }
+        if (d.noticeText) {
+          return '<div class="r-notes"><p>' + esc(String(d.noticeText)) + '</p></div>';
+        }
+        return '<div class="r-notes"></div>';
+      }
+
+      function renderMetaFull(site, contr, pdate, dline) {
+        return (
+          '<table class="r-meta" aria-label="基本情報"><tbody>' +
+            '<tr><th>現場名</th><td colspan="3">' + site + '</td></tr>' +
+            '<tr><th>施工会社名</th><td colspan="3">' + contr + '</td></tr>' +
+            '<tr><th>点検日</th><td>' + pdate + '</td>' +
+            '<th>提出期日</th><td>' + dline + '</td></tr>' +
+          '</tbody></table>'
+        );
+      }
+
+      function renderMetaCompact(site, contr, pdate, dline) {
+        return (
+          '<table class="r-meta-compact" aria-label="ページヘッダー"><tbody>' +
+            '<tr><th>現場名</th><td>' + site + '</td>' +
+            '<th>施工会社名</th><td>' + contr + '</td></tr>' +
+            '<tr><th>点検日</th><td>' + pdate + '</td>' +
+            '<th>提出期日</th><td>' + dline + '</td></tr>' +
+          '</tbody></table>'
+        );
+      }
+
+      function renderDetailColgroup() {
+        return (
+          '<colgroup>' +
+            '<col style="width:2.2em" />' +
+            '<col style="width:42%" />' +
+            '<col style="width:25%" />' +
+            '<col style="width:25%" />' +
+          '</colgroup>'
+        );
+      }
+
+      function renderDetailTableRows(pageItems, startSlotIndex, slotCount, isFirstPage) {
+        var rows = '';
+        var dataLen = pageItems ? pageItems.length : 0;
+        for (var j = 0; j < dataLen; j++) {
+          var x = pageItems[j];
+          var globalIdx = startSlotIndex + j;
+          rows +=
+            '<tr class="r-data-row">' +
+              '<td class="r-kubun">' + esc(kubunLabel(x, globalIdx)) + '</td>' +
+              '<td class="r-col-mid">' + midColHtml(x) + '</td>' +
+              '<td class="r-col-photo">' + beforeHtml(x.beforePhotoUrl) + '</td>' +
+              '<td class="r-col-photo">' + afterHtml(x) + '</td>' +
+            '</tr>';
+        }
+        var emptyCount = slotCount - dataLen;
+        if (emptyCount > 0) {
+          rows += renderEmptyBlock(startSlotIndex + dataLen + 1, emptyCount);
+        }
+        return rows;
+      }
+
+      function renderEmptyBlock(firstNumber, count) {
+        var rowHExpr = 'var(--r-detail-row-h)';
+        var totalHExpr = 'calc(var(--r-detail-row-h) * ' + count + ')';
+        var kubunItems = '';
+        for (var i = 0; i < count; i++) {
+          kubunItems +=
+            '<div class="r-empty-kubun-item">' +
+              esc(String(firstNumber + i)) +
+            '</div>';
+        }
+        return (
+          '<tr class="r-data-row r-empty-block-row" style="--r-empty-rows:' + count + '">' +
+            '<td class="r-kubun r-empty-kubun-col">' + kubunItems + '</td>' +
+            '<td colspan="3" class="r-empty-block-area">' +
+              '<div class="r-empty-block-inner" style="height:' + totalHExpr + ';--empty-row-h:' + rowHExpr + '">' +
+                '<div class="r-empty-block-cols" aria-hidden="true">' +
+                  '<div class="r-empty-block-col"></div>' +
+                  '<div class="r-empty-block-col"></div>' +
+                  '<div class="r-empty-block-col"></div>' +
+                '</div>' +
+                '<svg class="r-empty-diagonal-svg" preserveAspectRatio="none" viewBox="0 0 100 100" aria-hidden="true">' +
+                  '<line x1="100" y1="0" x2="0" y2="100" stroke="#475569" stroke-width="0.8" vector-effect="non-scaling-stroke" />' +
+                '</svg>' +
+              '</div>' +
+            '</td>' +
+          '</tr>'
+        );
+      }
+
+      function getPageSlotCount(pageIndex) {
+        return pageIndex === 0 ? PAGE1_ITEM_COUNT : PAGE2_PLUS_ITEM_COUNT;
+      }
+
+      function renderDetailTable(pageItems, startSlotIndex, slotCount, isFirstPage) {
+        return (
+          '<table class="r-sheet" role="table" aria-label="是正明細">' +
+            renderDetailColgroup() +
+            '<thead><tr>' +
+              '<th class="r-kubun" scope="col">区分</th>' +
+              '<th class="r-col-mid" scope="col">指摘事項・是正内容</th>' +
+              '<th class="r-col-photo" scope="col">是正前</th>' +
+              '<th class="r-col-photo" scope="col">是正後</th>' +
+            '</tr></thead><tbody>' +
+            renderDetailTableRows(pageItems, startSlotIndex, slotCount, isFirstPage) +
+          '</tbody></table>'
+        );
+      }
+
+      function handleCloseReport() {
+        var url = (typeof __DEPLOY_URL__ === 'string' && __DEPLOY_URL__) ? __DEPLOY_URL__ : '';
+        if (url) {
+          try {
+            window.top.location.replace(url);
+          } catch (err) {
+            window.location.replace(url);
+          }
+        }
+      }
+
+      function paginateDetails(list) {
+        var pages = [];
+        if (!list || !list.length) {
+          pages.push([]);
+          return pages;
+        }
+        pages.push(list.slice(0, PAGE1_ITEM_COUNT));
+        var i = PAGE1_ITEM_COUNT;
+        while (i < list.length) {
+          pages.push(list.slice(i, i + PAGE2_PLUS_ITEM_COUNT));
+          i += PAGE2_PLUS_ITEM_COUNT;
+        }
+        return pages;
+      }
+
+      /** mm を現在の DPI で px に変換 */
+      function mmToPx(mm) {
+        var probe = document.createElement('div');
+        probe.style.cssText = 'position:absolute;visibility:hidden;height:' + mm + 'mm;width:1mm;';
+        document.body.appendChild(probe);
+        var px = probe.offsetHeight;
+        document.body.removeChild(probe);
+        return px;
+      }
+
+      /** ページ内のヘッダー・フッター等（明細 tbody 除く）の実測高さ */
+      function measurePageChrome(page, sheet, footer) {
+        var total = 0;
+        var children = page.children;
+        for (var i = 0; i < children.length; i++) {
+          var el = children[i];
+          if (el === sheet) {
+            var thead = sheet.querySelector('thead');
+            if (thead) {
+              total += thead.getBoundingClientRect().height;
+            }
+            total += 4;
+          } else {
+            var cs = window.getComputedStyle(el);
+            total += el.getBoundingClientRect().height;
+            total += parseFloat(cs.marginTop) || 0;
+            total += parseFloat(cs.marginBottom) || 0;
+          }
+        }
+        return Math.ceil(total);
+      }
+
+      /** 空欄ブロックの高さを px で同期（印刷時 tr height 無視対策） */
+      function applyEmptyBlockHeights(page, rowHPx) {
+        var emptyRows = page.querySelectorAll('tr.r-empty-block-row');
+        for (var i = 0; i < emptyRows.length; i++) {
+          var tr = emptyRows[i];
+          var count = parseInt(
+            tr.style.getPropertyValue('--r-empty-rows') ||
+              window.getComputedStyle(tr).getPropertyValue('--r-empty-rows') ||
+              '1',
+            10
+          );
+          var totalH = rowHPx * count;
+          tr.style.height = totalH + 'px';
+          tr.style.maxHeight = totalH + 'px';
+          var kubunCol = tr.querySelector('.r-empty-kubun-col');
+          var area = tr.querySelector('.r-empty-block-area');
+          if (kubunCol) {
+            kubunCol.style.height = totalH + 'px';
+            kubunCol.style.minHeight = totalH + 'px';
+          }
+          if (area) {
+            area.style.height = totalH + 'px';
+            area.style.minHeight = totalH + 'px';
+          }
+          var inner = tr.querySelector('.r-empty-block-inner');
+          if (inner) {
+            inner.style.height = totalH + 'px';
+            inner.style.minHeight = totalH + 'px';
+            inner.style.setProperty('--empty-row-h', rowHPx + 'px');
+          }
+          var items = tr.querySelectorAll('.r-empty-kubun-item');
+          for (var j = 0; j < items.length; j++) {
+            items[j].style.height = rowHPx + 'px';
+          }
+        }
+      }
+
+      /**
+       * A4 印刷可能高さから実測 chrome を引き、スロット数で割った行高を各ページに設定。
+       * 1ページ目4件・2ページ目以降5件を物理ページ内に収める。
+       */
+      function tunePageRowHeights() {
+        /* 印刷エンジンの丸め誤差でページ末尾が次紙へ押し出されないよう、4mmの安全域を確保する。 */
+        var printableH = mmToPx(269);
+        var pages = document.querySelectorAll('.r-page');
+        for (var p = 0; p < pages.length; p++) {
+          var page = pages[p];
+          var slotCount = p === 0 ? PAGE1_ITEM_COUNT : PAGE2_PLUS_ITEM_COUNT;
+          var sheet = page.querySelector('.r-sheet');
+          if (!sheet) continue;
+          var chromeH = measurePageChrome(page, sheet, page.querySelector('.r-page-footer'));
+          var rowH = Math.floor((printableH - chromeH - 2) / slotCount);
+          if (rowH < 48) rowH = 48;
+
+          page.style.setProperty('--r-detail-row-h', rowH + 'px');
+          if (p === 0) {
+            page.style.setProperty('--r-detail-row-h-first', rowH + 'px');
+          } else {
+            page.style.setProperty('--r-detail-row-h-compact', rowH + 'px');
+          }
+          applyEmptyBlockHeights(page, rowH);
+        }
+      }
+
+      var tuneScheduled = false;
+      function scheduleTunePageRowHeights() {
+        if (tuneScheduled) return;
+        tuneScheduled = true;
+        requestAnimationFrame(function () {
+          tuneScheduled = false;
+          tunePageRowHeights();
+        });
+      }
+
+      function bindImageLoadRetune(container) {
+        if (!container) return;
+        var imgs = container.querySelectorAll('img');
+        for (var i = 0; i < imgs.length; i++) {
+          if (!imgs[i].complete) {
+            imgs[i].addEventListener('load', scheduleTunePageRowHeights, { once: true });
+            imgs[i].addEventListener('error', scheduleTunePageRowHeights, { once: true });
+          }
+        }
+      }
+
+      function renderFirstPageHeader(d, mainTitle, sectionTitle, comp, insp, site, contr, pdate, dline) {
+        return (
+          '<h1 class="r-main-title">' + mainTitle + '</h1>' +
+          '<div class="r-subhead">' + renderNoticeHtml(d) +
+            '<div class="r-corp-block">' +
+              '<div class="r-corp-row"><span>会社名</span><span>' + comp + '</span></div>' +
+              '<div class="r-corp-row"><span>点検実施者</span><span>' + insp + '</span></div>' +
+            '</div>' +
+          '</div>' +
+          renderMetaFull(site, contr, pdate, dline) +
+          '<h2 class="r-section">' + sectionTitle + '</h2>'
+        );
+      }
+
+      function render(d) {
+        if (!d) {
+          root.innerHTML = '<div class="err-box">案件が見つかりません。URLの案件ID（id）をご確認ください。</div>';
+          return;
+        }
+
+        var mainTitle = esc(d.mainTitle || d.title || '自主安全パトロール是正報告書');
+        var sectionTitle = esc(d.sectionTitle || '是正・改善指示事項');
+        var comp = d.companyName ? esc(String(d.companyName)) : '—';
+        var insp = d.inspectorName ? esc(String(d.inspectorName)) : '—';
+        var site = d.siteName ? esc(String(d.siteName)) : '—';
+        var contr = d.contractorName ? esc(String(d.contractorName)) : '—';
+        var pdate = d.patrolDate ? esc(String(d.patrolDate)) : '—';
+        var dline = d.submitDeadline ? esc(String(d.submitDeadline)) : '—';
+
+        var list = d.details || [];
+        var pages = paginateDetails(list);
+        var parts = [];
+        var slotOffset = 0;
+
+        for (var p = 0; p < pages.length; p++) {
+          var pageItems = pages[p];
+          var pageNo = p + 1;
+          var slotCount = getPageSlotCount(p);
+          var pageClass = p === 0 ? 'r-page r-page--first' : 'r-page r-page--compact';
+
+          parts.push('<div class="' + pageClass + '">');
+
+          if (p === 0) {
+            parts.push(renderFirstPageHeader(d, mainTitle, sectionTitle, comp, insp, site, contr, pdate, dline));
+          } else {
+            parts.push(renderMetaCompact(site, contr, pdate, dline));
+          }
+
+          parts.push(renderDetailTable(pageItems, slotOffset, slotCount, p === 0));
+
+          slotOffset += slotCount;
+
+          parts.push(
+            '<div class="r-page-footer">' +
+              '<div class="r-page-no">' + pageNo + '</div>' +
+            '</div>'
+          );
+          parts.push('</div>');
+        }
+
+        root.innerHTML = parts.join('');
+        scheduleTunePageRowHeights();
+        bindImageLoadRetune(root);
+      }
+
+      if (!caseId) {
+        if (loading) loading.remove();
+        root.innerHTML = '<div class="err-box">案件ID（id パラメータ）が指定されていません。管理画面の「帳票出力（印刷）」から開いてください。</div>';
+        return;
+      }
+
+      if (typeof google === 'undefined' || !google.script || !google.script.run) {
+        if (loading) loading.remove();
+        root.innerHTML = '<div class="err-box">帳票はこのWebアプリのURLから開いてください。ローカルファイルでは使えません。</div>';
+        return;
+      }
+
+      google.script.run
+        .withSuccessHandler(function (data) {
+          if (loading) loading.remove();
+          render(data);
+        })
+        .withFailureHandler(function (err) {
+          if (loading) loading.remove();
+          var msg = (err && err.message) ? err.message : String(err);
+          root.innerHTML = '<div class="err-box">帳票データの取得に失敗しました: ' + esc(msg) + '</div>';
+        })
+        .getReportData(String(caseId));
+
+      document.getElementById('btn-print').addEventListener('click', triggerPrintDialog);
+      document.getElementById('btn-pdf').addEventListener('click', function () {
+        showPdfIntentHint();
+        triggerPrintDialog();
+      });
+      window.addEventListener('beforeprint', tunePageRowHeights);
+      document.getElementById('btn-close').addEventListener('click', handleCloseReport);
+    })();
+  </script>
+</body>
+
+</html>

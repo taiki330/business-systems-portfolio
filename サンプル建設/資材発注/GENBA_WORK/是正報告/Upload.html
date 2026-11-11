@@ -1,0 +1,1487 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>是正後写真アップロード</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html,
+    body {
+      width: 100%;
+      height: 100%;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans JP", sans-serif;
+      font-size: 16px;
+      background: #ffffff;
+      color: #1e293b;
+      overflow-x: hidden;
+    }
+
+    /* ===== ヘッダー ===== */
+    .header {
+      position: sticky;
+      top: 0;
+      width: 100%;
+      background: #ffffff;
+      border-bottom: 2px solid #e2e8f0;
+      padding: 14px 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      z-index: 100;
+    }
+
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .logo-icon {
+      width: 48px;
+      height: 48px;
+      background: #0ea5e9;
+      color: #fff;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 28px;
+      font-weight: 900;
+    }
+
+    .logo-text {
+      font-size: clamp(16px, 4.5vw, 20px);
+      font-weight: 700;
+      color: #1e293b;
+      line-height: 1.2;
+    }
+
+    .header-title {
+      font-size: clamp(16px, 4.5vw, 20px);
+      font-weight: 700;
+      color: #0f172a;
+    }
+
+    /* ===== メインコンテンツ ===== */
+    .main {
+      width: 100%;
+      padding: 0;
+      padding-bottom: 100px;
+    }
+
+    .section {
+      width: 100%;
+      background: #f8f9fa;
+      border-bottom: 12px solid #e2e8f0;
+      padding: 28px 20px;
+    }
+
+    .section-header {
+      font-size: clamp(18px, 5vw, 22px);
+      font-weight: 700;
+      color: #0f172a;
+      margin-bottom: 16px;
+      border-left: 6px solid #0ea5e9;
+      padding-left: 16px;
+    }
+
+    /* ===== 案件基本情報 ===== */
+    .case-info-grid {
+      display: grid;
+      gap: 12px;
+    }
+
+    .case-info-item {
+      display: flex;
+      align-items: baseline;
+      gap: 8px;
+    }
+
+    .case-info-label {
+      font-size: clamp(13px, 3.5vw, 15px);
+      color: #64748b;
+      white-space: nowrap;
+      min-width: 70px;
+    }
+
+    .case-info-value {
+      font-size: clamp(15px, 4vw, 18px);
+      font-weight: 600;
+      color: #0f172a;
+    }
+
+    .site-name-large {
+      font-size: clamp(20px, 5.5vw, 26px);
+      font-weight: 700;
+      color: #0f172a;
+      margin-bottom: 12px;
+    }
+
+    /* ===== ステータスバッジ ===== */
+    .status-badge {
+      display: inline-block;
+      padding: 4px 12px;
+      border-radius: 999px;
+      font-size: clamp(12px, 3vw, 14px);
+      font-weight: 700;
+      line-height: 1.4;
+    }
+
+    .status-badge.pending {
+      background: #fef3c7;
+      color: #92400e;
+    }
+
+    .status-badge.submitted {
+      background: #dbeafe;
+      color: #1e40af;
+    }
+
+    .status-badge.rejected {
+      background: #fee2e2;
+      color: #991b1b;
+    }
+
+    .status-badge.approved {
+      background: #d1fae5;
+      color: #065f46;
+    }
+
+    .status-badge.draft {
+      background: #f1f5f9;
+      color: #475569;
+    }
+
+    .status-badge.completed {
+      background: #d1fae5;
+      color: #065f46;
+    }
+
+    .status-badge.reviewing {
+      background: #e0e7ff;
+      color: #3730a3;
+    }
+
+    /* ===== 種別バッジ ===== */
+    .kind-badge {
+      display: inline-block;
+      padding: 3px 10px;
+      border-radius: 8px;
+      font-size: clamp(12px, 3vw, 14px);
+      font-weight: 700;
+    }
+
+    .kind-badge.good {
+      background: #d1fae5;
+      color: #065f46;
+    }
+
+    .kind-badge.correction {
+      background: #fee2e2;
+      color: #991b1b;
+    }
+
+    /* ===== 明細カード ===== */
+    .detail-card {
+      background: #ffffff;
+      border: 2px solid #e2e8f0;
+      border-radius: 16px;
+      padding: 20px;
+      margin-bottom: 20px;
+      contain: layout style;
+    }
+
+    .detail-card--good {
+      border-color: #86efac;
+      background: #fafffe;
+    }
+
+    .good-only-intro {
+      font-size: clamp(14px, 3.6vw, 16px);
+      color: #14532d;
+      font-weight: 600;
+      margin: 0 0 14px 0;
+      line-height: 1.5;
+    }
+
+    .good-only-photo {
+      text-align: center;
+      margin-bottom: 4px;
+    }
+
+    .good-only-photo .good-photo-wrap {
+      display: inline-block;
+      max-width: 100%;
+    }
+
+    .good-only-photo .photo-display img {
+      max-width: 100%;
+      max-height: min(50vh, 360px);
+      width: auto;
+      height: auto;
+      object-fit: contain;
+      border-radius: 12px;
+    }
+
+    .detail-card-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 16px;
+      flex-wrap: wrap;
+    }
+
+    .detail-order {
+      font-size: clamp(16px, 4.5vw, 20px);
+      font-weight: 700;
+      color: #0f172a;
+    }
+
+    .detail-text-block {
+      margin-bottom: 16px;
+    }
+
+    .detail-text-label {
+      font-size: clamp(13px, 3.5vw, 15px);
+      font-weight: 700;
+      color: #64748b;
+      margin-bottom: 4px;
+    }
+
+    .detail-text-value {
+      font-size: clamp(14px, 3.8vw, 17px);
+      color: #1e293b;
+      line-height: 1.6;
+      white-space: pre-wrap;
+    }
+
+    .rejection-reason {
+      background: #fef2f2;
+      border-left: 3px solid #ef4444;
+      color: #dc2626;
+      font-size: clamp(12px, 3vw, 13px);
+      padding: 8px 12px;
+      border-radius: 4px;
+      margin-bottom: 12px;
+    }
+
+    /* ===== 写真エリア ===== */
+    .photo-compare {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+
+    .photo-column {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .photo-label {
+      font-size: clamp(13px, 3.5vw, 15px);
+      font-weight: 700;
+      color: #64748b;
+      margin-bottom: 8px;
+      text-align: center;
+    }
+
+    .photo-display {
+      width: 100%;
+      aspect-ratio: 4 / 3;
+      background: #f1f5f9;
+      border-radius: 12px;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border: 2px solid #e2e8f0;
+    }
+
+    .photo-display img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      cursor: pointer;
+    }
+
+    .photo-placeholder {
+      font-size: clamp(13px, 3.5vw, 15px);
+      color: #94a3b8;
+      text-align: center;
+    }
+
+    /* ===== アップロードエリア ===== */
+    .img-upload-area {
+      width: 100%;
+      aspect-ratio: 4 / 3;
+      background: #ffffff;
+      border: 3px dashed #cbd5e1;
+      border-radius: 12px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .img-upload-area:active {
+      border-color: #0ea5e9;
+      background: #f0f9ff;
+    }
+
+    .img-upload-icon {
+      font-size: 36px;
+      margin-bottom: 8px;
+    }
+
+    .img-upload-text {
+      font-size: clamp(13px, 3.5vw, 15px);
+      color: #64748b;
+    }
+
+    /* ===== プレビューエリア ===== */
+    .photo-preview-container {
+      position: relative;
+      width: 100%;
+      aspect-ratio: 4 / 3;
+      border-radius: 12px;
+      overflow: hidden;
+      border: 2px solid #e2e8f0;
+    }
+
+    .photo-preview-container img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      background: #f1f5f9;
+    }
+
+    .photo-action-btn {
+      position: absolute;
+      top: 6px;
+      right: 6px;
+      background: rgba(0, 0, 0, 0.6);
+      color: #fff;
+      border: none;
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      cursor: pointer;
+      font-size: 16px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+    }
+
+    .photo-change-btn {
+      position: absolute;
+      bottom: 6px;
+      right: 6px;
+      background: rgba(14, 165, 233, 0.9);
+      color: #fff;
+      border: none;
+      padding: 4px 12px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: clamp(11px, 3vw, 13px);
+      font-weight: 700;
+    }
+
+    /* ===== ボタン ===== */
+    .btn-submit-detail {
+      width: 100%;
+      background: #0ea5e9;
+      color: #fff;
+      border: none;
+      padding: 14px;
+      font-size: clamp(15px, 4vw, 18px);
+      font-weight: 700;
+      border-radius: 12px;
+      cursor: pointer;
+      box-shadow: 0 4px 12px rgba(14, 165, 233, 0.3);
+      transition: all 0.2s;
+    }
+
+    .btn-submit-detail:active {
+      transform: scale(0.98);
+    }
+
+    .btn-submit-detail:disabled {
+      background: #cbd5e1;
+      color: #94a3b8;
+      box-shadow: none;
+      cursor: not-allowed;
+    }
+
+    /* ===== フッター（全件提出） ===== */
+    .footer-actions {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: #ffffff;
+      border-top: 2px solid #e2e8f0;
+      padding: 16px 20px;
+      padding-bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+      z-index: 100;
+      box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.08);
+    }
+
+    .btn-submit-all {
+      width: 100%;
+      background: #0ea5e9;
+      color: #fff;
+      border: none;
+      padding: 18px;
+      font-size: clamp(17px, 4.5vw, 20px);
+      font-weight: 700;
+      border-radius: 16px;
+      cursor: pointer;
+      box-shadow: 0 8px 20px rgba(14, 165, 233, 0.35);
+      transition: all 0.2s;
+    }
+
+    .btn-submit-all:active {
+      transform: scale(0.98);
+    }
+
+    .btn-submit-all:disabled {
+      background: #cbd5e1;
+      color: #94a3b8;
+      box-shadow: none;
+      cursor: not-allowed;
+    }
+
+    .all-done-message {
+      text-align: center;
+      font-size: clamp(15px, 4vw, 18px);
+      font-weight: 700;
+      color: #065f46;
+      padding: 8px 0;
+    }
+
+    /* ===== 拡大表示モーダル ===== */
+    .photo-modal {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.85);
+      z-index: 500;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    .photo-modal.show {
+      display: flex;
+    }
+
+    .photo-modal img {
+      max-width: 100%;
+      max-height: 100%;
+      object-fit: contain;
+      border-radius: 8px;
+    }
+
+    .photo-modal-close {
+      position: absolute;
+      top: 16px;
+      right: 16px;
+      background: rgba(255, 255, 255, 0.9);
+      color: #0f172a;
+      border: none;
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      font-size: 24px;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    /* ===== トースト ===== */
+    .toast {
+      position: fixed;
+      bottom: 100px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #0f172a;
+      color: #fff;
+      padding: 14px 24px;
+      border-radius: 999px;
+      font-size: clamp(14px, 3.8vw, 16px);
+      font-weight: 600;
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+      display: none;
+      z-index: 1000;
+      white-space: nowrap;
+    }
+
+    .toast.show {
+      display: block;
+    }
+
+    .toast.error {
+      background: #991b1b;
+    }
+
+    /* ===== ローディング ===== */
+    .loading-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(255, 255, 255, 0.8);
+      z-index: 400;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .loading-overlay.show {
+      display: flex;
+    }
+
+    .loading-spinner {
+      width: 48px;
+      height: 48px;
+      border: 5px solid #e2e8f0;
+      border-top-color: #0ea5e9;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    .loading-text {
+      font-size: clamp(15px, 4vw, 18px);
+      font-weight: 600;
+      color: #475569;
+    }
+
+    .hidden {
+      display: none !important;
+    }
+
+    .upload-deadline-alert {
+      grid-column: 1 / -1;
+      background: linear-gradient(135deg, #fef2f2 0%, #fff7ed 100%);
+      border: 2px solid #fecaca;
+      border-radius: 12px;
+      padding: 12px 14px;
+      font-size: clamp(13px, 3.5vw, 15px);
+      font-weight: 700;
+      color: #b91c1c;
+      line-height: 1.45;
+      margin-bottom: 4px;
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- ヘッダー -->
+  <div class="header">
+    <div class="header-left">
+      <div class="logo">
+        <div class="logo-icon">N</div>
+        <div class="logo-text">サンプル建設</div>
+      </div>
+    </div>
+    <div class="header-title">是正後写真アップロード</div>
+  </div>
+
+  <!-- メインコンテンツ -->
+  <div class="main">
+
+    <!-- 案件基本情報セクション -->
+    <div class="section">
+      <div class="section-header">案件情報</div>
+      <div class="site-name-large" id="siteName">-</div>
+      <div id="deadlineAlertBanner" class="upload-deadline-alert" style="display:none;"></div>
+      <div class="case-info-grid" style="margin-top:8px;">
+        <div class="case-info-item" style="grid-column:1/-1;">
+          <span class="case-info-label">報告区分</span>
+          <span class="case-info-value" id="reportCategory">-</span>
+        </div>
+        <div class="case-info-item" style="grid-column:1/-1;">
+          <span class="case-info-label">請負業者</span>
+          <span class="case-info-value" id="primeContractorName">-</span>
+        </div>
+        <div class="case-info-item" style="grid-column:1/-1;">
+          <span class="case-info-label">棟名</span>
+          <span class="case-info-value" id="buildingName">-</span>
+        </div>
+        <div class="case-info-item">
+          <span class="case-info-label">施工会社</span>
+          <span class="case-info-value" id="contractorName">-</span>
+        </div>
+        <div class="case-info-item" style="grid-column:1/-1;">
+          <span class="case-info-label">点検者</span>
+          <span class="case-info-value" id="inspectorName">-</span>
+        </div>
+        <div class="case-info-item">
+          <span class="case-info-label">巡回日</span>
+          <span class="case-info-value" id="patrolDate">-</span>
+        </div>
+        <div class="case-info-item">
+          <span class="case-info-label">提出期日</span>
+          <span class="case-info-value" id="submitDeadline">-</span>
+        </div>
+        <div class="case-info-item">
+          <span class="case-info-label">ステータス</span>
+          <span id="overallStatus"></span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 指摘明細セクション -->
+    <div class="section">
+      <div class="section-header">指摘明細</div>
+      <div id="detailList"></div>
+    </div>
+
+  </div>
+
+  <!-- フッター -->
+  <div class="footer-actions" id="footerActions">
+    <button type="button" class="btn-submit-all" id="btnSubmitAll" disabled onclick="submitAll()">
+      まとめて全件提出
+    </button>
+  </div>
+
+  <!-- 拡大表示モーダル -->
+  <div class="photo-modal" id="photoModal" onclick="closeModal()">
+    <button class="photo-modal-close" onclick="closeModal()">&times;</button>
+    <img id="modalImage" src="" alt="拡大写真" />
+  </div>
+
+  <!-- トースト -->
+  <div class="toast" id="toast"></div>
+
+  <!-- ローディング -->
+  <div class="loading-overlay" id="loadingOverlay">
+    <div class="loading-spinner"></div>
+    <div class="loading-text" id="loadingText">送信中...</div>
+  </div>
+
+  <script>
+    // ===== Bootstrap データ =====
+    const BOOTSTRAP = JSON.parse(
+      decodeURIComponent('<?= encodeURIComponent(JSON.stringify(bootstrap)) ?>') || '{}'
+    );
+
+    // ===== 状態管理 =====
+    const state = {
+      bootstrap: BOOTSTRAP,
+      details: [...(BOOTSTRAP.details || [])],
+      photoMap: {}  // { detailId: base64DataUrl }
+    };
+
+    // ===== 定数 =====
+    const STATUS_APPROVED = '確認完了';
+    const STATUS_SUBMITTED = '提出済み';
+    const STATUS_REJECTED = '差し戻し';
+
+    // ===== 初期化 =====
+    document.addEventListener('DOMContentLoaded', () => {
+      renderCaseInfo();
+      renderDetails();
+      updateFooter();
+    });
+
+    // ===== 案件情報の表示 =====
+    function renderCaseInfo() {
+      const info = state.bootstrap.caseInfo || {};
+      document.getElementById('siteName').textContent = info.siteName || '-';
+      var bn = document.getElementById('buildingName');
+      if (bn) bn.textContent = info.buildingName && String(info.buildingName).trim() ? info.buildingName : '—';
+      var rc = document.getElementById('reportCategory');
+      if (rc) rc.textContent = info.reportCategory || '-';
+      var pc = document.getElementById('primeContractorName');
+      if (pc) pc.textContent = info.primeContractorName || '—';
+      document.getElementById('contractorName').textContent = info.contractorName || '-';
+      var ins = document.getElementById('inspectorName');
+      if (ins) ins.textContent = info.inspector && String(info.inspector).trim() ? info.inspector : '—';
+      var ban = document.getElementById('deadlineAlertBanner');
+      if (ban) {
+        if (info.isDeadlineAlert || info.isOverdue || info.isDueToday) {
+          ban.style.display = 'block';
+          var msg = info.deadlineMessage || (info.isDueToday ? '本日が提出期限です' : '提出期限を過ぎています');
+          if (info.deadlineState === 'overdue' && info.daysOverdue) {
+            msg += '（+' + info.daysOverdue + '日）';
+          }
+          ban.textContent = msg + '。是正後写真の提出をお願いします。';
+        } else {
+          ban.style.display = 'none';
+          ban.textContent = '';
+        }
+      }
+      document.getElementById('patrolDate').textContent = info.patrolDate || '-';
+      document.getElementById('submitDeadline').textContent = info.submitDeadline || '-';
+
+      const statusEl = document.getElementById('overallStatus');
+      const overallStatus = info.overallStatus || '-';
+      statusEl.innerHTML = buildStatusBadge(overallStatus, 'case');
+    }
+
+    // ===== ステータスバッジ生成 =====
+    function buildStatusBadge(statusText, type) {
+      let className = '';
+      if (type === 'case') {
+        const caseMap = {
+          '下書き': 'draft', '提出済み': 'submitted',
+          '確認中': 'reviewing', '完了': 'completed'
+        };
+        className = caseMap[statusText] || 'draft';
+      } else {
+        const detailMap = {
+          '未提出': 'pending', '提出済み': 'submitted',
+          '差し戻し': 'rejected', '確認完了': 'approved'
+        };
+        className = detailMap[statusText] || 'pending';
+      }
+      return '<span class="status-badge ' + className + '">' + escapeHtml(statusText) + '</span>';
+    }
+
+    /** 種別「良好」「注意」— 是正後写真不要 */
+    function isNoAfterPhotoKind(kind) {
+      const k = String(kind || '').trim();
+      return k === '良好' || k === '注意';
+    }
+
+    // ===== 種別バッジ生成 =====
+    function buildKindBadge(kind) {
+      const k = String(kind || '').trim();
+      const isNotice = isNoAfterPhotoKind(k);
+      const className = isNotice ? 'good' : 'correction';
+      return '<span class="kind-badge ' + className + '">' + escapeHtml(k || '-') + '</span>';
+    }
+
+    /** Drive のファイルURL・ファイルIDから img 用の表示URLを組み立てる */
+    function extractDriveFileId(s) {
+      if (!s) return '';
+      var str = String(s).trim();
+      var m = str.match(/\/d\/([a-zA-Z0-9_-]+)/);
+      if (m) return m[1];
+      m = str.match(/[?&]id=([a-zA-Z0-9_-]+)/);
+      if (m) return m[1];
+      if (/^[a-zA-Z0-9_-]{20,}$/.test(str)) return str;
+      return '';
+    }
+
+    function imageSrcForDisplay(raw) {
+      if (!raw) return '';
+      var s = String(raw).trim();
+      if (s.indexOf('data:') === 0) return s;
+      if (s.indexOf('lh3.googleusercontent.com') !== -1) return s;
+      if (s.indexOf('googleusercontent.com') !== -1 && s.indexOf('/d/') !== -1) return s;
+      var id = extractDriveFileId(s);
+      if (id) return 'https://lh3.googleusercontent.com/d/' + id;
+      return s;
+    }
+
+    function tryDriveThumbFallback(img) {
+      img.onerror = null;
+      var id = img.getAttribute('data-drive-id');
+      if (id) {
+        img.src = 'https://drive.google.com/thumbnail?id=' + encodeURIComponent(id) + '&sz=w800';
+      }
+    }
+
+    function imgDriveHtml(rawUrl, alt, useLazy) {
+      var lazy = useLazy === true;
+      var displaySrc = imageSrcForDisplay(rawUrl);
+      var fid = extractDriveFileId(String(rawUrl));
+      var dataAttr = fid ? ' data-drive-id="' + escapeAttr(fid) + '"' : '';
+      var lazyAttr = lazy ? ' loading="lazy"' : '';
+      return (
+        '<img src="' +
+        escapeAttr(displaySrc) +
+        '" alt="' +
+        escapeAttr(alt) +
+        '"' +
+        dataAttr +
+        lazyAttr +
+        ' decoding="async" onclick="openModal(this.src)" onerror="tryDriveThumbFallback(this)" />'
+      );
+    }
+
+    // ===== 明細カード生成 =====
+    function renderDetails() {
+      const container = document.getElementById('detailList');
+      container.innerHTML = '';
+
+      const frag = document.createDocumentFragment();
+
+      state.details.forEach((detail, index) => {
+        const imgLazy = index > 0;
+        const card = document.createElement('div');
+        card.id = 'card-' + detail.detailId;
+
+        const isApproved = detail.status === STATUS_APPROVED;
+        const hasAfterPhoto = !!detail.afterPhotoUrl;
+        const hasLocalPhoto = !!state.photoMap[detail.detailId];
+        const isGood = isNoAfterPhotoKind(detail.kind);
+
+        let headerHtml = '<div class="detail-card-header">';
+        headerHtml += '<span class="detail-order">' + escapeHtml('区分 ' + detail.order) + '</span>';
+        headerHtml += buildKindBadge(detail.kind || '-');
+        headerHtml += buildStatusBadge(detail.status || '未提出', 'detail');
+        headerHtml += '</div>';
+
+        if (isGood) {
+          card.className = 'detail-card detail-card--good';
+          let rejectionHtml = '';
+          if (detail.status === STATUS_REJECTED && detail.rejectionReason) {
+            rejectionHtml =
+              '<div class="rejection-reason">差し戻し理由: ' + escapeHtml(detail.rejectionReason) + '</div>';
+          }
+            let intro =
+            '<p class="good-only-intro">この明細は<strong>' + escapeHtml(String(detail.kind || '').trim()) +
+            '</strong>です。管理側で登録された<strong>是正前</strong>の写真を確認し、「提出」で完了してください（是正後の写真は不要です）。</p>';
+          let photoPart = '<div class="good-only-photo">';
+          photoPart += '<div class="photo-label">是正前</div>';
+          if (detail.beforePhotoUrl) {
+            photoPart +=
+              '<div class="good-photo-wrap"><div class="photo-display">' +
+              imgDriveHtml(detail.beforePhotoUrl, '是正前写真', imgLazy) +
+              '</div></div>';
+          } else {
+            photoPart +=
+              '<div class="photo-display"><span class="photo-placeholder">（是正前の写真は未登録です）</span></div>';
+          }
+          photoPart += '</div>';
+          let btnHtml = '';
+          if (!isApproved) {
+            const isSubmitted = detail.status === STATUS_SUBMITTED;
+            const isRejected = detail.status === STATUS_REJECTED;
+            const btnDisabled = isSubmitted ? 'disabled' : '';
+            const btnLabel = isSubmitted ? '提出済み' : (isRejected ? '再提出' : '提出');
+            btnHtml =
+              '<button type="button" class="btn-submit-detail" id="btn-' + detail.detailId + '" ' + btnDisabled + ' ';
+            btnHtml +=
+              'onclick="submitDetail(\'' + escapeAttr(detail.detailId) + '\', ' + detail.order + ')">';
+            btnHtml += escapeHtml(btnLabel);
+            btnHtml += '</button>';
+          }
+          card.innerHTML = headerHtml + intro + photoPart + rejectionHtml + btnHtml;
+          frag.appendChild(card);
+          return;
+        }
+
+        card.className = 'detail-card';
+
+        // 指摘事項
+        let issueHtml = '';
+        if (detail.issue) {
+          issueHtml = '<div class="detail-text-block">';
+          issueHtml += '<div class="detail-text-label">指摘事項</div>';
+          issueHtml += '<div class="detail-text-value">' + escapeHtml(detail.issue) + '</div>';
+          issueHtml += '</div>';
+        }
+
+        // 備考
+        var remarkText = detail.remark && String(detail.remark).trim();
+        var remarkHtml = '';
+        if (remarkText) {
+          remarkHtml =
+            '<div class="detail-text-block">' +
+            '<div class="detail-text-label">備考</div>' +
+            '<div class="detail-text-value">' + escapeHtml(remarkText) + '</div></div>';
+        }
+
+        // 管理者入力の是正内容（内部: 修正依頼内容）
+        var requestText = detail.correctionRequest && String(detail.correctionRequest).trim();
+        var requestHtml = '';
+        if (requestText) {
+          requestHtml =
+            '<div class="detail-text-block">' +
+            '<div class="detail-text-label">是正内容（指示）</div>' +
+            '<div class="detail-text-value correction-request-text">' +
+            escapeHtml(requestText) +
+            '</div></div>';
+        }
+
+        var correctionBlock = '';
+
+        // 差し戻し理由
+        let rejectionHtml = '';
+        if (detail.status === STATUS_REJECTED && detail.rejectionReason) {
+          rejectionHtml = '<div class="rejection-reason">差し戻し理由: ' + escapeHtml(detail.rejectionReason) + '</div>';
+        }
+
+        // 写真エリア
+        let photoHtml = '<div class="photo-compare">';
+
+        // 是正前写真
+        photoHtml += '<div class="photo-column">';
+        photoHtml += '<div class="photo-label">是正前</div>';
+        if (detail.beforePhotoUrl) {
+          photoHtml += '<div class="photo-display">';
+          photoHtml += imgDriveHtml(detail.beforePhotoUrl, '是正前写真', imgLazy);
+          photoHtml += '</div>';
+        } else {
+          photoHtml += '<div class="photo-display"><span class="photo-placeholder">写真なし</span></div>';
+        }
+        photoHtml += '</div>';
+
+        // 是正後写真
+        photoHtml += '<div class="photo-column">';
+        photoHtml += '<div class="photo-label">是正後</div>';
+        photoHtml += buildAfterPhotoArea(
+          detail,
+          isApproved,
+          hasAfterPhoto,
+          hasLocalPhoto,
+          imgLazy
+        );
+        photoHtml += '</div>';
+
+        photoHtml += '</div>';
+
+        // 提出ボタン
+        let btnHtml = '';
+        if (!isApproved) {
+          const isRejected = detail.status === STATUS_REJECTED;
+          const btnDisabled = !hasLocalPhoto ? 'disabled' : '';
+          const btnLabel = isRejected
+            ? (hasLocalPhoto ? '再提出' : '写真を変更して再提出')
+            : (hasAfterPhoto && !hasLocalPhoto ? '提出済み' : '提出');
+          btnHtml = '<button type="button" class="btn-submit-detail" id="btn-' + detail.detailId + '" ';
+          btnHtml += btnDisabled + ' ';
+          btnHtml += 'onclick="submitDetail(\'' + escapeAttr(detail.detailId) + '\', ' + detail.order + ')">';
+          btnHtml += escapeHtml(btnLabel);
+          btnHtml += '</button>';
+        }
+
+        card.innerHTML = headerHtml + issueHtml + remarkHtml + requestHtml + correctionBlock + rejectionHtml + photoHtml + btnHtml;
+        frag.appendChild(card);
+      });
+
+      requestAnimationFrame(function () {
+        container.appendChild(frag);
+      });
+    }
+
+    // ===== 是正後写真エリア生成 =====
+    function buildAfterPhotoArea(
+      detail,
+      isApproved,
+      hasAfterPhoto,
+      hasLocalPhoto,
+      imgLazy
+    ) {
+      const detailId = detail.detailId;
+      const useLazy = imgLazy === true;
+
+      // 確認完了: 写真表示のみ
+      if (isApproved) {
+        if (hasAfterPhoto) {
+          return (
+            '<div class="photo-display">' +
+            imgDriveHtml(detail.afterPhotoUrl, '是正後写真', useLazy) +
+            '</div>'
+          );
+        }
+        return '<div class="photo-display"><span class="photo-placeholder">写真なし</span></div>';
+      }
+
+      // ローカルで写真が選択済み
+      if (hasLocalPhoto) {
+        let html = '<div class="photo-preview-container">';
+        html +=
+          '<img src="' +
+          escapeAttr(state.photoMap[detailId]) +
+          '" alt="是正後写真プレビュー" decoding="async" onclick="openModal(this.src)" />';
+        html += '<button class="photo-action-btn" onclick="removePhoto(\'' + escapeAttr(detailId) + '\')">&times;</button>';
+        html += '</div>';
+        return html;
+      }
+
+      // アップロード済み（サーバー上に写真がある）
+      if (hasAfterPhoto) {
+        let html = '<div class="photo-preview-container">';
+        html += imgDriveHtml(detail.afterPhotoUrl, '是正後写真', useLazy);
+        html += '<button class="photo-change-btn" onclick="triggerFileInput(\'' + escapeAttr(detailId) + '\')">変更</button>';
+        html += '</div>';
+        html += '<input type="file" accept="image/*" class="hidden" id="file-' + detailId + '" onchange="handleFileSelect(event, \'' + escapeAttr(detailId) + '\')" />';
+        return html;
+      }
+
+      // 未選択: アップロードエリア（capture なし → カメラ・ライブラリをOSに任せる）
+      let html = '<div class="img-upload-area" onclick="triggerFileInput(\'' + escapeAttr(detailId) + '\')">';
+      html += '<div class="img-upload-icon">&#x1F4F7;</div>';
+      html += '<div class="img-upload-text">写真を追加（カメラ・ライブラリ）</div>';
+      html += '</div>';
+      html += '<input type="file" accept="image/*" class="hidden" id="file-' + detailId + '" onchange="handleFileSelect(event, \'' + escapeAttr(detailId) + '\')" />';
+      return html;
+    }
+
+    // ===== ファイル選択 =====
+    function triggerFileInput(detailId) {
+      const input = document.getElementById('file-' + detailId);
+      if (input) {
+        input.value = '';
+        input.click();
+      }
+    }
+
+    function handleFileSelect(event, detailId) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      compressImage(file).then(function (base64) {
+        if (!base64) {
+          showToast('画像の読み込みに失敗しました。別の写真でお試しください。', true);
+          return;
+        }
+        state.photoMap[detailId] = base64;
+        renderDetails();
+        updateFooter();
+      });
+    }
+
+    // ===== 写真削除 =====
+    function removePhoto(detailId) {
+      delete state.photoMap[detailId];
+      renderDetails();
+      updateFooter();
+    }
+
+    // ===== 画像圧縮 =====
+    function compressImage(file) {
+      const MAX_SIZE = 1000;
+      const JPEG_Q = 0.75;
+
+      return new Promise(function (resolve) {
+        function toDataUrlFromDrawable(drawable, sw, sh) {
+          const canvas = document.createElement('canvas');
+          var width = sw;
+          var height = sh;
+          if (width > MAX_SIZE || height > MAX_SIZE) {
+            if (width > height) {
+              height = Math.round((height * MAX_SIZE) / width);
+              width = MAX_SIZE;
+            } else {
+              width = Math.round((width * MAX_SIZE) / height);
+              height = MAX_SIZE;
+            }
+          }
+          canvas.width = width;
+          canvas.height = height;
+          var ctx = canvas.getContext('2d');
+          ctx.imageSmoothingEnabled = true;
+          ctx.imageSmoothingQuality = 'low';
+          ctx.drawImage(drawable, 0, 0, width, height);
+          resolve(canvas.toDataURL('image/jpeg', JPEG_Q));
+        }
+
+        function legacy() {
+          var reader = new FileReader();
+          reader.onload = function (e) {
+            var img = new Image();
+            img.onload = function () {
+              toDataUrlFromDrawable(img, img.naturalWidth || img.width, img.naturalHeight || img.height);
+            };
+            img.onerror = function () {
+              resolve(null);
+            };
+            img.src = e.target.result;
+          };
+          reader.onerror = function () {
+            resolve(null);
+          };
+          reader.readAsDataURL(file);
+        }
+
+        if (typeof createImageBitmap === 'function') {
+          createImageBitmap(file)
+            .then(function (bmp) {
+              try {
+                toDataUrlFromDrawable(bmp, bmp.width, bmp.height);
+              } finally {
+                if (bmp && bmp.close) bmp.close();
+              }
+            })
+            .catch(legacy);
+        } else {
+          legacy();
+        }
+      });
+    }
+
+    // ===== 個別提出 =====
+    function submitDetail(detailId, detailOrder) {
+      const drow = state.details.find(function (d) { return d.detailId === detailId; });
+      if (drow && isNoAfterPhotoKind(drow.kind)) {
+        const btn = document.getElementById('btn-' + detailId);
+        if (btn) {
+          btn.disabled = true;
+          btn.textContent = '送信中...';
+        }
+        showLoading('送信中...');
+        google.script.run
+          .withSuccessHandler(function (result) {
+            hideLoading();
+            if (result && result.success) {
+              if (drow) {
+                drow.status = STATUS_SUBMITTED;
+              }
+              if (result.caseStatus && state.bootstrap.caseInfo) {
+                state.bootstrap.caseInfo.overallStatus = result.caseStatus;
+              }
+              renderDetails();
+              renderCaseInfo();
+              updateFooter();
+              showToast('提出しました（' + String(drow.kind || '').trim() + '）');
+            } else {
+              if (btn) {
+                btn.disabled = false;
+                btn.textContent = '提出';
+              }
+              showToast((result && result.error) || '送信に失敗しました', true);
+            }
+          })
+          .withFailureHandler(function (err) {
+            hideLoading();
+            if (btn) {
+              btn.disabled = false;
+              btn.textContent = '提出';
+            }
+            showToast('エラー: ' + err.message, true);
+          })
+          .submitGoodDetail({ detailId: detailId, caseId: state.bootstrap.caseId });
+        return;
+      }
+
+      const base64 = state.photoMap[detailId];
+      if (!base64) {
+        showToast('先に「是正後」の写真を登録してから「提出」してください。', true);
+        return;
+      }
+
+      const btn = document.getElementById('btn-' + detailId);
+      if (btn) {
+        btn.disabled = true;
+        btn.textContent = '送信中...';
+      }
+
+      const params = {
+        detailId: detailId,
+        caseId: state.bootstrap.caseId,
+        siteName: (state.bootstrap.caseInfo || {}).siteName || '',
+        detailOrder: detailOrder,
+        base64: base64
+      };
+
+      google.script.run
+        .withSuccessHandler(result => {
+          if (result && result.success) {
+            // ローカル状態を更新
+            const detail = state.details.find(d => d.detailId === detailId);
+            if (detail) {
+              detail.afterPhotoUrl = result.afterPhotoUrl || base64;
+              detail.status = STATUS_SUBMITTED;
+            }
+            if (result.caseStatus && state.bootstrap.caseInfo) {
+              state.bootstrap.caseInfo.overallStatus = result.caseStatus;
+            }
+            delete state.photoMap[detailId];
+            renderDetails();
+            renderCaseInfo();
+            updateFooter();
+            showToast('提出しました');
+          } else {
+            if (btn) {
+              btn.disabled = false;
+              btn.textContent = '提出';
+            }
+            showToast((result && result.error) || '送信に失敗しました', true);
+          }
+        })
+        .withFailureHandler(err => {
+          if (btn) {
+            btn.disabled = false;
+            btn.textContent = '提出';
+          }
+          showToast('エラー: ' + err.message, true);
+        })
+        .submitAfterPhoto(params);
+    }
+
+    // ===== 全件提出 =====
+    function submitAll() {
+      const submissions = [];
+      const goodItems = [];
+      const caseInfo = state.bootstrap.caseInfo || {};
+
+      state.details.forEach(function (detail) {
+        if (detail.status === STATUS_APPROVED) {
+          return;
+        }
+        if (isNoAfterPhotoKind(detail.kind)) {
+          if (detail.status === STATUS_SUBMITTED || detail.status === STATUS_APPROVED) {
+            return;
+          }
+          goodItems.push({
+            detailId: detail.detailId
+          });
+          return;
+        }
+        const base64 = state.photoMap[detail.detailId];
+        if (base64) {
+          submissions.push({
+            detailId: detail.detailId,
+            caseId: state.bootstrap.caseId,
+            siteName: caseInfo.siteName || '',
+            detailOrder: detail.order,
+            base64: base64
+          });
+        }
+      });
+
+      if (goodItems.length === 0 && submissions.length === 0) {
+        return;
+      }
+
+      showLoading('送信中...');
+      const btnAll = document.getElementById('btnSubmitAll');
+      if (btnAll) {
+        btnAll.disabled = true;
+        btnAll.textContent = '送信中...';
+      }
+
+      function resetAllBtn() {
+        if (btnAll) {
+          btnAll.disabled = false;
+          btnAll.textContent = 'まとめて全件提出';
+        }
+      }
+
+      function applyPhotoSuccess(result) {
+        submissions.forEach(function (sub) {
+          const detail = state.details.find(d => d.detailId === sub.detailId);
+          if (detail) {
+            detail.status = STATUS_SUBMITTED;
+            if (result && result.results) {
+              const matched = result.results.find(r => r.detailId === sub.detailId);
+              if (matched && matched.afterPhotoUrl) {
+                detail.afterPhotoUrl = matched.afterPhotoUrl;
+              }
+              if (matched && matched.caseStatus && state.bootstrap.caseInfo) {
+                state.bootstrap.caseInfo.overallStatus = matched.caseStatus;
+              }
+            }
+          }
+          delete state.photoMap[sub.detailId];
+        });
+        renderDetails();
+        renderCaseInfo();
+        updateFooter();
+        showToast(submissions.length + ' 件を提出しました');
+      }
+
+      function runAfterPhotos() {
+        if (submissions.length === 0) {
+          hideLoading();
+          resetAllBtn();
+          renderDetails();
+          updateFooter();
+          showToast(goodItems.length > 0 ? goodItems.length + ' 件を提出しました' : '');
+          return;
+        }
+        var lt = document.getElementById('loadingText');
+        if (lt) lt.textContent = '写真 ' + submissions.length + ' 件...';
+        google.script.run
+          .withSuccessHandler(function (result) {
+            hideLoading();
+            if (result && result.success) {
+              applyPhotoSuccess(result);
+            } else {
+              resetAllBtn();
+              showToast((result && result.error) || '写真の一括送信に失敗しました', true);
+            }
+          })
+          .withFailureHandler(function (err) {
+            hideLoading();
+            resetAllBtn();
+            showToast('エラー: ' + err.message, true);
+          })
+          .submitAllAfterPhotos(submissions);
+      }
+
+      function runGoodQueue(i) {
+        if (i >= goodItems.length) {
+          runAfterPhotos();
+          return;
+        }
+        var g = goodItems[i];
+        google.script.run
+          .withSuccessHandler(function (res) {
+            if (res && res.success) {
+              var det = state.details.find(function (x) {
+                return x.detailId === g.detailId;
+              });
+              if (det) {
+                det.status = STATUS_SUBMITTED;
+              }
+              runGoodQueue(i + 1);
+            } else {
+              hideLoading();
+              resetAllBtn();
+              showToast((res && res.error) || '写真なし提出に失敗しました', true);
+            }
+          })
+          .withFailureHandler(function (err) {
+            hideLoading();
+            resetAllBtn();
+            showToast('エラー: ' + err.message, true);
+          })
+          .submitGoodDetail({ detailId: g.detailId, caseId: state.bootstrap.caseId });
+      }
+
+      if (goodItems.length > 0) {
+        runGoodQueue(0);
+        return;
+      }
+
+      if (submissions.length === 0) {
+        return;
+      }
+
+      var lt0 = document.getElementById('loadingText');
+      if (lt0) lt0.textContent = '全 ' + submissions.length + ' 件を送信中...';
+      google.script.run
+        .withSuccessHandler(function (result) {
+          hideLoading();
+          if (result && result.success) {
+            applyPhotoSuccess(result);
+          } else {
+            resetAllBtn();
+            showToast((result && result.error) || '一括送信に失敗しました', true);
+          }
+        })
+        .withFailureHandler(function (err) {
+          hideLoading();
+          resetAllBtn();
+          showToast('エラー: ' + err.message, true);
+        })
+        .submitAllAfterPhotos(submissions);
+    }
+
+    // ===== フッター更新 =====
+    function updateFooter() {
+      const btnAll = document.getElementById('btnSubmitAll');
+      const footer = document.getElementById('footerActions');
+
+      const allApproved = state.details.every(d => d.status === STATUS_APPROVED);
+
+      if (allApproved) {
+        footer.innerHTML = '<div class="all-done-message">全て確認済みです</div>';
+        return;
+      }
+
+      const pendingPhoto = Object.keys(state.photoMap).length;
+      const goodToSubmit = state.details.filter(function (d) {
+        return (
+          isNoAfterPhotoKind(d.kind) &&
+          d.status !== STATUS_SUBMITTED &&
+          d.status !== STATUS_APPROVED
+        );
+      }).length;
+      const batchN = pendingPhoto + goodToSubmit;
+
+      if (btnAll) {
+        if (batchN > 0) {
+          btnAll.disabled = false;
+          btnAll.textContent = 'まとめて全件提出（' + batchN + '件）';
+        } else {
+          btnAll.disabled = true;
+          btnAll.textContent = 'まとめて全件提出';
+        }
+      }
+    }
+
+    // ===== モーダル =====
+    function openModal(src) {
+      const modal = document.getElementById('photoModal');
+      const img = document.getElementById('modalImage');
+      img.src = src;
+      modal.classList.add('show');
+    }
+
+    function closeModal() {
+      document.getElementById('photoModal').classList.remove('show');
+    }
+
+    // ===== トースト =====
+    function showToast(message, isError) {
+      const toast = document.getElementById('toast');
+      toast.textContent = message;
+      toast.className = 'toast show' + (isError ? ' error' : '');
+      setTimeout(() => {
+        toast.classList.remove('show');
+      }, 3000);
+    }
+
+    // ===== ローディング =====
+    function showLoading(text) {
+      document.getElementById('loadingText').textContent = text || '送信中...';
+      document.getElementById('loadingOverlay').classList.add('show');
+    }
+
+    function hideLoading() {
+      document.getElementById('loadingOverlay').classList.remove('show');
+    }
+
+    // ===== エスケープ =====
+    function escapeHtml(str) {
+      if (!str) return '';
+      var div = document.createElement('div');
+      div.appendChild(document.createTextNode(String(str)));
+      return div.innerHTML;
+    }
+
+    function escapeAttr(str) {
+      if (!str) return '';
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;');
+    }
+  </script>
+
+</body>
+
+</html>

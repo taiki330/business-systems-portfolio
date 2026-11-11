@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<base target="_top">
+<?!= include('Style'); ?>
+</head>
+<body>
+<header><h1 id="title">履歴</h1></header>
+<main>
+  <a class="back" id="homeLink" href="#">← ホームへ</a>
+  <div id="app"><div class="spin">読み込み中…</div></div>
+</main>
+
+<script>
+  var APP_URL = '<?= initParams && initParams.appUrl ? initParams.appUrl : "" ?>';
+  var CLINIC  = '<?= initParams && initParams.clinic ? initParams.clinic : "" ?>';
+</script>
+<?!= include('Common'); ?>
+<script>
+  var ITEMS = [];
+  // 本部は全院の動きを追う必要があるため、既定で全院表示にする。
+  var ALL = (CLINIC === 'PV');
+
+  $('homeLink').href = link('home');
+  if (requireClinic('title')) load();
+
+  function load(){
+    showLoading('app');
+    google.script.run.withSuccessHandler(function(res){
+      ITEMS = res.items;
+      render();
+    }).withFailureHandler(fail).getHistory(ALL ? '' : CLINIC, 300);
+  }
+
+  function render(){
+    $('title').innerHTML = '<span class="clinicTag">' + esc(ALL ? '全院' : CLINIC) + '</span> 履歴';
+
+    var toggle = (CLINIC === 'PV')
+      ? '<div class="filters"><select onchange="ALL=(this.value===\'1\');load();">'
+        + '<option value="1"' + (ALL ? ' selected' : '') + '>全院</option>'
+        + '<option value="0"' + (ALL ? '' : ' selected') + '>PVのみ</option>'
+        + '</select><input type="text" id="q" placeholder="機器ID・操作・メモで検索" oninput="draw()"></div>'
+      : '<div class="filters"><input type="text" id="q" placeholder="機器ID・操作・メモで検索" oninput="draw()"></div>';
+
+    $('app').innerHTML = '<div class="card">' + toggle
+      + '<div class="scroll"><table id="tbl"></table></div>'
+      + '<div class="note" id="cnt"></div></div>';
+    draw();
+  }
+
+  function draw(){
+    var q = ($('q').value || '').trim().toLowerCase();
+    var rows = ITEMS.filter(function(h){
+      if (!q) return true;
+      return [h.id, h.action, h.memo, h.before, h.after, h.user]
+        .join(' ').toLowerCase().indexOf(q) >= 0;
+    });
+
+    var html = '<tr><th>日時</th><th>医院</th><th>対象</th><th>操作</th>'
+             + '<th>変更</th><th class="wrap">メモ</th><th>操作者</th></tr>';
+    rows.forEach(function(h){
+      html += '<tr>'
+        + '<td>' + esc(h.at) + '</td>'
+        + '<td>' + esc(h.clinic) + '</td>'
+        + '<td>' + esc(h.kind) + ' ' + esc(h.id) + '</td>'
+        + '<td>' + esc(h.action) + '</td>'
+        + '<td>' + (h.before || h.after
+             ? esc(h.before || '—') + ' → ' + esc(h.after || '—') : '—') + '</td>'
+        + '<td class="wrap">' + esc(h.memo) + '</td>'
+        + '<td>' + esc(shortUser(h.user)) + '</td>'
+        + '</tr>';
+    });
+    $('tbl').innerHTML = html;
+    $('cnt').textContent = rows.length + ' 件を表示（直近300件まで）';
+  }
+
+  /** メールアドレスは長いのでアカウント名だけ出す */
+  function shortUser(u){
+    return String(u || '').split('@')[0];
+  }
+</script>
+</body>
+</html>

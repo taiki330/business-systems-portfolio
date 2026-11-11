@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<base target="_top">
+<style>
+  :root{ --line:#d8dde5; --ink:#1a1a1a; --sub:#5a6270; --accent:#1e5aa8;
+         --soft:#f4f6f9; --changed:#fff7e0; --ok:#1e7a4d; }
+  *{box-sizing:border-box;}
+  body{margin:0;font-family:"Yu Gothic",YuGothic,"Hiragino Kaku Gothic ProN","Meiryo",sans-serif;
+       color:var(--ink);background:#eef1f5;font-size:14px;}
+  header{position:sticky;top:0;z-index:10;background:#fff;border-bottom:2px solid var(--accent);
+         padding:10px 14px;box-shadow:0 1px 6px rgba(0,0,0,.06);}
+  h1{font-size:16px;margin:0 0 8px;}
+  .bar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;}
+  select,input[type=text]{font-size:14px;padding:6px 10px;border:1px solid var(--line);border-radius:5px;background:#fff;}
+  .hint{font-size:12px;color:var(--sub);}
+  /* 理事長・事務ホームへの戻り導線。他の管理画面と同じ見た目にそろえている。 */
+  .back{font-size:12.5px;color:var(--accent);font-weight:700;text-decoration:none;white-space:nowrap;}
+  .addbtn{background:#fff;color:var(--accent);border:1px solid var(--accent);padding:6px 12px;font-size:13px;}
+  .addpanel{display:none;margin:10px 14px 0;padding:14px;background:#eef7f0;border:1px solid #cfe6d8;border-radius:8px;max-width:980px;}
+  .addpanel.open{display:block;}
+  .distpanel{display:none;margin:10px 14px 0;padding:14px;background:#fff8e8;border:1px solid #e8d5a6;border-radius:8px;max-width:760px;}
+  .distpanel.open{display:block;}
+  .distpanel h2{font-size:15px;margin:0 0 8px;color:#805b00;}
+  .distbtn{white-space:nowrap;background:#fff;color:var(--accent);border:1px solid var(--accent);font-size:12px;padding:5px 8px;}
+  .addpanel h2{font-size:15px;margin:0 0 10px;color:var(--ok);}
+  .fields{display:grid;grid-template-columns:repeat(4,minmax(130px,1fr));gap:8px;}
+  .field label{display:block;font-size:12px;color:var(--sub);font-weight:700;margin-bottom:3px;}
+  .field input,.field select{width:100%;font-size:14px;padding:6px 8px;border:1px solid var(--line);border-radius:5px;background:#fff;}
+  .clinics{display:flex;gap:10px;flex-wrap:wrap;margin:9px 0;}
+  .clinics label{font-size:13px;}
+  .addactions{display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
+  .addactions button{background:var(--ok);padding:8px 14px;font-size:13px;}
+  .addmsg{font-size:13px;color:var(--sub);}
+  main{padding:10px 14px 84px;}
+  .scroll{overflow-x:auto;}
+  table{border-collapse:collapse;background:#fff;min-width:1000px;}
+  th,td{border:1px solid var(--line);padding:4px 6px;text-align:left;font-size:12.5px;vertical-align:middle;white-space:nowrap;}
+  th{background:var(--soft);position:sticky;top:0;}
+  td input,td select{font-size:12.5px;padding:4px 6px;border:1px solid var(--line);border-radius:4px;background:#fff;}
+  td input.num{text-align:right;}
+  tr.changed td{background:var(--changed);}
+  .pid{color:var(--sub);font-family:monospace;}
+  .empty,.spin{padding:40px;text-align:center;color:var(--sub);}
+  footer{position:fixed;bottom:0;left:0;right:0;background:#fff;border-top:1px solid var(--line);
+         padding:10px 14px;display:flex;gap:12px;align-items:center;justify-content:flex-end;box-shadow:0 -1px 6px rgba(0,0,0,.06);}
+  footer .status{margin-right:auto;color:var(--sub);font-size:13px;}
+  button{cursor:pointer;font-size:15px;font-weight:700;border:none;border-radius:6px;padding:9px 20px;background:var(--ok);color:#fff;}
+  button:disabled{opacity:.5;cursor:not-allowed;}
+</style>
+</head>
+<body>
+<header>
+  <h1>商品マスタ管理</h1>
+  <div class="bar">
+    <a class="back" id="backLink" href="#">← ホーム</a>
+    <label>カテゴリ：<select id="catFilter"><option value="">すべて</option></select></label>
+    <input type="text" id="search" placeholder="品名・発注先で絞り込み" style="min-width:200px;">
+    <button class="addbtn" id="toggleAdd">＋ 新規資材を追加・配布</button>
+    <span class="hint">単価・発注先・使用期限管理などを直接編集 → 変更した行だけ保存されます。</span>
+  </div>
+</header>
+
+<section class="addpanel" id="addPanel">
+  <h2>新規資材を追加して配布</h2>
+  <div class="fields">
+    <div class="field"><label>カテゴリ</label><input type="text" id="addCategory"></div>
+    <div class="field"><label>品名（必須）</label><input type="text" id="addName"></div>
+    <div class="field"><label>税抜価格</label><input type="number" min="0" step="1" id="addPriceExTax"></div>
+    <!-- 発注先：登録済みの発注先から選ぶか、「その他」で新しい発注先を入力する。
+         入力した発注先は保存後、次回から選択肢に並ぶ（buildSupplierOptions）。 -->
+    <div class="field"><label>発注先</label>
+      <select id="addSupplierSel"></select>
+      <input type="text" id="addSupplier" placeholder="発注先を入力" style="margin-top:4px;display:none;">
+    </div>
+    <div class="field"><label>標準発注数量</label><input type="number" min="0" step="1" id="addStandardQty"></div>
+    <div class="field"><label>使用期限管理</label><select id="addExpiry"><option value="不要">不要</option><option value="要">要</option></select></div>
+    <div class="field"><label>備考</label><input type="text" id="addNote"></div>
+  </div>
+  <div style="font-size:12px;color:var(--sub);margin-top:10px;font-weight:700;">配布先医院（1院以上選択）</div>
+  <div class="clinics" id="addClinics"></div>
+  <div class="addactions"><button id="addSubmit">追加して配布する</button><span class="addmsg" id="addMsg"></span></div>
+  <div class="hint" style="margin-top:7px;">配布先では「未設定」として表示されます。各院が管理方式と発注基準数を設定してください。</div>
+</section>
+
+<section class="distpanel" id="distPanel">
+  <h2>既存商品を医院へ追加</h2>
+  <div id="distProduct" style="font-weight:700;"></div>
+  <div class="hint" style="margin-top:4px;">商品マスタの商品IDは変えず、選択した医院の「医院別在庫」へ追加します。</div>
+  <div style="font-size:12px;margin-top:10px;font-weight:700;">追加先医院（1院以上選択）</div>
+  <div class="clinics" id="distClinics"></div>
+  <div class="addactions">
+    <button id="distSubmit">選択した医院へ追加</button>
+    <button class="addbtn" id="distCancel">閉じる</button>
+    <span class="addmsg" id="distMsg"></span>
+  </div>
+</section>
+
+<main>
+  <div id="wrap"><div class="spin">読み込み中…</div></div>
+</main>
+
+<footer>
+  <span class="status" id="status"></span>
+  <span id="changeInfo" style="color:var(--sub);"></span>
+  <button id="saveBtn" disabled>変更を保存</button>
+</footer>
+
+<script>
+  var EXP_YES = '要', EXP_NO = '不要';
+  var state = [];   // {productId, ...fields, _orig: {...}}
+  var $ = function(id){ return document.getElementById(id); };
+  // GASのiframe内では相対URLが解決されないため、実行URLを受け取って絶対リンクを組む
+  var APP_URL = '<?= initParams && initParams.appUrl ? initParams.appUrl : "" ?>';
+  $('backLink').href = APP_URL + '?page=adminhome';
+  // 評価単価（税込）は当面使わないため画面から外している。
+  // FIELDS に入れないことで、保存時にサーバーへ送られず既存の値も触らない。
+  var FIELDS = ['category','name','priceExTax','supplier','standardQty','expiryManaged','note'];
+  // 0以上の数値のみ許可する項目
+  var NUM_FIELDS = ['priceExTax','standardQty'];
+  var SUPPLIER_OPTIONS = [];
+  var CLINICS = [];
+  var distTarget = null;
+
+  $('catFilter').onchange = render;
+  $('search').oninput = render;
+  $('saveBtn').onclick = save;
+  $('toggleAdd').onclick = function(){
+    $('addPanel').classList.toggle('open');
+    if($('addPanel').classList.contains('open')) $('addName').focus();
+  };
+  $('addSubmit').onclick = addAndDistribute;
+  $('distSubmit').onclick = distributeSelected;
+  $('distCancel').onclick = closeDistribution;
+  google.script.run.withSuccessHandler(function(clinics){
+    CLINICS = clinics || [];
+    var checks = CLINICS.map(function(c){
+      return '<label><input type="checkbox" value="'+esc(c)+'"> '+esc(c)+'</label>';
+    }).join('');
+    $('addClinics').innerHTML = checks;
+    $('distClinics').innerHTML = checks;
+  }).getClinicList();
+  load();
+
+  function load(){
+    $('wrap').innerHTML = '<div class="spin">読み込み中…</div>';
+    google.script.run
+      .withSuccessHandler(function(res){
+        state = (res.items || []).map(function(it){
+          var o = {}; FIELDS.forEach(function(f){ o[f] = it[f]; });
+          o.productId = it.productId;
+          o._orig = JSON.parse(JSON.stringify(o));
+          return o;
+        });
+        buildCatFilter();
+        buildSupplierOptions();
+        render();
+        setStatus(state.length + ' 商品');
+      })
+      .withFailureHandler(function(err){ $('wrap').innerHTML = '<div class="empty">読み込み失敗：'+esc(err.message)+'</div>'; })
+      .getProductMaster();
+  }
+
+  function buildCatFilter(){
+    var cats = {}; state.forEach(function(it){ if(it.category) cats[it.category]=1; });
+    var sel = $('catFilter'); sel.innerHTML = '<option value="">すべて</option>';
+    Object.keys(cats).sort().forEach(function(c){ var o=document.createElement('option'); o.value=c; o.textContent=c; sel.appendChild(o); });
+  }
+
+  // 発注先の選択肢＝現在マスタに登録されている発注先の重複除去一覧。
+  // 「その他」で新しい発注先を入力→保存→再読込すると、この一覧に自動的に加わる。
+  function buildSupplierOptions(){
+    var set = {};
+    state.forEach(function(it){ if(it.supplier) set[it.supplier] = 1; });
+    SUPPLIER_OPTIONS = Object.keys(set).sort();
+    buildAddSupplierSelect();
+  }
+
+  // 新規追加パネルの発注先プルダウン。表と同じ選択肢＋「その他（自由入力）」。
+  function buildAddSupplierSelect(){
+    var sel = $('addSupplierSel');
+    if(!sel) return;
+    var keep = sel.value;
+    sel.innerHTML = '<option value="">（未設定）</option>'
+      + SUPPLIER_OPTIONS.map(function(s){ return '<option value="'+esc(s)+'">'+esc(s)+'</option>'; }).join('')
+      + '<option value="__other__">その他（自由入力）</option>';
+    if(keep) sel.value = keep;
+    sel.onchange = function(){
+      var txt = $('addSupplier');
+      if(this.value === '__other__'){ txt.style.display='block'; txt.value=''; txt.focus(); }
+      else { txt.style.display='none'; txt.value=''; }
+    };
+  }
+
+  // 新規追加パネルで確定した発注先（「その他」なら入力欄の値）
+  function addSupplierValue(){
+    var sel = $('addSupplierSel');
+    if(!sel) return '';
+    if(sel.value === '__other__') return $('addSupplier').value.trim();
+    return sel.value;
+  }
+
+  function visible(){
+    var cat = $('catFilter').value, q = $('search').value.trim();
+    return state.filter(function(it){
+      if(cat && it.category !== cat) return false;
+      if(q && (it.name+it.supplier).indexOf(q) < 0) return false;
+      return true;
+    });
+  }
+
+  function render(){
+    var list = visible();
+    if(!list.length){ $('wrap').innerHTML = '<div class="empty">該当する商品がありません。</div>'; updateFooter(); return; }
+    var html = '<div class="scroll"><table><thead><tr>'
+      + '<th>商品ID</th><th>カテゴリ</th><th>品名</th>'
+      + '<th>税抜価格</th>'
+      + '<th>発注先</th><th>標準発注数量</th><th>使用期限管理</th><th>備考</th>'
+      + '<th>医院へ追加</th>'
+      + '</tr></thead><tbody>';
+    list.forEach(function(it){
+      html += '<tr id="tr_'+esc(it.productId)+'" class="'+(changed(it)?'changed':'')+'">'
+        + '<td class="pid">'+esc(it.productId)+'</td>'
+        + tdInput(it,'category',90) + tdInput(it,'name',200)
+        + tdNum(it,'priceExTax') + tdSupplier(it) + tdNum(it,'standardQty')
+        + tdSelect(it,'expiryManaged',[['',''],[EXP_NO,EXP_NO],[EXP_YES,EXP_YES]])
+        + tdInput(it,'note',140)
+        + '<td><button class="distbtn" data-dist="'+esc(it.productId)+'">医院を選択</button></td>'
+        + '</tr>';
+    });
+    html += '</tbody></table></div>';
+    $('wrap').innerHTML = html;
+    list.forEach(bindRow);
+    document.querySelectorAll('button[data-dist]').forEach(function(btn){
+      btn.onclick=function(){ openDistribution(this.getAttribute('data-dist')); };
+    });
+    updateFooter();
+  }
+
+  function tdInput(it, f, w){ return '<td><input type="text" id="f_'+f+'_'+esc(it.productId)+'" value="'+esc(it[f])+'" style="width:'+w+'px;"></td>'; }
+  function tdNum(it, f){ return '<td><input type="number" min="0" step="1" class="num" id="f_'+f+'_'+esc(it.productId)+'" value="'+esc(it[f])+'" style="width:80px;"></td>'; }
+  function tdSelect(it, f, opts){
+    var o = opts.map(function(p){ return '<option value="'+esc(p[0])+'"'+(String(it[f])===p[0]?' selected':'')+'>'+esc(p[1]||'—')+'</option>'; }).join('');
+    return '<td><select id="f_'+f+'_'+esc(it.productId)+'">'+o+'</select></td>';
+  }
+
+  // 発注先：既存の発注先一覧から選択、または「その他」で自由入力（次回読込時に選択肢へ加わる）
+  function tdSupplier(it){
+    var pid = esc(it.productId);
+    var known = it.supplier !== '' && SUPPLIER_OPTIONS.indexOf(it.supplier) >= 0;
+    var selVal = it.supplier === '' ? '' : (known ? it.supplier : '__other__');
+    var opts = '<option value="">（未設定）</option>'
+      + SUPPLIER_OPTIONS.map(function(s){ return '<option value="'+esc(s)+'"'+(selVal===s?' selected':'')+'>'+esc(s)+'</option>'; }).join('')
+      + '<option value="__other__"'+(selVal==='__other__'?' selected':'')+'>その他（自由入力）</option>';
+    var showText = selVal === '__other__';
+    return '<td>'
+      + '<select id="fsel_supplier_'+pid+'">'+opts+'</select>'
+      + '<input type="text" id="ftxt_supplier_'+pid+'" placeholder="発注先を入力" '
+        + 'style="width:110px;margin-top:3px;display:'+(showText?'block':'none')+';" '
+        + 'value="'+esc(showText?it.supplier:'')+'">'
+      + '</td>';
+  }
+
+  function bindRow(it){
+    FIELDS.forEach(function(f){
+      if(f === 'supplier') return; // 専用バインド（bindSupplier）
+      var el = $('f_'+f+'_'+it.productId);
+      if(!el) return;
+      el.oninput = el.onchange = function(){
+        it[f] = this.value;
+        var tr = $('tr_'+it.productId); if(tr) tr.className = changed(it) ? 'changed' : '';
+        updateFooter();
+      };
+    });
+    bindSupplier(it);
+  }
+
+  function bindSupplier(it){
+    var pid = it.productId;
+    var sel = $('fsel_supplier_'+pid);
+    var txt = $('ftxt_supplier_'+pid);
+    if(!sel) return;
+    function mark(){
+      var tr = $('tr_'+pid); if(tr) tr.className = changed(it) ? 'changed' : '';
+      updateFooter();
+    }
+    sel.onchange = function(){
+      if(this.value === '__other__'){
+        txt.style.display = 'block';
+        txt.value = '';
+        it.supplier = '';
+        txt.focus();
+      } else {
+        txt.style.display = 'none';
+        it.supplier = this.value;
+      }
+      mark();
+    };
+    txt.oninput = function(){
+      it.supplier = this.value;
+      mark();
+    };
+  }
+
+  function changed(it){ return FIELDS.some(function(f){ return String(it[f]) !== String(it._orig[f]); }); }
+  function changedList(){ return state.filter(changed); }
+  function updateFooter(){
+    var n = changedList().length;
+    $('changeInfo').textContent = n ? ('変更 '+n+'件') : '変更なし';
+    $('saveBtn').disabled = n === 0;
+  }
+  function setStatus(m){ $('status').textContent = m || ''; }
+
+  function save(){
+    var ch = changedList();
+    if(!ch.length) return;
+    // 数値チェック
+    var bad = ch.filter(function(it){
+      return NUM_FIELDS.some(function(f){ var s=String(it[f]).trim(); return s!=='' && (isNaN(Number(s))||Number(s)<0); });
+    });
+    if(bad.length){ alert('税抜価格・標準発注数量は0以上の数値で入力してください。'); return; }
+    var noName = ch.filter(function(it){ return String(it.name).trim()===''; });
+    if(noName.length){ alert('品名は必須です。'); return; }
+
+    if(!confirm('変更した '+ch.length+' 商品を保存します。よろしいですか？')) return;
+    $('saveBtn').disabled = true; setStatus('保存中…');
+    var payload = ch.map(function(it){
+      var o = { productId: it.productId }; FIELDS.forEach(function(f){ o[f] = it[f]; }); return o;
+    });
+    google.script.run
+      .withSuccessHandler(function(res){ setStatus('保存しました（'+res.saved+'件）。再読み込みします…'); load(); })
+      .withFailureHandler(function(err){ setStatus('保存に失敗：'+esc(err.message)); $('saveBtn').disabled = false; })
+      .saveProductMaster(payload);
+  }
+
+  function addAndDistribute(){
+    var name = $('addName').value.trim();
+    var clinics = Array.prototype.slice.call($('addClinics').querySelectorAll('input:checked'))
+      .map(function(el){ return el.value; });
+    if(!name){ alert('品名を入力してください。'); $('addName').focus(); return; }
+    if(!clinics.length){ alert('配布先医院を1院以上選んでください。'); return; }
+    var item = {
+      category: $('addCategory').value.trim(), name: name,
+      priceExTax: $('addPriceExTax').value.trim(), supplier: addSupplierValue(),
+      standardQty: $('addStandardQty').value.trim(), expiryManaged: $('addExpiry').value,
+      note: $('addNote').value.trim()
+    };
+    var badNumber = NUM_FIELDS.some(function(f){
+      var v = item[f]; return v !== '' && (isNaN(Number(v)) || Number(v) < 0);
+    });
+    if(badNumber){ alert('税抜価格・標準発注数量は0以上の数値で入力してください。'); return; }
+    $('addSubmit').disabled = true; $('addMsg').textContent = '追加・配布中…';
+    google.script.run
+      .withSuccessHandler(function(res){
+        $('addSubmit').disabled = false;
+        $('addMsg').textContent = '「'+res.name+'」を '+res.addedClinics.length+'院へ配布しました。';
+        ['addName','addPriceExTax','addStandardQty','addNote']
+          .forEach(function(id){ $(id).value=''; });
+        $('addSupplierSel').value = ''; $('addSupplier').value = ''; $('addSupplier').style.display = 'none';
+        $('addClinics').querySelectorAll('input').forEach(function(el){ el.checked=false; });
+        load();
+      })
+      .withFailureHandler(function(err){ $('addSubmit').disabled = false; $('addMsg').textContent = '失敗：'+err.message; })
+      .addProductAndDistribute(item, clinics);
+  }
+
+  function openDistribution(productId){
+    distTarget = state.filter(function(it){ return it.productId === productId; })[0] || null;
+    if(!distTarget) return;
+    $('distProduct').textContent = distTarget.productId + '　' + distTarget.name;
+    $('distMsg').textContent = '';
+    $('distClinics').querySelectorAll('input').forEach(function(el){ el.checked=false; });
+    $('distPanel').classList.add('open');
+    $('distPanel').scrollIntoView({behavior:'smooth',block:'nearest'});
+  }
+
+  function closeDistribution(){
+    $('distPanel').classList.remove('open');
+    distTarget = null;
+  }
+
+  function distributeSelected(){
+    if(!distTarget) return;
+    var clinics = Array.prototype.slice.call($('distClinics').querySelectorAll('input:checked')).map(function(el){ return el.value; });
+    if(!clinics.length){ alert('追加先医院を1院以上選んでください。'); return; }
+    $('distSubmit').disabled=true; $('distMsg').textContent='追加中…';
+    google.script.run
+      .withSuccessHandler(function(res){
+        $('distSubmit').disabled=false;
+        var msg = res.addedClinics.length ? (res.addedClinics.join('、')+'へ追加しました。') : '選択した医院には追加済みです。';
+        if(res.alreadyDistributed.length && res.addedClinics.length) msg += ' 追加済み：'+res.alreadyDistributed.join('、');
+        $('distMsg').textContent=msg;
+      })
+      .withFailureHandler(function(err){ $('distSubmit').disabled=false; $('distMsg').textContent='失敗：'+err.message; })
+      .distributeExistingProduct(distTarget.productId,clinics);
+  }
+
+  function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g,function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
+</script>
+</body>
+</html>

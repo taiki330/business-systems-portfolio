@@ -1,0 +1,314 @@
+{
+  "product": {
+    "name": "歯科医院 在庫管理システム",
+    "subtitle": "利用者マニュアル",
+    "client": "サンプル商事サンプル歯科A",
+    "version": "1.1"
+  },
+  "source": {
+    "type": "gas-webapp",
+    "appUrl": "https://script.google.com/macros/s/AKfycb_SAMPLE_DEPLOYMENT_ID/exec",
+    "routerFile": "router.js",
+    "defaultQuery": {
+      "clinic": "PV"
+    },
+    "scriptDirs": [
+      "."
+    ]
+  },
+  "capture": {
+    "authDir": "tools/manual/.auth",
+    "outDir": "docs/manual/images",
+    "viewport": {
+      "width": 1280,
+      "height": 900
+    },
+    "deviceScaleFactor": 2,
+    "settleMs": 2000,
+    "waitForGone": [
+      ".spin"
+    ],
+    "navigationTimeoutMs": 60000,
+    "maxHeight": 1600,
+    "headless": true,
+    "redactSelectors": []
+  },
+  "output": {
+    "docsDir": "docs/manual",
+    "screensDir": "docs/manual/screens",
+    "evidenceDir": "tools/manual/.evidence",
+    "pdfFile": "docs/manual/歯科医院在庫管理システム_利用者マニュアル.pdf",
+    "docxFile": "docs/manual/歯科医院在庫管理システム_利用者マニュアル.docx"
+  },
+  "categories": [
+    {
+      "key": "start",
+      "title": "はじめに"
+    },
+    {
+      "key": "daily",
+      "title": "毎日つかう画面"
+    },
+    {
+      "key": "order",
+      "title": "発注・入荷"
+    },
+    {
+      "key": "check",
+      "title": "確認・棚卸し"
+    },
+    {
+      "key": "admin",
+      "title": "設定・管理"
+    }
+  ],
+  "screens": [
+    {
+      "key": "home",
+      "title": "在庫管理ホーム",
+      "category": "start",
+      "order": 10,
+      "html": "Home.html",
+      "scripts": [
+        "home.js"
+      ],
+      "query": {
+        "page": "home"
+      },
+      "waitFor": ".grid, .pick"
+    },
+    {
+      "key": "stock",
+      "title": "現在庫一覧・検索",
+      "category": "daily",
+      "order": 20,
+      "html": "StockList.html",
+      "scripts": [
+        "stock.js"
+      ],
+      "query": {
+        "page": "stock"
+      }
+    },
+    {
+      "key": "useinstant",
+      "title": "使用登録（QR読み取り）",
+      "category": "daily",
+      "order": 30,
+      "html": "UseInstant.html",
+      "scripts": [
+        "usage.js"
+      ],
+      "query": {
+        "p": "P0001"
+      },
+      "waitFor": "#clinicSel",
+      "clearStorage": [
+        "tanaoroshi_clinic"
+      ],
+      "note": "?p=商品ID で開く画面。QRを開いただけでは在庫は変わらず、確定ボタンを押したときだけ更新する。端末の医院設定と、その医院ホームで選ばれたQR読取モードに従い、通常使用または棚卸し入力を行う。撮影時は clearStorage で医院設定を消し、初回セットアップ画面を撮る。",
+      "waitForGone": []
+    },
+    {
+      "key": "order",
+      "title": "発注候補・発注登録",
+      "category": "order",
+      "order": 40,
+      "html": "OrderCandidates.html",
+      "scripts": [
+        "order.js",
+        "readmodel.js"
+      ],
+      "query": {
+        "page": "order"
+      },
+      "waitFor": "#clinicTag",
+      "note": "医院はURLの ?clinic= で決まる（画面上の医院プルダウンは廃止済み）。",
+      "actions": [
+        {
+          "type": "click",
+          "selector": "#loadBtn"
+        },
+        {
+          "type": "wait",
+          "ms": 1500
+        }
+      ]
+    },
+    {
+      "key": "receive",
+      "title": "入荷登録",
+      "category": "order",
+      "order": 50,
+      "html": "Receiving.html",
+      "scripts": [
+        "order.js"
+      ],
+      "query": {
+        "page": "receive"
+      },
+      "waitFor": "#clinicTag",
+      "actions": [
+        {
+          "type": "click",
+          "selector": "#loadBtn"
+        },
+        {
+          "type": "wait",
+          "ms": 1200
+        }
+      ]
+    },
+    {
+      "key": "expiry",
+      "title": "使用期限アラート",
+      "category": "check",
+      "order": 60,
+      "html": "ExpiryAlert.html",
+      "scripts": [
+        "expiry.js",
+        "readmodel.js"
+      ],
+      "query": {
+        "page": "expiry"
+      }
+    },
+    {
+      "key": "bulkstock",
+      "title": "一斉在庫登録（棚卸し）",
+      "category": "check",
+      "order": 70,
+      "html": "BulkStock.html",
+      "scripts": [
+        "bulkstock.js"
+      ],
+      "query": {
+        "page": "bulkstock"
+      }
+    },
+    {
+      "key": "transfer",
+      "title": "資材移動（貸し借り）",
+      "category": "check",
+      "order": 80,
+      "html": "Transfer.html",
+      "scripts": [
+        "transfer.js"
+      ],
+      "query": {
+        "page": "transfer"
+      },
+      "waitFor": "#dest"
+    },
+    {
+      "key": "correction",
+      "title": "訂正・取消",
+      "category": "check",
+      "order": 90,
+      "html": "Correction.html",
+      "scripts": [
+        "correction.js"
+      ],
+      "query": {
+        "page": "correction"
+      }
+    },
+    {
+      "key": "kanri",
+      "title": "管理方式 設定ツール",
+      "category": "admin",
+      "order": 100,
+      "html": "Index.html",
+      "scripts": [
+        "webapp.js"
+      ],
+      "query": {
+        "page": "kanri"
+      }
+    },
+    {
+      "key": "productmaster",
+      "title": "商品マスタ管理",
+      "category": "admin",
+      "order": 110,
+      "html": "ProductMaster.html",
+      "scripts": [
+        "productmaster.js"
+      ],
+      "query": {
+        "page": "productmaster"
+      }
+    },
+    {
+      "key": "qrprint",
+      "title": "QRコード生成（印刷用）",
+      "category": "admin",
+      "order": 120,
+      "html": "QrPrint.html",
+      "scripts": [
+        "qr.js"
+      ],
+      "query": {
+        "page": "qrprint"
+      }
+    },
+    {
+      "key": "adminhome",
+      "title": "在庫管理ホーム（理事長・事務）",
+      "category": "admin",
+      "order": 125,
+      "html": "AdminHome.html",
+      "scripts": [
+        "webapp.js"
+      ],
+      "query": {
+        "page": "adminhome"
+      },
+      "waitFor": ".grid",
+      "note": "理事長・事務だけに配るURL。総資産・稼働率・商品マスタの入口をまとめた画面。医院コードは付けない（全医院が対象のため）。"
+    },
+    {
+      "key": "director",
+      "title": "総資産・全医院サマリ",
+      "category": "admin",
+      "order": 130,
+      "html": "Director.html",
+      "scripts": [
+        "home.js"
+      ],
+      "query": {
+        "page": "director"
+      }
+    },
+    {
+      "key": "usagerate",
+      "title": "資材の稼働率",
+      "category": "admin",
+      "order": 140,
+      "html": "UsageRate.html",
+      "scripts": [
+        "usagerate.js"
+      ],
+      "query": {
+        "page": "usagerate"
+      },
+      "waitFor": ".kpis",
+      "note": "使用履歴から集計するため、運用が始まって履歴が溜まるまでは中身がほぼ空になる。撮影時期に注意。"
+    },
+    {
+      "key": "historyadmin",
+      "title": "履歴の保管・削除",
+      "category": "admin",
+      "order": 150,
+      "html": "HistoryAdmin.html",
+      "scripts": [
+        "historyarchive.js"
+      ],
+      "query": {
+        "page": "historyadmin"
+      },
+      "waitFor": ".card",
+      "note": "年1回の作業。書き出し→確認→削除の2段階で、削除は書き出し済みのアーカイブを指定したときだけ実行できる。"
+    }
+  ]
+}

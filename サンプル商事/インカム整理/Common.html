@@ -1,0 +1,110 @@
+<script>
+  // 各画面で共通して使う小道具。
+  // 呼び出し元のHTMLが先に APP_URL / CLINIC を定義しておくこと
+  // （include() はテンプレート評価をしないため、initParams をここでは読めない）。
+
+  function $(id){ return document.getElementById(id); }
+
+  /** 同じデプロイURL内の別画面へのリンク（iframe内では相対URLが解決されないため絶対URLで組む） */
+  function link(page){
+    return APP_URL + '?page=' + page + '&clinic=' + encodeURIComponent(CLINIC);
+  }
+
+  // Apps Script の HTML は内部 iframe 上で実行される。通常の <a> 遷移のままだと
+  // /exec を iframe 内に読み込み、script.google.com に拒否されるため、アプリ内の
+  // 画面遷移は親ウィンドウで行う。
+  document.addEventListener('click', function(e){
+    var el = e.target;
+    while (el && el.tagName !== 'A') el = el.parentElement;
+    if (!el || !APP_URL || !el.href || el.target) return;
+    if (el.href.indexOf(APP_URL + '?') !== 0) return;
+    e.preventDefault();
+    window.top.location.href = el.href;
+  });
+
+  function go(page){
+    window.top.location.href = link(page);
+  }
+
+  function selectClinic(code){
+    window.top.location.href = APP_URL + '?page=home&clinic=' + encodeURIComponent(code);
+  }
+
+  /** 画面に出す前に必ず通す。スタッフ名や備考がそのまま流し込まれるため。 */
+  function esc(s){
+    return String(s==null?'':s).replace(/[&<>"']/g,function(c){
+      return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];
+    });
+  }
+
+  /** 画面下に結果を出す。成功は数秒で消し、失敗は消さずに残す（見落とし防止）。 */
+  function toast(message, isError){
+    var el = $('toast');
+    if (!el) {
+      el = document.createElement('div');
+      el.id = 'toast';
+      document.body.appendChild(el);
+    }
+    el.className = 'toast' + (isError ? ' bad' : '');
+    el.textContent = message;
+    el.style.display = 'block';
+    if (toast._timer) clearTimeout(toast._timer);
+    if (!isError) toast._timer = setTimeout(function(){ el.style.display = 'none'; }, 4000);
+  }
+
+  /** google.script.run の失敗ハンドラ。原因をそのまま見せる。 */
+  function fail(err){
+    toast('エラー: ' + (err && err.message ? err.message : err), true);
+    var b = document.querySelectorAll('button');
+    for (var i = 0; i < b.length; i++) b[i].disabled = false;
+  }
+
+  /** 読み込み中の表示 */
+  function showLoading(containerId){
+    $(containerId).innerHTML = '<div class="spin">読み込み中…</div>';
+  }
+
+  /** 状態に応じたチップのHTML */
+  function statusChip(status){
+    var cls = 'spare';
+    if (status === '使用中') cls = 'inUse';
+    else if (status === '故障報告済') cls = 'trouble';
+    else if (status === '本部集約済' || status === '修理依頼中' || status === '返却待ち') cls = 'moving';
+    else if (status === '破棄') cls = 'gone';
+    return '<span class="chip ' + cls + '">' + esc(status) + '</span>';
+  }
+
+  /** 今日の日付を <input type="date"> 用の yyyy-mm-dd で返す */
+  function today(){
+    var d = new Date();
+    var m = String(d.getMonth()+1); if (m.length<2) m='0'+m;
+    var day = String(d.getDate()); if (day.length<2) day='0'+day;
+    return d.getFullYear() + '-' + m + '-' + day;
+  }
+
+  /** チェックの付いた行の値を集める */
+  function checkedValues(name){
+    var out = [];
+    var boxes = document.getElementsByName(name);
+    for (var i = 0; i < boxes.length; i++) if (boxes[i].checked) out.push(boxes[i].value);
+    return out;
+  }
+
+  /** 医院が指定されていない場合に、選ばせて自分のURLへ送り出す */
+  function requireClinic(titleId){
+    if (CLINIC) return true;
+    $(titleId).textContent = '医院を選択してください';
+    google.script.run.withSuccessHandler(function(list){
+      var html = '<div class="card"><p>利用する医院を選んでください。'
+               + '<br><span style="color:var(--sub);font-size:12.5px;">'
+               + '（各医院には医院コード付きの専用URLを配布します）</span></p><div class="actions">';
+      list.forEach(function(c){
+        html += '<button onclick="selectClinic(\'' + String(c.code).replace(/'/g, "\\'") + '\')">'
+             + esc(c.label) + '</button>';
+      });
+      html += '</div></div>';
+      $('app').innerHTML = html;
+    }).withFailureHandler(fail).getClinicList();
+    return false;
+  }
+</script>

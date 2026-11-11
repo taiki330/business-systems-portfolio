@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<base target="_top">
+<style>
+  :root{ --line:#d8dde5; --ink:#1a1a1a; --sub:#5a6270; --accent:#1e5aa8;
+         --soft:#f4f6f9; --ok:#1e7a4d; --warn:#b3541e; --err:#c0392b; }
+  *{box-sizing:border-box;}
+  body{margin:0;font-family:"Yu Gothic",YuGothic,"Hiragino Kaku Gothic ProN","Meiryo",sans-serif;
+       color:var(--ink);background:#eef1f5;font-size:14px;}
+  header{position:sticky;top:0;z-index:10;background:#fff;border-bottom:2px solid var(--accent);
+         padding:12px 16px;box-shadow:0 1px 6px rgba(0,0,0,.06);}
+  h1{font-size:17px;margin:0 0 10px;}
+  .bar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;}
+  select,input,button{font-size:14px;padding:6px 10px;border:1px solid var(--line);border-radius:5px;background:#fff;}
+  button{cursor:pointer;background:var(--accent);color:#fff;border:none;font-weight:700;}
+  button.ghost{background:#fff;color:var(--accent);border:1px solid var(--accent);}
+  .summary{display:flex;gap:10px;flex-wrap:wrap;margin-top:10px;}
+  .card{background:var(--soft);border-radius:6px;padding:6px 12px;font-size:12.5px;}
+  .card b{font-size:15px;display:block;color:var(--accent);}
+  .card.warn b{color:var(--warn);} .card.err b{color:var(--err);}
+  main{padding:12px 16px 40px;}
+  table{width:100%;border-collapse:collapse;background:#fff;}
+  th,td{border:1px solid var(--line);padding:6px 8px;text-align:left;vertical-align:middle;}
+  th{background:var(--soft);font-size:12.5px;white-space:nowrap;}
+  td.num{text-align:right;}
+  tr.expired td{background:#fbe9e7;}
+  tr.soon td{background:#fdf1e7;}
+  .status{display:inline-block;font-size:11px;padding:2px 8px;border-radius:10px;}
+  .status.err{background:#fbe9e7;color:var(--err);}
+  .status.warn{background:#fdf1e7;color:var(--warn);}
+  .status.ok{background:#e9f5ee;color:var(--ok);}
+  .expiryEdit{width:150px;}
+  .empty,.spin{padding:40px;text-align:center;color:var(--sub);}
+  .clinicTag{display:inline-block;font-size:11px;color:#fff;background:var(--accent);padding:1px 7px;border-radius:3px;}
+</style>
+</head>
+<body>
+<header>
+  <a id="homeBack" href="#" style="display:inline-block;margin-bottom:8px;font-size:13px;font-weight:700;color:var(--accent);text-decoration:none;">← 医院ホームに戻る</a>
+  <h1>使用期限アラート <span class="clinicTag" id="clinicTag"></span>（使用期限の1年前から通知）</h1>
+  <div class="summary" id="summary"></div>
+</header>
+
+<main>
+  <div id="wrap"><div class="empty">読み込み中…</div></div>
+</main>
+
+<script>
+  var CLINIC = '<?= initParams && initParams.clinic ? initParams.clinic : "" ?>';
+  if(!CLINIC){ try { CLINIC = localStorage.getItem('tanaoroshi_clinic') || ''; } catch(e){} }
+  var allItems = [];
+  var $ = function(id){ return document.getElementById(id); };
+  var LOAD_TIMEOUT_MS = 30000;
+
+  if(!CLINIC){
+    $('wrap').innerHTML = '<div class="empty">医院が指定されていません。医院ホームから開いてください。</div>';
+  } else {
+    $('clinicTag').textContent = CLINIC;
+    load();
+  }
+
+  function load(){
+    $('wrap').innerHTML = '<div class="spin">読み込み中…</div>';
+    var finished = false;
+    var timer = setTimeout(function(){
+      if(finished) return;
+      finished = true;
+      $('wrap').innerHTML = '<div class="empty">読み込みに時間がかかっています。<br>医院ホームに戻って、もう一度開いてください。</div>';
+    }, LOAD_TIMEOUT_MS);
+    google.script.run
+      .withSuccessHandler(function(res){
+        if(finished) return;
+        finished = true; clearTimeout(timer);
+        allItems = res.items || [];
+        renderSummary();
+        render();
+      })
+      .withFailureHandler(function(err){
+        if(finished) return;
+        finished = true; clearTimeout(timer);
+        $('wrap').innerHTML = '<div class="empty">読み込みに失敗：'+esc(err.message)+'</div>';
+      })
+      .getExpiryAlerts(365, CLINIC);
+  }
+
+  function renderSummary(){
+    var expired = allItems.filter(function(it){ return it.status === '期限切れ'; }).length;
+    var soon = allItems.filter(function(it){ return it.status === 'まもなく期限'; }).length;
+    $('summary').innerHTML =
+        '<div class="card"><b>'+allItems.length+'</b>件（使用期限管理対象・期限設定済み）</div>'
+      + '<div class="card err"><b>'+expired+'</b>期限切れ</div>'
+      + '<div class="card warn"><b>'+soon+'</b>まもなく期限</div>';
+  }
+
+  function visibleItems(){
+    return allItems;
+  }
+
+  function render(){
+    var items = visibleItems();
+    if(!items.length){
+      $('wrap').innerHTML = '<div class="empty">対象商品がありません（使用期限管理＝要の商品で、期限が設定されているものが表示されます）。</div>';
+      return;
+    }
+    var html = '<table><thead><tr>'
+      + '<th>医院</th><th>品名</th><th>現在庫</th><th>使用期限</th><th>残り日数</th><th>状態</th><th>期限を修正</th>'
+      + '</tr></thead><tbody>';
+    items.forEach(function(it, i){ html += renderRow(it, i); });
+    html += '</tbody></table>';
+    $('wrap').innerHTML = html;
+
+    document.querySelectorAll('.editBtn').forEach(function(btn){
+      btn.onclick = function(){ editExpiry(btn.closest('tr')); };
+    });
+  }
+
+  function renderRow(it, i){
+    var rowCls = it.status === '期限切れ' ? 'expired' : (it.status === 'まもなく期限' ? 'soon' : '');
+    var statusCls = { '期限切れ':'err', 'まもなく期限':'warn', '通常':'ok' }[it.status] || '';
+    return '<tr class="'+rowCls+'" data-clinic="'+esc(it.clinic)+'" data-pid="'+esc(it.productId)+'">'
+      + '<td><span class="clinicTag">'+esc(it.clinic)+'</span></td>'
+      + '<td>'+esc(it.name)+'</td>'
+      + '<td class="num">'+it.stock+'</td>'
+      + '<td>'+formatDate(it.expiry)+'</td>'
+      + '<td class="num">'+it.daysLeft+'</td>'
+      + '<td><span class="status '+statusCls+'">'+esc(it.status)+'</span></td>'
+      + '<td><input type="date" class="expiryEdit" value="'+toInputDate(it.expiry)+'">'
+      +   '<button class="ghost editBtn" style="margin-left:4px;">更新</button></td>'
+      + '</tr>';
+  }
+
+  function editExpiry(tr){
+    var clinic = tr.getAttribute('data-clinic');
+    var pid = tr.getAttribute('data-pid');
+    var newDate = tr.querySelector('.expiryEdit').value;
+    if(!confirm('使用期限を更新します。よろしいですか？')) return;
+    google.script.run
+      .withSuccessHandler(function(){ load(); })
+      .withFailureHandler(function(err){ alert('更新に失敗しました：'+err.message); })
+      .updateExpiryDate(clinic, pid, newDate);
+  }
+
+  // サーバーから渡される日付は Date オブジェクトがシリアライズされた文字列
+  function formatDate(v){
+    var d = new Date(v);
+    if(isNaN(d.getTime())) return '-';
+    return d.getFullYear()+'/'+(d.getMonth()+1)+'/'+d.getDate();
+  }
+  function toInputDate(v){
+    var d = new Date(v);
+    if(isNaN(d.getTime())) return '';
+    var mm = ('0'+(d.getMonth()+1)).slice(-2);
+    var dd = ('0'+d.getDate()).slice(-2);
+    return d.getFullYear()+'-'+mm+'-'+dd;
+  }
+  function esc(s){
+    return String(s==null?'':s).replace(/[&<>"']/g,function(c){
+      return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];
+    });
+  }
+</script>
+<script>
+  // 「医院ホームに戻る」リンク：現在の医院（localStorage）＋実行URL（appUrl）でホームURLを組む
+  (function(){
+    var b = document.getElementById('homeBack');
+    if (!b) return;
+    var c = localStorage.getItem('tanaoroshi_clinic') || '';
+    var base = '<?= initParams && initParams.appUrl ? initParams.appUrl : "" ?>';
+    b.href = base + '?page=home' + (c ? '&clinic=' + encodeURIComponent(c) : '');
+  })();
+</script>
+</body>
+</html>

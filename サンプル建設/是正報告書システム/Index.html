@@ -1,0 +1,1744 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>是正報告システム</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        html,
+        body {
+            width: 100%;
+            height: 100%;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans JP", sans-serif;
+            font-size: 16px;
+            background: #ffffff;
+            color: #1e293b;
+            overflow-x: hidden;
+        }
+
+        /* ── ヘッダー ── */
+        .header {
+            position: sticky;
+            top: 0;
+            width: 100%;
+            background: #ffffff;
+            border-bottom: 2px solid #e2e8f0;
+            padding: 14px 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            z-index: 100;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .btn-back-header {
+            background: transparent;
+            border: none;
+            color: #0ea5e9;
+            font-size: clamp(28px, 7vw, 34px);
+            cursor: pointer;
+            padding: 0;
+            line-height: 1;
+            display: none;
+        }
+
+        .btn-back-header.visible {
+            display: block;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .logo-icon {
+            width: 48px;
+            height: 48px;
+            background: #0ea5e9;
+            color: #fff;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 28px;
+            font-weight: 900;
+        }
+
+        .logo-text {
+            font-size: clamp(16px, 4.5vw, 20px);
+            font-weight: 700;
+            color: #1e293b;
+            line-height: 1.2;
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 16px;
+        }
+
+        .btn-header-icon {
+            background: #f1f5f9;
+            border: 4px solid #cbd5e1;
+            color: #475569;
+            width: clamp(80px, 15vw, 100px);
+            height: clamp(80px, 15vw, 100px);
+            border-radius: 20px;
+            font-size: clamp(36px, 7vw, 44px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            padding: 0;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            flex-shrink: 0;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .btn-header-icon:active {
+            background: #e2e8f0;
+            transform: scale(0.95);
+            box-shadow: none;
+        }
+
+        /* ── 画面 ── */
+        .main {
+            width: 100%;
+            padding: 0;
+        }
+
+        .screen {
+            display: none;
+        }
+
+        .screen.active {
+            display: block;
+        }
+
+        /* ── セクション ── */
+        .section {
+            width: 100%;
+            background: #f8f9fa;
+            border-bottom: 12px solid #e2e8f0;
+            padding: 28px 20px;
+        }
+
+        .section-header {
+            font-size: clamp(24px, 6.5vw, 30px);
+            font-weight: 700;
+            color: #0f172a;
+            margin-bottom: 24px;
+            border-left: 6px solid #0ea5e9;
+            padding-left: 16px;
+        }
+
+        /* ── フォーム ── */
+        .form-group {
+            margin-bottom: 28px;
+        }
+
+        .form-label {
+            display: block;
+            font-size: clamp(28px, 7.5vw, 36px);
+            font-weight: 600;
+            color: #334155;
+            margin-bottom: 14px;
+        }
+
+        .form-required {
+            color: #ef4444;
+            margin-left: 10px;
+        }
+
+        .form-input,
+        .form-select,
+        .form-textarea {
+            width: 100%;
+            padding: 24px 28px;
+            font-size: clamp(30px, 8vw, 40px);
+            background: #ffffff;
+            border: 5px solid #cbd5e1;
+            border-radius: 20px;
+            color: #0f172a;
+            font-family: inherit;
+        }
+
+        .form-textarea {
+            resize: vertical;
+            min-height: 140px;
+        }
+
+        .form-input:focus,
+        .form-select:focus,
+        .form-textarea:focus {
+            outline: none;
+            border-color: #0ea5e9;
+            box-shadow: 0 0 0 4px rgba(14, 165, 233, 0.15);
+        }
+
+        .form-note {
+            font-size: clamp(20px, 5vw, 24px);
+            color: #64748b;
+            margin-top: 8px;
+        }
+
+        /* ── 提出期日表示 ── */
+        .deadline-display {
+            padding: 24px 28px;
+            background: #f0f9ff;
+            border: 3px solid #bae6fd;
+            border-radius: 20px;
+            font-size: clamp(28px, 7.5vw, 36px);
+            font-weight: 700;
+            color: #0369a1;
+        }
+
+        /* ── スイッチボタン ── */
+        .switch-group {
+            display: flex;
+            gap: 12px;
+        }
+
+        .switch-btn {
+            flex: 1;
+            padding: 20px 10px;
+            font-size: clamp(26px, 6.5vw, 32px);
+            font-weight: 700;
+            background: #f1f5f9;
+            border: 4px solid #cbd5e1;
+            color: #64748b;
+            border-radius: 16px;
+            cursor: pointer;
+            text-align: center;
+            transition: all 0.2s;
+        }
+
+        .switch-btn.active {
+            border-color: #0ea5e9 !important;
+            background: #e0f2fe !important;
+            color: #0ea5e9 !important;
+            box-shadow: 0 4px 12px rgba(14, 165, 233, 0.2);
+        }
+
+        /* ── 明細カード ── */
+        .detail-card {
+            background: #fff;
+            border: 3px solid #cbd5e1;
+            border-radius: 16px;
+            padding: 24px;
+            margin-bottom: 20px;
+            position: relative;
+        }
+
+        .detail-card-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+
+        .detail-number {
+            background: #0ea5e9;
+            color: #fff;
+            width: 56px;
+            height: 56px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: clamp(24px, 6vw, 28px);
+            font-weight: 700;
+            flex-shrink: 0;
+        }
+
+        .detail-kind-label {
+            font-size: clamp(20px, 5vw, 24px);
+            font-weight: 600;
+            color: #64748b;
+        }
+
+        .btn-remove-detail {
+            position: absolute;
+            top: 16px;
+            right: 16px;
+            background: #ef4444;
+            color: #fff;
+            border: none;
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            font-size: 24px;
+            font-weight: 700;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* ── 画像アップロード ── */
+        .img-upload-area {
+            width: 100%;
+            padding: 40px 20px;
+            background: #ffffff;
+            border: 3px dashed #cbd5e1;
+            border-radius: 14px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .img-upload-area:active {
+            border-color: #0ea5e9;
+            background: #f0f9ff;
+        }
+
+        .img-upload-icon {
+            font-size: 48px;
+            margin-bottom: 12px;
+        }
+
+        .img-upload-text {
+            font-size: clamp(18px, 4.5vw, 22px);
+            color: #64748b;
+        }
+
+        .img-preview-wrap {
+            position: relative;
+        }
+
+        .img-preview {
+            width: 100%;
+            aspect-ratio: 4/3;
+            object-fit: contain;
+            border-radius: 12px;
+            background: #f1f5f9;
+            display: block;
+        }
+
+        .img-remove {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            background: #ef4444;
+            color: #fff;
+            border: none;
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 18px;
+            font-weight: 700;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+        }
+
+        /* ── ボタン ── */
+        .btn-add-detail {
+            width: 100%;
+            background: #f0f9ff;
+            border: 4px dashed #0ea5e9;
+            color: #0ea5e9;
+            padding: 28px;
+            font-size: clamp(26px, 6.5vw, 32px);
+            font-weight: 700;
+            border-radius: 16px;
+            cursor: pointer;
+            margin-top: 8px;
+        }
+
+        .btn-add-detail:active {
+            background: #e0f2fe;
+        }
+
+        .btn-primary {
+            width: 100%;
+            background: #0ea5e9;
+            color: #fff;
+            border: none;
+            padding: 36px;
+            font-size: clamp(36px, 9vw, 46px);
+            font-weight: 700;
+            border-radius: 24px;
+            cursor: pointer;
+            margin-top: 32px;
+            box-shadow: 0 12px 28px rgba(14, 165, 233, 0.45);
+        }
+
+        .btn-primary:active {
+            transform: scale(0.98);
+        }
+
+        .btn-primary:disabled {
+            background: #94a3b8;
+            box-shadow: none;
+            cursor: not-allowed;
+        }
+
+        .btn-secondary {
+            width: 100%;
+            background: #fff;
+            color: #0ea5e9;
+            border: 4px solid #0ea5e9;
+            padding: 28px;
+            font-size: clamp(26px, 6.5vw, 32px);
+            font-weight: 700;
+            border-radius: 20px;
+            cursor: pointer;
+            margin-top: 16px;
+            box-shadow: 0 4px 12px rgba(14, 165, 233, 0.1);
+            transition: all 0.2s;
+        }
+
+        .btn-secondary:active {
+            background: #f0f9ff;
+            transform: scale(0.98);
+        }
+
+        .btn-back-footer {
+            width: 100%;
+            background: transparent;
+            color: #64748b;
+            border: 3px solid #cbd5e1;
+            padding: 24px;
+            font-size: clamp(24px, 6vw, 28px);
+            font-weight: 600;
+            border-radius: 14px;
+            cursor: pointer;
+            margin-top: 24px;
+        }
+
+        .draft-status {
+            text-align: center;
+            color: #0ea5e9;
+            font-size: clamp(18px, 4.5vw, 22px);
+            font-weight: 600;
+            margin-top: 12px;
+            padding: 8px;
+            background: #f0f9ff;
+            border-radius: 12px;
+            display: inline-block;
+            width: 100%;
+        }
+
+        /* ── 案件一覧フィルタ ── */
+        .filter-tabs {
+            display: flex;
+            gap: 0;
+            border-bottom: 2px solid #e2e8f0;
+            padding: 0 16px;
+            background: #fff;
+            overflow-x: auto;
+        }
+
+        .filter-tab {
+            padding: 18px 24px;
+            font-size: clamp(22px, 5.5vw, 26px);
+            font-weight: 600;
+            color: #64748b;
+            border: none;
+            background: none;
+            cursor: pointer;
+            border-bottom: 3px solid transparent;
+            white-space: nowrap;
+            transition: all 0.2s;
+        }
+
+        .filter-tab.active {
+            color: #0ea5e9;
+            border-bottom-color: #0ea5e9;
+        }
+
+        /* ── 案件カード ── */
+        .case-list {
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .case-card {
+            background: #fff;
+            border: 2px solid #e2e8f0;
+            border-radius: 16px;
+            padding: 20px;
+            cursor: pointer;
+            transition: all 0.2s;
+            box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
+        }
+
+        .case-card:active {
+            transform: scale(0.99);
+            border-color: #0ea5e9;
+        }
+
+        .case-card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 10px;
+        }
+
+        .case-site-name {
+            font-size: clamp(28px, 7vw, 34px);
+            font-weight: 700;
+            color: #0f172a;
+        }
+
+        .case-meta {
+            font-size: clamp(18px, 4.5vw, 22px);
+            color: #64748b;
+            margin-top: 6px;
+        }
+
+        .case-badges {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin-top: 10px;
+        }
+
+        /* ── バッジ ── */
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 6px 14px;
+            border-radius: 999px;
+            font-size: clamp(16px, 4vw, 18px);
+            font-weight: 700;
+        }
+
+        .badge-draft {
+            background: #f1f5f9;
+            color: #64748b;
+        }
+
+        .badge-submitted {
+            background: #dbeafe;
+            color: #1d4ed8;
+        }
+
+        .badge-reviewing {
+            background: #ffedd5;
+            color: #ea580c;
+        }
+
+        .badge-completed {
+            background: #dcfce7;
+            color: #15803d;
+        }
+
+        .badge-pending {
+            background: #f1f5f9;
+            color: #64748b;
+        }
+
+        .badge-rejected {
+            background: #fee2e2;
+            color: #dc2626;
+        }
+
+        .badge-approved {
+            background: #dcfce7;
+            color: #15803d;
+        }
+
+        .badge-count-pending {
+            background: #fee2e2;
+            color: #dc2626;
+        }
+
+        .badge-count-rejected {
+            background: #ffedd5;
+            color: #ea580c;
+        }
+
+        /* ── 案件詳細 ── */
+        .detail-info-panel {
+            background: #f8f9fa;
+            border-bottom: 12px solid #e2e8f0;
+            padding: 24px 20px;
+        }
+
+        .detail-info-row {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 10px;
+            font-size: clamp(20px, 5vw, 24px);
+        }
+
+        .detail-info-label {
+            color: #64748b;
+            font-weight: 600;
+            flex-shrink: 0;
+        }
+
+        .detail-info-value {
+            color: #0f172a;
+            font-weight: 500;
+        }
+
+        .share-url-row {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            margin-top: 16px;
+        }
+
+        .share-url-input {
+            flex: 1;
+            padding: 16px;
+            border: 2px solid #e2e8f0;
+            border-radius: 12px;
+            font-size: clamp(16px, 4vw, 18px);
+            color: #64748b;
+            background: #fff;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .btn-copy-url {
+            padding: 16px 20px;
+            background: #0ea5e9;
+            color: #fff;
+            border: none;
+            border-radius: 12px;
+            font-size: clamp(18px, 4.5vw, 22px);
+            font-weight: 700;
+            cursor: pointer;
+            white-space: nowrap;
+        }
+
+        /* ── 是正前後比較 ── */
+        .photo-compare {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-top: 12px;
+        }
+
+        .photo-col {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .photo-label {
+            font-size: clamp(18px, 4.5vw, 22px);
+            font-weight: 700;
+            color: #64748b;
+            text-align: center;
+        }
+
+        .photo-placeholder {
+            width: 100%;
+            aspect-ratio: 4/3;
+            background: #f1f5f9;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 36px;
+            color: #cbd5e1;
+        }
+
+        .photo-img {
+            width: 100%;
+            aspect-ratio: 4/3;
+            object-fit: contain;
+            border-radius: 12px;
+            background: #f1f5f9;
+            cursor: zoom-in;
+        }
+
+        /* ── 明細の確認ボタン ── */
+        .confirm-actions {
+            display: flex;
+            gap: 12px;
+            margin-top: 16px;
+        }
+
+        .btn-approve {
+            flex: 1;
+            padding: 20px;
+            background: #10b981;
+            color: #fff;
+            border: none;
+            border-radius: 12px;
+            font-size: clamp(20px, 5vw, 24px);
+            font-weight: 700;
+            cursor: pointer;
+        }
+
+        .btn-approve:disabled {
+            background: #a7f3d0;
+            cursor: not-allowed;
+        }
+
+        .btn-reject {
+            flex: 1;
+            padding: 20px;
+            background: #fff;
+            color: #ef4444;
+            border: 3px solid #ef4444;
+            border-radius: 12px;
+            font-size: clamp(20px, 5vw, 24px);
+            font-weight: 700;
+            cursor: pointer;
+        }
+
+        /* ── 差し戻し理由フォーム ── */
+        .rejection-form {
+            margin-top: 12px;
+            padding: 16px;
+            background: #fff7ed;
+            border: 2px solid #fed7aa;
+            border-radius: 12px;
+            display: none;
+        }
+
+        .rejection-form.visible {
+            display: block;
+        }
+
+        .rejection-textarea {
+            width: 100%;
+            padding: 16px;
+            border: 2px solid #fed7aa;
+            border-radius: 10px;
+            font-size: clamp(20px, 5vw, 24px);
+            font-family: inherit;
+            resize: vertical;
+            min-height: 100px;
+        }
+
+        .btn-reject-submit {
+            width: 100%;
+            margin-top: 12px;
+            padding: 18px;
+            background: #ef4444;
+            color: #fff;
+            border: none;
+            border-radius: 12px;
+            font-size: clamp(20px, 5vw, 24px);
+            font-weight: 700;
+            cursor: pointer;
+        }
+
+        /* ── 完了画面 ── */
+        .complete-screen {
+            text-align: center;
+            padding: 60px 20px;
+        }
+
+        .complete-icon {
+            font-size: 80px;
+            margin-bottom: 24px;
+            color: #10b981;
+        }
+
+        .complete-title {
+            font-size: clamp(26px, 7vw, 30px);
+            font-weight: 700;
+            color: #0f172a;
+            margin-bottom: 12px;
+        }
+
+        .complete-message {
+            font-size: clamp(18px, 4.5vw, 22px);
+            color: #64748b;
+            line-height: 1.6;
+        }
+
+        /* ── サジェスト ── */
+        .input-wrap {
+            position: relative;
+        }
+
+        .suggestions-list {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: #fff;
+            border: 3px solid #0ea5e9;
+            border-top: none;
+            border-radius: 0 0 20px 20px;
+            max-height: 300px;
+            overflow-y: auto;
+            z-index: 1000;
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.15);
+            touch-action: pan-y;
+        }
+
+        .suggestion-item {
+            padding: 20px 24px;
+            font-size: clamp(26px, 6.5vw, 32px);
+            border-bottom: 1px solid #e2e8f0;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .suggestion-item:last-child {
+            border-bottom: none;
+        }
+
+        .suggestion-item:active,
+        .suggestion-item.highlighted {
+            background: #e0f2fe;
+        }
+
+        /* ── トースト ── */
+        .toast {
+            position: fixed;
+            bottom: 24px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #0f172a;
+            color: #fff;
+            padding: 16px 28px;
+            border-radius: 999px;
+            font-size: clamp(16px, 4.5vw, 18px);
+            font-weight: 600;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+            display: none;
+            z-index: 2000;
+        }
+
+        .toast.show {
+            display: block;
+        }
+
+        /* ── オーバーレイ（送信中） ── */
+        .submit-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            z-index: 300;
+            background: rgba(0, 0, 0, 0.45);
+            align-items: center;
+            justify-content: center;
+        }
+
+        .submit-overlay.active {
+            display: flex;
+        }
+
+        .submit-overlay-card {
+            background: #fff;
+            border-radius: 20px;
+            padding: 40px 32px;
+            text-align: center;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25);
+            max-width: 280px;
+            width: 85%;
+        }
+
+        .submit-spinner {
+            width: 64px;
+            height: 64px;
+            border: 6px solid #e2e8f0;
+            border-top-color: #0ea5e9;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        .submit-overlay-msg {
+            font-size: clamp(20px, 5vw, 24px);
+            font-weight: 700;
+            color: #1e293b;
+        }
+
+        /* ── 写真拡大モーダル ── */
+        .photo-modal {
+            position: fixed;
+            inset: 0;
+            z-index: 500;
+            background: rgba(0, 0, 0, 0.85);
+            display: none;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .photo-modal.active {
+            display: flex;
+        }
+
+        .photo-modal-img {
+            max-width: 95vw;
+            max-height: 90vh;
+            object-fit: contain;
+            border-radius: 8px;
+        }
+
+        .photo-modal-close {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: #fff;
+            border: none;
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            font-size: 24px;
+            font-weight: 700;
+            cursor: pointer;
+        }
+
+        /* ── 空状態 ── */
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #94a3b8;
+        }
+
+        .empty-state-icon {
+            font-size: 64px;
+            margin-bottom: 16px;
+        }
+
+        .empty-state-msg {
+            font-size: clamp(20px, 5vw, 24px);
+        }
+
+        /* ── 帳票出力ボタン ── */
+        .btn-report-print {
+            width: 100%;
+            padding: 28px;
+            background: #1e293b;
+            color: #fff;
+            border: none;
+            border-radius: 16px;
+            font-size: clamp(24px, 6vw, 28px);
+            font-weight: 700;
+            cursor: pointer;
+            margin-top: 16px;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+    </style>
+    <!-- SKELETON_PLACEHOLDER -->
+</head>
+
+<body>
+    <!-- ヘッダー -->
+    <div class="header">
+        <div class="header-left">
+            <button id="btn-back-header" class="btn-back-header" onclick="handleBack()">←</button>
+            <div class="logo">
+                <div class="logo-icon">是</div>
+                <div class="logo-text">サンプル建設<br><span
+                        style="font-size:0.8em;font-weight:500;color:#64748b;">是正報告システム</span></div>
+            </div>
+        </div>
+        <div class="header-actions">
+            <button class="btn-header-icon" onclick="handleRefresh()" title="更新">↻</button>
+        </div>
+    </div>
+
+    <div class="main">
+
+        <!-- ── screen-list: 案件一覧 ── -->
+        <div id="screen-list" class="screen active">
+            <div class="filter-tabs">
+                <button class="filter-tab active" data-filter="all" onclick="applyFilter('all', this)">すべて</button>
+                <button class="filter-tab" data-filter="active" onclick="applyFilter('active', this)">未完了</button>
+                <button class="filter-tab" data-filter="completed" onclick="applyFilter('completed', this)">完了</button>
+            </div>
+            <div style="padding: 16px 16px 8px; display: flex; justify-content: flex-end;">
+                <button class="btn-header-icon" onclick="show('screen-new')" title="新規登録"
+                    style="width:auto;height:auto;padding:16px 24px;font-size:clamp(22px,5.5vw,26px);border-radius:14px;">
+                    ＋ 新規登録
+                </button>
+            </div>
+            <div id="case-list" class="case-list">
+                <div class="empty-state">
+                    <div class="submit-spinner" style="margin:0 auto 16px;"></div>
+                    <div class="empty-state-msg">読み込み中...</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ── screen-new: 新規登録 ── -->
+        <div id="screen-new" class="screen">
+            <div class="section">
+                <div class="section-header">基本情報</div>
+
+                <div class="form-group">
+                    <label class="form-label">報告区分</label>
+                    <div class="form-input" style="background:#f1f5f9;color:#64748b;">足場点検</div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">現場名<span class="form-required">*</span></label>
+                    <div class="input-wrap">
+                        <input id="new-site-input" class="form-input" type="text" placeholder="現場名を入力..."
+                            autocomplete="off" />
+                        <div id="site-suggestions" class="suggestions-list" style="display:none;"></div>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">施工会社名</label>
+                    <select id="new-contractor" class="form-select">
+                        <option value="">選択してください</option>
+                    </select>
+                </div>
+
+
+
+                <div class="form-group">
+                    <label class="form-label">点検者</label>
+                    <input id="new-inspector" class="form-input" type="text" placeholder="氏名" />
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">巡回日<span class="form-required">*</span></label>
+                    <input id="new-patrol-date" class="form-input" type="date" onchange="updateDeadlineDisplay()" />
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">提出期日</label>
+                    <div id="new-deadline-display" class="deadline-display">巡回日を入力すると自動計算します</div>
+                </div>
+            </div>
+
+            <div class="section">
+                <div class="section-header">指摘明細</div>
+                <div id="new-details-container"></div>
+                <button class="btn-add-detail" onclick="addDetailCard()">＋ 指摘を追加</button>
+            </div>
+
+            <div class="section" style="padding-top:0;">
+                <button class="btn-primary" id="btn-save" onclick="handleSave()">保存して共有URLを発行</button>
+                <div id="draft-status" class="draft-status" style="margin-bottom:8px; display:none;"></div>
+                <button class="btn-secondary" id="btn-draft" onclick="handleDraftSave(true)">一時保存（この端末に保存）</button>
+                <button class="btn-back-footer" onclick="handleBack()">戻る</button>
+            </div>
+        </div>
+
+        <!-- ── screen-detail: 案件詳細・管理 ── -->
+        <div id="screen-detail" class="screen">
+            <div id="detail-info-panel" class="detail-info-panel"></div>
+            <div id="detail-items-container" class="section" style="border-bottom:none;"></div>
+            <div class="section" style="padding-top: 8px; border-bottom: none;">
+                <button class="btn-report-print" onclick="handlePrintReport()">📄 帳票出力（印刷）</button>
+            </div>
+        </div>
+
+        <!-- ── screen-complete: 完了 ── -->
+        <div id="screen-complete" class="screen">
+            <div class="section">
+                <div class="complete-screen">
+                    <div class="complete-icon">✓</div>
+                    <div class="complete-title">登録完了</div>
+                    <div class="complete-message" style="margin-bottom:32px;">
+                        案件を保存しました。<br>共有URLを現場担当者に送ってください。
+                    </div>
+                    <div class="share-url-row" style="margin-bottom:24px;">
+                        <input id="complete-share-url" class="share-url-input" readonly />
+                        <button class="btn-copy-url" onclick="copyShareUrl('complete-share-url')">コピー</button>
+                    </div>
+                    <button class="btn-primary" style="margin-top:8px;"
+                        onclick="show('screen-list');loadCases();">一覧に戻る</button>
+                </div>
+            </div>
+        </div>
+
+    </div><!-- /.main -->
+
+    <!-- ── トースト ── -->
+    <div id="toast" class="toast"></div>
+
+    <!-- ── 送信中オーバーレイ ── -->
+    <div id="submit-overlay" class="submit-overlay">
+        <div class="submit-overlay-card">
+            <div class="submit-spinner"></div>
+            <div class="submit-overlay-msg" id="submit-overlay-msg">保存中...</div>
+        </div>
+    </div>
+
+    <!-- ── 写真拡大モーダル ── -->
+    <div id="photo-modal" class="photo-modal" onclick="closePhotoModal()">
+        <button class="photo-modal-close">✕</button>
+        <img id="photo-modal-img" class="photo-modal-img" src="" alt="" />
+    </div>
+
+    <!-- ── 初期化データ（サーバーから注入） ── -->
+    <script id="bootstrap-data" type="application/json">
+        <?!= JSON.stringify(bootstrap) ?>
+    </script>
+
+    <script>
+        // 1. 最優先のエラー監視（スクリプトのパースエラーを拾うため分離）
+        (function () {
+            window.onerror = function (msg, url, line, col, error) {
+                console.error('Global Error Captured:', msg, 'at', line, ':', col);
+                var list = document.getElementById('case-list');
+                if (list) {
+                    list.innerHTML = '<div style="color:#ef4444;padding:24px;background:#fee2e2;border-radius:12px;margin:16px;">' +
+                        '<div style="font-weight:700;margin-bottom:8px;">システムエラーが発生しました</div>' +
+                        '<div style="font-size:14px;word-break:break-all;">' + msg + ' (Line: ' + line + ')</div>' +
+                        '<div style="margin-top:12px;"><button onclick="location.reload()" style="padding:8px 16px;border-radius:8px;border:none;background:#ef4444;color:#fff;">再読み込み</button></div>' +
+                        '</div>';
+                }
+                return false;
+            };
+        })();
+    </script>
+
+    <script>
+        (function () {
+            const VERSION = '1.2 (Robust Mode)';
+            console.log('是正報告システム', VERSION);
+
+            // BOOTSTRAPデータの解析
+            let BOOTSTRAP = {};
+            try {
+                const jsonText = document.getElementById('bootstrap-data').textContent;
+                BOOTSTRAP = JSON.parse(jsonText || '{}');
+            } catch (e) {
+                console.error('BOOTSTRAP Parse Error:', e);
+            }
+
+
+            /* ─── 状態 ─── */
+            const state = {
+                sites: [],
+                contractors: [],
+                cases: [],
+                filteredCases: [],
+                currentFilter: 'all',
+                currentCaseId: null,
+                newDetails: [],
+                imageStore: {},
+                completedShareUrl: ''
+            };
+
+            /* ─── IndexedDB ドラフト管理 ─── */
+            class DraftManager {
+                constructor(dbName, storeName, key) {
+                    this.dbName = dbName;
+                    this.storeName = storeName;
+                    this.key = key;
+                    this.db = null;
+                }
+                async openDB() {
+                    if (this.db) return this.db;
+                    return new Promise((resolve, reject) => {
+                        const req = indexedDB.open(this.dbName, 1);
+                        req.onupgradeneeded = e => {
+                            if (!e.target.result.objectStoreNames.contains(this.storeName)) {
+                                e.target.result.createObjectStore(this.storeName);
+                            }
+                        };
+                        req.onsuccess = e => {
+                            this.db = e.target.result;
+                            resolve(this.db);
+                        };
+                        req.onerror = e => reject(e.target.error);
+                    });
+                }
+                async save(data) {
+                    const db = await this.openDB();
+                    return new Promise((resolve, reject) => {
+                        const tx = db.transaction(this.storeName, 'readwrite');
+                        tx.objectStore(this.storeName).put(data, this.key);
+                        tx.oncomplete = () => resolve();
+                        tx.onerror = e => reject(e.target.error);
+                    });
+                }
+                async load() {
+                    const db = await this.openDB();
+                    return new Promise((resolve, reject) => {
+                        const tx = db.transaction(this.storeName, 'readonly');
+                        const req = tx.objectStore(this.storeName).get(this.key);
+                        req.onsuccess = () => resolve(req.result);
+                        req.onerror = e => reject(e.target.error);
+                    });
+                }
+                async clear() {
+                    const db = await this.openDB();
+                    return new Promise((resolve, reject) => {
+                        const tx = db.transaction(this.storeName, 'readwrite');
+                        tx.objectStore(this.storeName).delete(this.key);
+                        tx.oncomplete = () => resolve();
+                        tx.onerror = e => reject(e.target.error);
+                    });
+                }
+            }
+            const draftManager = new DraftManager('RectApp', 'drafts', 'draft');
+
+            const $ = id => document.getElementById(id);
+            window.$ = $;
+
+            const getFormData = () => ({
+                siteName: $('new-site-input').value,
+                contractor: $('new-contractor').value,
+                inspector: $('new-inspector').value,
+                patrolDate: $('new-patrol-date').value,
+                details: state.newDetails.map(d => ({
+                    kind: d.kind,
+                    issue: ($(`issue-${d.tempId}`) || {}).value || '',
+                    correction: ($(`correction-${d.tempId}`) || {}).value || '',
+                    base64: state.imageStore[d.tempId] || null
+                }))
+            });
+
+            let autosaveTimer = null;
+            window.handleDraftSave = async (manual = false) => {
+                try {
+                    await draftManager.save(getFormData());
+                    const d = new Date();
+                    const statusEl = $('draft-status');
+                    statusEl.textContent = `最終一時保存: ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}:${String(d.getSeconds()).padStart(2, '0')} (端末内)`;
+                    statusEl.style.display = 'inline-block';
+                    if (manual) toast('端末に一時保存しました');
+                } catch (e) { if (manual) toast('保存失敗: ' + e.message); }
+            };
+
+            window.show = async (id) => {
+                document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+                const el = $(id);
+                if (el) el.classList.add('active');
+                const backBtn = $('btn-back-header');
+                if (backBtn) {
+                    if (id === 'screen-list') backBtn.classList.remove('visible');
+                    else backBtn.classList.add('visible');
+                }
+                window.scrollTo(0, 0);
+
+                if (id === 'screen-new') {
+                    await restoreDraft();
+                    if (autosaveTimer) clearInterval(autosaveTimer);
+                    autosaveTimer = setInterval(() => handleDraftSave(false), 30000);
+                } else {
+                    if (autosaveTimer) { clearInterval(autosaveTimer); autosaveTimer = null; }
+                }
+            };
+
+            const toast = (msg, duration = 3000) => {
+                const el = $('toast');
+                el.textContent = msg;
+                el.classList.add('show');
+                setTimeout(() => el.classList.remove('show'), duration);
+            };
+            window.toast = toast;
+
+            const showOverlay = (msg = '保存中...') => {
+                $('submit-overlay-msg').textContent = msg;
+                $('submit-overlay').classList.add('active');
+            };
+            const hideOverlay = () => $('submit-overlay').classList.remove('active');
+
+            const gasCall = (funcName, args) => new Promise((resolve, reject) => {
+                google.script.run
+                    .withSuccessHandler(resolve)
+                    .withFailureHandler(reject)
+                [funcName](args);
+            });
+
+            window.restoreDraft = async () => {
+                try {
+                    const draft = await draftManager.load();
+                    if (!draft || (!draft.siteName && !draft.patrolDate && !draft.details.length)) return;
+                    if (!confirm('保存された一時保存データがあります。復元しますか？')) { draftManager.clear(); return; }
+
+                    $('new-site-input').value = draft.siteName || '';
+                    $('new-contractor').value = draft.contractor || '';
+                    $('new-inspector').value = draft.inspector || '';
+                    $('new-patrol-date').value = draft.patrolDate || '';
+                    updateDeadlineDisplay();
+
+                    $('new-details-container').innerHTML = '';
+                    state.newDetails = []; state.imageStore = {}; detailCounter = 0;
+
+                    draft.details.forEach(d => {
+                        detailCounter++;
+                        const tId = `detail-${detailCounter}`;
+                        state.newDetails.push({ tempId: tId, kind: d.kind || '是正' });
+                        const card = document.createElement('div');
+                        card.className = 'detail-card';
+                        card.id = `new-detail-card-${tId}`;
+                        card.innerHTML = `
+                <div class="detail-card-header">
+                  <div class="detail-number">${state.newDetails.length}</div>
+                  <div class="detail-kind-label">区分 ${state.newDetails.length}</div>
+                </div>
+                <button class="btn-remove-detail" onclick="removeDetailCard('${tId}')">✕</button>
+                <div class="form-group">
+                  <label class="form-label" style="font-size:clamp(22px,5.5vw,28px);">種別</label>
+                  <div class="switch-group">
+                    <button class="switch-btn" id="kind-btn-zesei-${tId}" onclick="setKind('${tId}','是正')">職是正</button>
+                    <button class="switch-btn" id="kind-btn-ryoko-${tId}" onclick="setKind('${tId}','良好')">良好</button>
+                  </div>
+                </div>
+                <div class="form-group">
+                  <label class="form-label" style="font-size:clamp(22px,5.5vw,28px);">指摘事項</label>
+                  <textarea class="form-textarea" id="issue-${tId}" placeholder="指摘内容を入力...">${d.issue || ''}</textarea>
+                </div>
+                <div class="form-group">
+                  <label class="form-label" style="font-size:clamp(22px,5.5vw,28px);">是正内容</label>
+                  <textarea class="form-textarea" id="correction-${tId}" placeholder="是正方法を入力...">${d.correction || ''}</textarea>
+                </div>
+                <div class="form-group">
+                  <label class="form-label" style="font-size:clamp(22px,5.5vw,28px);">是正前写真</label>
+                  <div id="img-area-${tId}">
+                    ${d.base64 ? `<div class="img-preview-wrap"><img class="img-preview" src="${d.base64}" alt="是正前写真" /><button class="img-remove" onclick="removeImage('${tId}')">✕</button></div>` : `<div class="img-upload-area" onclick="triggerImageUpload('${tId}')"><div class="img-upload-icon">📷</div><div class="img-upload-text">タップして写真を選択</div></div>`}
+                  </div>
+                  <input type="file" id="file-input-${tId}" accept="image/*" style="display:none;" onchange="handleImageSelect('${tId}', this)" />
+                </div>
+              `;
+                        $('new-details-container').appendChild(card);
+                        setKind(tId, d.kind || '是正');
+                        if (d.base64) state.imageStore[tId] = d.base64;
+                    });
+                    renumberDetails();
+                    toast('一時保存データから復元しました');
+                } catch (e) { console.error('復元エラー:', e); }
+            };
+
+            /* ─── 案件一覧の取得 ─── */
+            window.loadCases = async () => {
+                try {
+                    console.log('案件取得開始...');
+                    const cases = await gasCall('getCases');
+                    state.cases = cases || [];
+                    applyFilter(state.currentFilter);
+                } catch (e) {
+                    console.error('案件取得失敗:', e);
+                    const list = $('case-list');
+                    if (list) list.innerHTML = `<div class="error-msg">データ取得に失敗しました: ${e.message || e}</div>`;
+                }
+            };
+
+            window.applyFilter = (filter, btn) => {
+                state.currentFilter = filter;
+                if (btn) {
+                    document.querySelectorAll('.filter-tab').forEach(t => t.classList.remove('active'));
+                    btn.classList.add('active');
+                }
+                const listEl = $('case-list');
+                listEl.innerHTML = '';
+                const filtered = state.cases.filter(c => {
+                    if (filter === 'all') return true;
+                    if (filter === 'active') return c.status !== '完了';
+                    if (filter === 'completed') return c.status === '完了';
+                    return true;
+                });
+                if (filtered.length === 0) {
+                    listEl.innerHTML = '<div class="empty-state"><div class="empty-state-icon">📂</div><div class="empty-state-msg">案件がありません</div></div>';
+                    return;
+                }
+                filtered.forEach(c => {
+                    const card = document.createElement('div');
+                    card.className = 'case-card';
+                    card.onclick = () => showDetail(c.caseId);
+                    card.innerHTML = `
+            <div class="case-card-header">
+              <div class="case-site-name">${c.siteName}</div>
+              <div class="badge ${getStatusBadgeClass(c.status)}">${c.status}</div>
+            </div>
+            <div class="case-meta">
+              施工: ${c.contractor || ' - '} / 巡回: ${c.patrolDate || ' - '}
+            </div>
+            <div class="case-badges">
+              ${c.pendingCount > 0 ? `<div class="badge badge-count-pending">未是正 ${c.pendingCount}</div>` : ''}
+              ${c.rejectedCount > 0 ? `<div class="badge badge-count-rejected">不備 ${c.rejectedCount}</div>` : ''}
+            </div>
+          `;
+                    listEl.appendChild(card);
+                });
+            };
+
+            const getStatusBadgeClass = (status) => {
+                if (status === '完了') return 'badge-completed';
+                if (status === '是正中') return 'badge-reviewing';
+                return 'badge-submitted';
+            };
+
+            /* ─── 案件詳細 ─── */
+            window.showDetail = async (caseId) => {
+                showOverlay('読込中...');
+                try {
+                    const data = await gasCall('getCaseDetail', caseId);
+                    state.currentCaseId = caseId;
+                    renderDetail(data);
+                    show('screen-detail');
+                } catch (e) { toast('詳細取得失敗: ' + e.message); }
+                finally { hideOverlay(); }
+            };
+
+            const renderDetail = (data) => {
+                const info = $('detail-info-panel');
+                const shareUrl = `${BOOTSTRAP.deployUrl}?id=${data.caseId}`;
+                info.innerHTML = `
+          <div class="case-site-name" style="margin-bottom:16px;">${data.siteName}</div>
+          <div class="detail-info-row"><div class="detail-info-label">元請会社：</div><div class="detail-info-value">${data.contractor || ''}</div></div>
+          <div class="detail-info-row"><div class="detail-info-label">巡回日　：</div><div class="detail-info-value">${data.patrolDate || ''}</div></div>
+          <div class="detail-info-row"><div class="detail-info-label">提出期日：</div><div class="detail-info-value">${data.deadline || ''}</div></div>
+          <div class="share-url-row">
+            <input id="detail-share-url" class="share-url-input" value="${shareUrl}" readonly />
+            <button class="btn-copy-url" onclick="copyShareUrl('detail-share-url')">コピー</button>
+          </div>
+        `;
+                const photoHtml = (idOrUrl) => {
+                    if (!idOrUrl) return '<div class="photo-placeholder">無</div>';
+                    // DriveのIDかURLかを判別し、直接表示可能なURLに変換
+                    let src = idOrUrl;
+                    if (src.includes('drive.google.com')) {
+                        const match = src.match(/\/d\/(.+?)\//) || src.match(/id=(.+?)(&|$)/);
+                        if (match) src = `https://drive.google.com/uc?id=${match[1]}`;
+                    } else if (!src.startsWith('http') && !src.startsWith('data:')) {
+                        // IDのみが渡された場合を想定（プロキシURLがあれば使う）
+                        const proxy = BOOTSTRAP.proxyUrl || '';
+                        src = proxy ? `${proxy}?id=${src}` : `https://drive.google.com/uc?id=${src}`;
+                    }
+                    return `<img class="photo-img" src="${src}" onclick="expandPhoto(this.src)" />`;
+                };
+
+                const container = $('detail-items-container');
+                container.innerHTML = `<div class="section-header">指摘事項 (${data.details.length}件)</div>`;
+                data.details.forEach((d, idx) => {
+                    const card = document.createElement('div');
+                    card.className = 'detail-card';
+                    card.innerHTML = `
+            <div class="detail-card-header">
+              <div class="detail-number">${idx + 1}</div>
+              <div class="badge ${d.status === '確認済み' ? 'badge-approved' : 'badge-pending'}">${d.status}</div>
+            </div>
+            <div class="form-group">
+                <label class="form-label" style="font-size:22px;">指摘：${d.issue}</label>
+                <div class="photo-compare">
+                  <div class="photo-col">
+                    <div class="photo-label">是正前</div>
+                    ${photoHtml(d.beforePhotoId || d.beforePhotoUrl)}
+                  </div>
+                   <div class="photo-col">
+                     <div class="photo-label">是正後</div>
+                     ${d.kind === '良好'
+                            ? '<div style="background:#d1fae5;border:2px solid #6ee7b7;border-radius:12px;aspect-ratio:4/3;display:flex;align-items:center;justify-content:center;font-size:clamp(18px,4.5vw,22px);font-weight:700;color:#065f46;">✅ 良好</div>'
+                            : photoHtml(d.afterPhotoId || d.afterPhotoUrl)}
+                   </div>
+                </div>
+            </div>`;
+
+                    let confirmAreaHtml = '';
+                    if ((d.afterPhotoId || d.kind === '良好') && d.status !== '確認済み') {
+                        let rejectBtnHtml = '';
+                        let rejectFormHtml = '';
+                        if (d.kind !== '良好') {
+                            rejectBtnHtml = `<button class="btn-reject" onclick="toggleRejectionForm('${d.id}', true)">差し戻し</button>`;
+                            rejectFormHtml = `
+                        <div id="rejection-form-${d.id}" class="rejection-form">
+                          <textarea id="rejection-note-${d.id}" class="rejection-textarea" placeholder="差し戻しの理由（例：写真が不鮮明、箇所が違うなど）"></textarea>
+                          <button class="btn-reject-submit" onclick="handleVerifyDetail('${d.id}', false)">理由を付けて差し戻す</button>
+                        </div>`;
+                        }
+
+                        confirmAreaHtml = `
+                    <div id="confirm-area-${d.id}">
+                        <div class="confirm-actions">
+                            <button class="btn-approve" onclick="handleVerifyDetail('${d.id}', true)">是正完了として承認</button>
+                            ${rejectBtnHtml}
+                        </div>
+                        ${rejectFormHtml}
+                    </div>
+                `;
+                    }
+
+                    card.innerHTML += confirmAreaHtml;
+                    container.appendChild(card);
+                });
+            };
+
+            /* ─── 明細の承認・却下 ─── */
+            window.toggleRejectionForm = (detailId, show) => {
+                $(`rejection-form-${detailId}`).classList.toggle('visible', show);
+            };
+            window.handleVerifyDetail = async (detailId, isApproved) => {
+                const note = isApproved ? '' : $(`rejection-note-${detailId}`).value;
+                if (!isApproved && !note.trim()) return alert('差し戻し理由を入力してください');
+                showOverlay('更新中...');
+                try {
+                    await gasCall('verifyDetail', { detailId, isApproved, note });
+                    toast(isApproved ? '承認しました' : '差し戻しました');
+                    showDetail(state.currentCaseId);
+                } catch (e) { toast('エラー: ' + e.message); }
+                finally { hideOverlay(); }
+            };
+
+            /* ─── 新規登録関連 ─── */
+            let detailCounter = 0;
+            window.addDetailCard = () => {
+                detailCounter++;
+                const tId = `detail-${detailCounter}`;
+                state.newDetails.push({ tempId: tId, kind: '職是正' });
+                const container = $('new-details-container');
+                const card = document.createElement('div');
+                card.className = 'detail-card';
+                card.id = `new-detail-card-${tId}`;
+                card.innerHTML = `
+                <button class="btn-remove-detail" onclick="removeDetailCard('${tId}')">✕</button>
+          <div class="detail-card-header">
+            <div class="detail-number">${state.newDetails.length}</div>
+            <div class="detail-kind-label">区分 ${state.newDetails.length}</div>
+          </div>
+          <div class="form-group">
+            <label class="form-label" style="font-size:clamp(22px,5.5vw,28px);">種別</label>
+            <div class="switch-group">
+              <button class="switch-btn active" id="kind-btn-zesei-${tId}" onclick="setKind('${tId}','職是正')">職是正</button>
+              <button class="switch-btn" id="kind-btn-ryoko-${tId}" onclick="setKind('${tId}','良好')">良好</button>
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label" style="font-size:clamp(22px,5.5vw,28px);">指摘事項</label>
+            <textarea id="issue-${tId}" class="form-textarea" placeholder="指摘事項を入力..."></textarea>
+          </div>
+          <div class="form-group">
+            <label class="form-label" style="font-size:clamp(22px,5.5vw,28px);">是正内容</label>
+            <textarea id="correction-${tId}" class="form-textarea" placeholder="是正内容を入力..."></textarea>
+          </div>
+          <div class="form-group">
+            <label class="form-label" style="font-size:clamp(22px,5.5vw,28px);">是正前写真</label>
+            <div id="img-area-${tId}">
+              <div class="img-upload-area" onclick="triggerImageUpload('${tId}')">
+                <div class="img-upload-icon">📷</div>
+                <div class="img-upload-text">タップして写真を選択</div>
+              </div>
+            </div>
+            <input type="file" id="file-input-${tId}" accept="image/*" style="display:none;" onchange="handleImageSelect('${tId}', this)" />
+          </div>
+            `;
+                container.appendChild(card);
+            };
+
+            window.removeDetailCard = (tId) => {
+                state.newDetails = state.newDetails.filter(d => d.tempId !== tId);
+                delete state.imageStore[tId];
+                const card = $(`new-detail-card-${tId}`);
+                if (card) card.remove();
+                renumberDetails();
+            };
+
+            window.renumberDetails = () => {
+                state.newDetails.forEach((d, idx) => {
+                    const card = $(`new-detail-card-${d.tempId}`);
+                    if (card) {
+                        card.querySelector('.detail-number').textContent = idx + 1;
+                        card.querySelector('.detail-kind-label').textContent = `区分 ${idx + 1}`;
+                    }
+                });
+            };
+
+            window.setKind = (tId, kind) => {
+                const det = state.newDetails.find(d => d.tempId === tId);
+                if (det) det.kind = kind;
+                const zBtn = $(`kind-btn-zesei-${tId}`);
+                const rBtn = $(`kind-btn-ryoko-${tId}`);
+                if (kind === '職是正' || kind === '是正') {
+                    if (zBtn) zBtn.classList.add('active');
+                    if (rBtn) rBtn.classList.remove('active');
+                } else {
+                    if (zBtn) zBtn.classList.remove('active');
+                    if (rBtn) rBtn.classList.add('active');
+                }
+            };
+
+            window.triggerImageUpload = (tId) => $(`file-input-${tId}`).click();
+
+            window.handleImageSelect = (tId, input) => {
+                const file = input.files[0];
+                if (!file) return;
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    const base64 = e.target.result;
+                    state.imageStore[tId] = base64;
+                    const area = $(`img-area-${tId}`);
+                    area.innerHTML = `
+              <div class="img-preview-wrap">
+                <img class="img-preview" src="${base64}" />
+                <button class="img-remove" onclick="removeImage('${tId}')">✕</button>
+              </div>
+                `;
+                };
+                reader.readAsDataURL(file);
+            };
+
+            window.removeImage = (tId) => {
+                delete state.imageStore[tId];
+                $(`img-area-${tId}`).innerHTML = `
+              <div class="img-upload-area" onclick="triggerImageUpload('${tId}')">
+                <div class="img-upload-icon">📷</div>
+                <div class="img-upload-text">タップして写真を選択</div>
+              </div>
+                `;
+            };
+
+            window.updateDeadlineDisplay = () => {
+                const dInput = $('new-patrol-date').value;
+                const el = $('new-deadline-display');
+                if (!dInput) { el.textContent = '巡回日を入力すると自動計算します'; return; }
+                // 3営業日後（土日除く）を計算 ← バックエンドの calcSubmitDeadline() と同じロジック
+                const date = new Date(dInput);
+                let count = 0;
+                while (count < 3) {
+                    date.setDate(date.getDate() + 1);
+                    const day = date.getDay();
+                    if (day !== 0 && day !== 6) count++; // 土(6)・日(0)を除外
+                }
+                const y = date.getFullYear();
+                const m = date.getMonth() + 1;
+                const d = date.getDate();
+                el.textContent = y + '年' + m + '月' + d + '日（3営業日後）';
+            };
+
+            window.handleSave = async () => {
+                const siteName = $('new-site-input').value.trim();
+                const patrolDate = $('new-patrol-date').value;
+                if (!siteName || !patrolDate) return alert('現場名と巡回日は必須です');
+                if (state.newDetails.length === 0) return alert('指摘事項を1件以上追加してください');
+
+                showOverlay('案件を保存中...');
+                const data = {
+                    siteName,
+                    contractor: $('new-contractor').value,
+                    inspector: $('new-inspector').value,
+                    patrolDate,
+                    details: state.newDetails.map(d => ({
+                        kind: d.kind,
+                        issue: $(`issue-${d.tempId}`).value,
+                        correction: $(`correction-${d.tempId}`).value,
+                        base64: state.imageStore[d.tempId] || null
+                    }))
+                };
+                try {
+                    const res = await gasCall('createCase', data);
+                    $('complete-share-url').value = res.shareUrl;
+                    await draftManager.clear();
+                    show('screen-complete');
+                } catch (e) { alert('保存エラー: ' + e.message); }
+                finally { hideOverlay(); }
+            };
+
+            /* ─── サジェスト ─── */
+            const setupSuggest = () => {
+                const input = $('new-site-input');
+                const list = $('site-suggestions');
+                input.oninput = () => {
+                    const val = input.value.trim();
+                    if (!val) { list.style.display = 'none'; return; }
+                    const matches = state.sites.filter(s => s.includes(val)).slice(0, 10);
+                    if (matches.length === 0) { list.style.display = 'none'; return; }
+                    list.innerHTML = '';
+                    matches.forEach(m => {
+                        const div = document.createElement('div');
+                        div.className = 'suggestion-item';
+                        div.textContent = m;
+                        div.onclick = () => { input.value = m; list.style.display = 'none'; };
+                        list.appendChild(div);
+                    });
+                    list.style.display = 'block';
+                };
+                document.addEventListener('click', e => { if (e.target !== input) list.style.display = 'none'; });
+            };
+
+            /* ─── その他 ─── */
+            window.handleBack = () => {
+                const current = document.querySelector('.screen.active').id;
+                if (current === 'screen-new' || current === 'screen-detail') show('screen-list');
+                else if (current === 'screen-complete') show('screen-list');
+            };
+            window.handleRefresh = () => {
+                const current = document.querySelector('.screen.active').id;
+                if (current === 'screen-list') loadCases();
+            };
+            window.copyShareUrl = (id) => {
+                const el = $(id); el.select(); el.setSelectionRange(0, 99999);
+                document.execCommand('copy'); toast('URLをコピーしました');
+            };
+            window.expandPhoto = (src) => {
+                $('photo-modal-img').src = src;
+                $('photo-modal').classList.add('active');
+            };
+            window.closePhotoModal = () => $('photo-modal').classList.remove('active');
+            window.handlePrintReport = () => {
+                const url = `${BOOTSTRAP.deployUrl}?mode=print&id=${state.currentCaseId}`;
+                window.open(url, '_blank');
+            };
+
+            /* ─── 初期化 ─── */
+            window.onload = () => {
+                console.log('Startup: window.onload started');
+                try {
+                    // sitesがオブジェクトの配列なら名前に変換（サジェストエラー防止）
+                    const rawSites = BOOTSTRAP.sites || [];
+                    state.sites = rawSites.map(s => typeof s === 'object' ? s.name : String(s));
+                    state.contractors = BOOTSTRAP.contractors || [];
+
+                    const cSelect = $('new-contractor');
+                    if (cSelect) {
+                        state.contractors.forEach(c => {
+                            const opt = document.createElement('option');
+                            opt.value = c; opt.textContent = c; cSelect.appendChild(opt);
+                        });
+                    }
+                    setupSuggest();
+
+                    // URLパラメータ ?id=xxx または ?caseId=xxx があれば直接詳細を表示
+                    const params = new URLSearchParams(window.location.search);
+                    const targetId = params.get('id') || params.get('caseId');
+
+                    if (targetId) {
+                        console.log('Direct view ID found:', targetId);
+                        showDetail(targetId);
+                    } else {
+                        console.log('Loading normal case list...');
+                        loadCases().catch(err => {
+                            console.error('Initial loadCases failed:', err);
+                            const list = $('case-list');
+                            if (list) list.innerHTML = `< div class="error-msg" > 読み込みに失敗しました: ${err.message || err}</div >`;
+                        });
+                    }
+
+                    // タイムアウト監視（10秒経っても「読み込み中...」ならエラーにする）
+                    setTimeout(() => {
+                        const list = $('case-list');
+                        if (list && list.innerHTML.includes('読み込み中')) {
+                            console.warn('Startup Timeout: No cases loaded or error occurred');
+                            list.innerHTML = '<div class="empty-state"><div class="empty-state-msg">サーバーからの応答が遅れています。<br>しばらく待ってから更新ボタンを押してください。</div></div>';
+                        }
+                    }, 10000);
+
+                } catch (e) {
+                    console.error('Startup Error:', e);
+                    window.onerror(e.message, '', 0, 0, e);
+                }
+            };
+
+        })();
+    </script>
+
+</html>

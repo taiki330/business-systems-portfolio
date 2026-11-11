@@ -1,0 +1,166 @@
+{
+  "getProductMaster": {
+    "items": [
+      {
+        "productId": "P001",
+        "category": "消耗品",
+        "name": "サンプルグローブ Mサイズ",
+        "priceExTax": 350,
+        "supplier": "サンプル商会",
+        "standardQty": 6,
+        "expiryManaged": "不要",
+        "note": ""
+      },
+      {
+        "productId": "P002",
+        "category": "消耗品",
+        "name": "サンプルグローブ Sサイズ",
+        "priceExTax": 350,
+        "supplier": "サンプル商会",
+        "standardQty": 6,
+        "expiryManaged": "不要",
+        "note": ""
+      },
+      {
+        "productId": "P003",
+        "category": "薬剤",
+        "name": "サンプル麻酔カートリッジ",
+        "priceExTax": 4200,
+        "supplier": "サンプル資材",
+        "standardQty": 20,
+        "expiryManaged": "要",
+        "note": ""
+      },
+      {
+        "productId": "P004",
+        "category": "消耗品",
+        "name": "サンプルマスク 50枚入",
+        "priceExTax": 680,
+        "supplier": "サンプル商会",
+        "standardQty": 10,
+        "expiryManaged": "不要",
+        "note": ""
+      },
+      {
+        "productId": "P005",
+        "category": "事務用品",
+        "name": "サンプル紙コップ",
+        "priceExTax": 420,
+        "supplier": "サンプル薬品",
+        "standardQty": "",
+        "expiryManaged": "不要",
+        "note": ""
+      },
+      {
+        "productId": "P006",
+        "category": "消耗品",
+        "name": "サンプルエプロン",
+        "priceExTax": 900,
+        "supplier": "サンプル商会",
+        "standardQty": 10,
+        "expiryManaged": "不要",
+        "note": ""
+      },
+      {
+        "productId": "P007",
+        "category": "診療室",
+        "name": "サンプル研磨ブラシ",
+        "priceExTax": 1250,
+        "supplier": "サンプル資材",
+        "standardQty": 5,
+        "expiryManaged": "不要",
+        "note": ""
+      },
+      {
+        "productId": "P008",
+        "category": "薬剤",
+        "name": "サンプル印象材",
+        "priceExTax": 3100,
+        "supplier": "サンプル薬品",
+        "standardQty": 4,
+        "expiryManaged": "要",
+        "note": ""
+      },
+      {
+        "productId": "P009",
+        "category": "消耗品",
+        "name": "サンプルコットンロール",
+        "priceExTax": 520,
+        "supplier": "サンプル商会",
+        "standardQty": 5,
+        "expiryManaged": "不要",
+        "note": ""
+      },
+      {
+        "productId": "P010",
+        "category": "診療室",
+        "name": "サンプル注射針 27G",
+        "priceExTax": 1800,
+        "supplier": "サンプル資材",
+        "standardQty": 20,
+        "expiryManaged": "不要",
+        "note": ""
+      },
+      {
+        "productId": "P011",
+        "category": "薬剤",
+        "name": "サンプルうがい薬 500ml",
+        "priceExTax": 760,
+        "supplier": "サンプル薬品",
+        "standardQty": 3,
+        "expiryManaged": "要",
+        "note": ""
+      },
+      {
+        "productId": "P012",
+        "category": "事務用品",
+        "name": "サンプルティッシュ",
+        "priceExTax": 300,
+        "supplier": "サンプル商会",
+        "standardQty": "",
+        "expiryManaged": "不要",
+        "note": ""
+      },
+      {
+        "productId": "P013",
+        "category": "診療室",
+        "name": "サンプルバキュームチップ",
+        "priceExTax": 1500,
+        "supplier": "サンプル資材",
+        "standardQty": 30,
+        "expiryManaged": "不要",
+        "note": ""
+      },
+      {
+        "productId": "P014",
+        "category": "薬剤",
+        "name": "サンプルセメント",
+        "priceExTax": 5200,
+        "supplier": "サンプル薬品",
+        "standardQty": 2,
+        "expiryManaged": "要",
+        "note": ""
+      },
+      {
+        "productId": "P015",
+        "category": "消耗品",
+        "name": "サンプルトレー使い捨て",
+        "priceExTax": 640,
+        "supplier": "サンプル商会",
+        "standardQty": 4,
+        "expiryManaged": "不要",
+        "note": ""
+      },
+      {
+        "productId": "P016",
+        "category": "事務用品",
+        "name": "サンプルペーパータオル",
+        "priceExTax": 480,
+        "supplier": "サンプル資材",
+        "standardQty": "",
+        "expiryManaged": "不要",
+        "note": ""
+      }
+    ]
+  }
+}

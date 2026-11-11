@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>現場注文フォーム</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.4/css/bulma.min.css">
+</head>
+
+<body style="padding: 20px;">
+    <h2 class="title is-4">🏗 現場注文</h2>
+
+    <div class="field"><label class="label">現場名</label>
+        <div class="select is-fullwidth">
+            <select id="genba">
+                <option value="">-- 選択してください --</option>
+                <option>現場A</option>
+                <option>現場B</option>
+                <option>現場C</option>
+            </select>
+        </div>
+    </div>
+    <div class="field"><label class="label">商品名</label>
+        <div class="select is-fullwidth">
+            <select id="item">
+                <option value="">-- 選択してください --</option>
+                <option>商品1</option>
+                <option>商品2</option>
+                <option>商品3</option>
+            </select>
+        </div>
+    </div>
+    <div class="field"><label class="label">数量</label><input class="input" type="number" id="qty"></div>
+    <div class="field"><label class="label">搬入日</label><input class="input" type="text" id="delivery_date"
+            placeholder="例: 10/1（未入力で最短）"></div>
+    <div class="field"><label class="label">名前</label><input class="input" type="text" id="username"></div>
+    <div class="field"><label class="label">電話番号</label><input class="input" type="tel" id="tel"></div>
+
+    <button class="button is-link is-fullwidth" id="sendBtn" onclick="sendOrder()">注文を送信する</button>
+    <p id="status" class="has-text-centered mt-3"></p>
+
+    <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+    <script>
+        // 【重要】ここを自分のLIFF ID（ログインチャネルのやつ）に書き換えてください
+        const MY_LIFF_ID = "2009340503-4e98owd1";
+
+        liff.init({ liffId: MY_LIFF_ID })
+            .then(() => {
+                if (!liff.isLoggedIn()) { liff.login(); }
+            })
+            .catch((err) => { alert('初期化エラー: ' + err); });
+
+        function sendOrder() {
+            const genba = document.getElementById('genba').value;
+            const item = document.getElementById('item').value;
+            const qty = document.getElementById('qty').value;
+            const delivery_date = document.getElementById('delivery_date').value || '最短';
+            const name = document.getElementById('username').value;
+            const tel = document.getElementById('tel').value;
+
+            if (!genba || !item || !qty) {
+                alert("現場名、商品名、数量は必須です");
+                return;
+            }
+
+            // ─── 修正①: LINEアプリ内で開いているか確認 ───
+            if (!liff.isInClient()) {
+                alert("このフォームはLINEアプリから開いてください");
+                return;
+            }
+
+            // ─── 修正②: 【注文】→【発注】に変更（Code.gsと一致させる） ───
+            const message = `【発注】\n現場名:${genba}\n商品名:${item}\n数量:${qty}\n搬入日:${delivery_date}`;
+
+            // 二重送信防止
+            document.getElementById('sendBtn').disabled = true;
+            document.getElementById('status').textContent = '送信中...';
+
+            liff.sendMessages([{
+                type: 'text',
+                text: message
+            }]).then(() => {
+                liff.closeWindow();
+            }).catch((err) => {
+                document.getElementById('sendBtn').disabled = false;
+                document.getElementById('status').textContent = '';
+                alert('送信エラー: ' + err);
+            });
+        }
+    </script>
+</body>
+
+</html>

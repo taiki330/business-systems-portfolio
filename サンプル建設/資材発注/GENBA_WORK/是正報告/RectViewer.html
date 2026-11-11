@@ -1,0 +1,461 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>是正報告 — 請負業者別一覧</title>
+  <style>
+    :root {
+      --bg: #f1f5f9;
+      --card: #ffffff;
+      --text: #0f172a;
+      --muted: #64748b;
+      --accent: #0f766e;
+      --border: #e2e8f0;
+      --radius: 14px;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans JP", sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      font-size: 16px;
+      line-height: 1.5;
+      min-height: 100dvh;
+      padding: 16px 14px 32px;
+    }
+
+    header {
+      margin-bottom: 18px;
+    }
+
+    h1 {
+      font-size: 1.25rem;
+      font-weight: 700;
+      margin: 0 0 6px;
+      letter-spacing: -0.02em;
+    }
+
+    .sub {
+      font-size: 0.9rem;
+      color: var(--muted);
+      margin: 0;
+    }
+
+    .badge {
+      display: inline-block;
+      margin-top: 10px;
+      padding: 6px 12px;
+      background: #ccfbf1;
+      color: #115e59;
+      border-radius: 999px;
+      font-size: 0.8rem;
+      font-weight: 600;
+    }
+
+    .loading,
+    .error,
+    .empty {
+      text-align: center;
+      padding: 40px 16px;
+      color: var(--muted);
+    }
+
+    .error {
+      color: #b91c1c;
+    }
+
+    .list {
+      margin-top: 4px;
+    }
+
+    .card {
+      background: var(--card);
+      border-radius: var(--radius);
+      border: 1px solid var(--border);
+      padding: 14px 14px 12px;
+      margin-bottom: 10px;
+      box-shadow: 0 1px 2px rgba(15, 23, 42, 0.06);
+    }
+
+    .card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 8px;
+      margin-bottom: 8px;
+    }
+
+    .site-name {
+      font-weight: 700;
+      font-size: 0.98rem;
+      word-break: break-word;
+    }
+
+    .meta {
+      font-size: 0.8rem;
+      color: var(--muted);
+    }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 2px 8px;
+      border-radius: 999px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      border: 1px solid #bae6fd;
+      background: #eff6ff;
+      color: #1d4ed8;
+      margin-left: 6px;
+    }
+
+    .pill-danger {
+      border-color: #fecaca;
+      background: #fef2f2;
+      color: #b91c1c;
+    }
+
+    .stats {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      font-size: 0.82rem;
+      color: var(--muted);
+      margin-bottom: 10px;
+    }
+
+    .stat {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .actions {
+      display: flex;
+      justify-content: flex-end;
+    }
+
+    .btn-open {
+      padding: 6px 10px;
+      border-radius: 999px;
+      border: none;
+      background: var(--accent);
+      color: #ffffff;
+      font-size: 0.84rem;
+      font-weight: 600;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .btn-open:active {
+      transform: translateY(1px);
+    }
+
+    .hint {
+      margin-top: 14px;
+      padding: 12px 12px;
+      border-radius: 12px;
+      border: 1px dashed var(--border);
+      background: #ffffff;
+      font-size: 0.82rem;
+      color: var(--muted);
+    }
+  </style>
+</head>
+
+<body>
+  <header>
+    <h1>是正報告 — 請負業者別一覧</h1>
+    <p class="sub">
+      配布されたURLから、この請負業者が担当する是正案件の一覧を表示します。<br />
+      カードを開くと、既存の是正後アップロード用ページ（共有URL）へ遷移します。
+    </p>
+    <div class="badge" id="primeBadge">請負業者: 読み込み中...</div>
+  </header>
+
+  <main id="root">
+    <div class="loading" id="stateLoading">読み込み中です...</div>
+    <div class="error" id="stateError" style="display:none"></div>
+    <div class="empty" id="stateEmpty" style="display:none">
+      現在、この請負業者に紐づく是正案件はありません。<br />
+      新しい案件が登録されると自動的にここに表示されます。
+    </div>
+    <div class="list" id="caseList" style="display:none"></div>
+    <div class="hint">
+      ブラウザにこのページをブックマークしておくと、次回以降も同じURLで一覧を開けます。
+    </div>
+  </main>
+
+  <script>
+    (function () {
+      'use strict';
+      var BOOT = <?= JSON.stringify(bootstrap) ?>;
+
+      function setText(id, text) {
+        var el = document.getElementById(id);
+        if (el) el.textContent = text;
+      }
+
+      function show(id) {
+        ['stateLoading', 'stateError', 'stateEmpty', 'caseList'].forEach(function (x) {
+          var el = document.getElementById(x);
+          if (!el) return;
+          el.style.display = (x === id) ? (x === 'caseList' ? 'block' : 'block') : 'none';
+        });
+      }
+
+      function formatDate(d) {
+        if (!d) return '';
+        return String(d);
+      }
+
+      function buildShareUrl(caseId) {
+        if (!BOOT || !BOOT.deployUrl) return '';
+        return BOOT.deployUrl + '?caseId=' + encodeURIComponent(String(caseId || ''));
+      }
+
+      function readPrimeFromLocation() {
+        try {
+          var usp = new URLSearchParams(window.location.search || '');
+          var v = usp.get('prime');
+          return v ? String(v).trim() : '';
+        } catch (e) {
+          return '';
+        }
+      }
+
+      function readPrimeFromReferrer() {
+        try {
+          var ref = String(document.referrer || '').trim();
+          if (!ref) return '';
+          var qIdx = ref.indexOf('?');
+          if (qIdx < 0) return '';
+          var qs = ref.substring(qIdx + 1);
+          var usp = new URLSearchParams(qs);
+          var v = usp.get('prime');
+          return v ? String(v).trim() : '';
+        } catch (e) {
+          return '';
+        }
+      }
+
+      function readPrimeFromTopLocation() {
+        try {
+          if (!window.top || !window.top.location) return '';
+          var usp = new URLSearchParams(window.top.location.search || '');
+          var v = usp.get('prime');
+          return v ? String(v).trim() : '';
+        } catch (e) {
+          return '';
+        }
+      }
+
+      function decodeSafeOnce(s) {
+        try {
+          return decodeURIComponent(String(s || ''));
+        } catch (e) {
+          return String(s || '');
+        }
+      }
+
+      function readPrimeFromText(text) {
+        var src = String(text || '');
+        if (!src) return '';
+        var m = src.match(/[?&]prime=([^&#]+)/i);
+        if (!m || !m[1]) return '';
+        var v = m[1];
+        // + はスペース扱い
+        v = v.replace(/\+/g, ' ');
+        // 二重エンコードの可能性を考慮して最大2回デコード
+        v = decodeSafeOnce(v);
+        v = decodeSafeOnce(v);
+        return String(v || '').trim();
+      }
+
+      function askPrimeFallback() {
+        try {
+          var v = window.prompt('請負業者名を入力してください（案件シートの表記どおり）', '');
+          return v ? String(v).trim() : '';
+        } catch (e) {
+          return '';
+        }
+      }
+
+      function renderList(payload) {
+        var prime = payload.prime || '';
+        setText('primeBadge', prime ? ('請負業者: ' + prime) : '請負業者: 未指定');
+
+        var items = payload.items || [];
+        if (!items.length) {
+          show('stateEmpty');
+          return;
+        }
+
+        var list = document.getElementById('caseList');
+        list.innerHTML = '';
+        items.forEach(function (c) {
+          var card = document.createElement('div');
+          card.className = 'card';
+
+          var header = document.createElement('div');
+          header.className = 'card-header';
+
+          var left = document.createElement('div');
+          var name = document.createElement('div');
+          name.className = 'site-name';
+          var siteName = String(c.siteName || '').trim();
+          var buildingName = String(c.buildingName || '').trim();
+          name.textContent = siteName || '(現場名未設定)';
+          if (buildingName && siteName.indexOf(buildingName) === -1) {
+            name.textContent += '（' + buildingName + '）';
+          }
+
+          var meta = document.createElement('div');
+          meta.className = 'meta';
+          var cat = c.reportCategory || '';
+          var patrol = c.patrolDate ? '巡回日: ' + c.patrolDate : '';
+          meta.textContent = [cat, patrol].filter(Boolean).join(' / ');
+
+          left.appendChild(name);
+          left.appendChild(meta);
+
+          var right = document.createElement('div');
+          right.style.textAlign = 'right';
+          var pill = document.createElement('div');
+          var hasOpen = (c.pendingCount || 0) + (c.rejectedCount || 0) > 0;
+          pill.className = 'pill' + (c.isOverdue ? ' pill-danger' : '');
+          if (hasOpen) {
+            var parts = [];
+            if (c.pendingCount) parts.push('未提出 ' + c.pendingCount);
+            if (c.rejectedCount) parts.push('差し戻し ' + c.rejectedCount);
+            pill.textContent = parts.join(' / ');
+          } else {
+            pill.textContent = '全明細 処理済み';
+          }
+          right.appendChild(pill);
+
+          header.appendChild(left);
+          header.appendChild(right);
+          card.appendChild(header);
+
+          var stats = document.createElement('div');
+          stats.className = 'stats';
+
+          if (c.submitDeadline) {
+            var st = document.createElement('div');
+            st.className = 'stat';
+            st.textContent = '提出期日: ' + c.submitDeadline;
+            stats.appendChild(st);
+          }
+
+          if (c.isOverdue) {
+            var od = document.createElement('div');
+            od.className = 'stat';
+            od.textContent = '期限超過 ' + (c.daysOverdue || 1) + '日';
+            stats.appendChild(od);
+          }
+
+          if (c.updatedAt) {
+            var up = document.createElement('div');
+            up.className = 'stat';
+            up.textContent = '最終更新: ' + formatDate(c.updatedAt);
+            stats.appendChild(up);
+          }
+
+          if (c.primeContractorName) {
+            var pr = document.createElement('div');
+            pr.className = 'stat';
+            pr.textContent = '請負: ' + c.primeContractorName;
+            stats.appendChild(pr);
+          }
+
+          card.appendChild(stats);
+
+          var actions = document.createElement('div');
+          actions.className = 'actions';
+          var btn = document.createElement('button');
+          btn.className = 'btn-open';
+          btn.textContent = '是正アップロード画面を開く';
+          btn.onclick = function () {
+            var url = buildShareUrl(c.caseId);
+            if (!url) return;
+            window.open(url, '_blank');
+          };
+          actions.appendChild(btn);
+          card.appendChild(actions);
+
+          list.appendChild(card);
+        });
+
+        show('caseList');
+      }
+
+      function init() {
+        var prime = BOOT && BOOT.prime ? String(BOOT.prime || '').trim() : '';
+        if (!prime) {
+          // doGet 側で括弧付き文字が欠落するケースの保険として、クライアントで再取得
+          prime = readPrimeFromLocation();
+        }
+        if (!prime) {
+          // iframe 内 location.search が空の環境向けに、親URLの referrer も確認
+          prime = readPrimeFromReferrer();
+        }
+        if (!prime) {
+          // 同一オリジンなら top.location からも取得
+          prime = readPrimeFromTopLocation();
+        }
+        if (!prime) {
+          // search が空でも href にクエリが含まれるケースを救済
+          prime = readPrimeFromText(window.location.href);
+        }
+        if (!prime) {
+          // さらに referrer 全文から直接抽出
+          prime = readPrimeFromText(document.referrer || '');
+        }
+        if (!prime) {
+          // 最終フォールバック: 手入力で続行（環境依存でクエリが落ちるケース対策）
+          prime = askPrimeFallback();
+        }
+        if (!prime) {
+          show('stateError');
+          setText('stateError', '請負業者名がURLに含まれていません。管理者から配布されたURLをそのまま開いてください。');
+          setText('primeBadge', '請負業者: 未指定');
+          return;
+        }
+
+        setText('primeBadge', '請負業者: ' + prime);
+        show('stateLoading');
+
+        google.script.run
+          .withSuccessHandler(function (payload) {
+            if (!payload || !payload.ok) {
+              show('stateError');
+              setText('stateError', (payload && payload.error) || 'データ取得に失敗しました。');
+              return;
+            }
+            renderList(payload);
+          })
+          .withFailureHandler(function (e) {
+            show('stateError');
+            setText('stateError', 'エラー: ' + (e && e.message ? e.message : e));
+          })
+          .getRectViewerPrimeCases(prime);
+      }
+
+      window.onload = init;
+    })();
+  </script>
+</body>
+
+</html>
+

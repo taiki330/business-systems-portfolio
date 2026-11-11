@@ -1,0 +1,100 @@
+<style>
+  /* 棚卸しアプリと同じ配色・字体に揃える。同じ医院の同じスタッフが両方を使うため、
+     見た目が揃っていること自体が使いやすさになる。 */
+  :root{ --line:#d8dde5; --ink:#1a1a1a; --sub:#5a6270; --accent:#1e5aa8;
+         --soft:#f4f6f9; --ok:#1e7a4d; --warn:#b3541e; --err:#c0392b; --na:#8a90a0; }
+  *{box-sizing:border-box;}
+  body{margin:0;font-family:"Yu Gothic",YuGothic,"Hiragino Kaku Gothic ProN","Meiryo",sans-serif;
+       color:var(--ink);background:#eef1f5;font-size:14px;}
+  header{background:#fff;border-bottom:2px solid var(--accent);padding:14px 16px;
+         box-shadow:0 1px 6px rgba(0,0,0,.06);}
+  h1{font-size:18px;margin:0;display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
+  h2{font-size:15px;margin:22px 0 10px;padding-left:9px;border-left:4px solid var(--accent);}
+  .clinicTag{display:inline-block;background:var(--accent);color:#fff;font-weight:700;
+             padding:2px 14px;border-radius:14px;font-size:15px;}
+  /* PC・スマホ両対応。現場はスマホ、本部はPCで見る想定。 */
+  main{max-width:860px;margin:0 auto;padding:16px;}
+  a{text-decoration:none;color:inherit;}
+  .back{display:inline-block;margin-bottom:12px;color:var(--accent);font-weight:700;}
+
+  /* --- 通知バッジ --- */
+  .badge{display:block;border-radius:8px;padding:12px 14px;margin-bottom:12px;font-weight:700;}
+  .badge .arrow{float:right;font-weight:400;}
+  .badge.err{background:#fbe9e7;border:1px solid #f0b7ae;color:var(--err);}
+  .badge.warn{background:#fdf3e7;border:1px solid #f0d5ae;color:var(--warn);}
+  .badge.ok{background:#eaf5ee;border:1px solid #b4dcc3;color:var(--ok);}
+
+  /* --- タイル（ホーム） --- */
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:12px;}
+  .tile{background:#fff;border:1px solid var(--line);border-radius:10px;padding:20px 16px;
+        display:flex;flex-direction:column;gap:6px;min-height:104px;
+        box-shadow:0 1px 4px rgba(0,0,0,.05);transition:box-shadow .12s,transform .12s;}
+  .tile:hover{box-shadow:0 4px 14px rgba(0,0,0,.12);transform:translateY(-1px);}
+  .tile .ico{font-size:26px;line-height:1;}
+  .tile .t{font-size:16px;font-weight:700;}
+  .tile .d{font-size:12px;color:var(--sub);}
+
+  /* --- 数字の並び（サマリ） --- */
+  .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(96px,1fr));gap:8px;
+         background:#fff;border:1px solid var(--line);border-radius:10px;padding:14px;}
+  .stat{text-align:center;}
+  .stat .n{font-size:22px;font-weight:700;line-height:1.2;}
+  .stat .l{font-size:11.5px;color:var(--sub);}
+
+  /* --- 表 --- */
+  .card{background:#fff;border:1px solid var(--line);border-radius:10px;padding:14px;margin-bottom:14px;}
+  .scroll{overflow-x:auto;}
+  table{border-collapse:collapse;width:100%;font-size:13px;}
+  th,td{border-bottom:1px solid var(--line);padding:8px 6px;text-align:left;vertical-align:top;
+        white-space:nowrap;}
+  th{background:var(--soft);font-size:12px;color:var(--sub);position:sticky;top:0;}
+  td.wrap,th.wrap{white-space:normal;min-width:150px;}
+  tr.sel{background:#eaf1fb;}
+
+  /* --- 状態チップ --- */
+  .chip{display:inline-block;border-radius:11px;padding:1px 9px;font-size:11.5px;font-weight:700;
+        border:1px solid transparent;}
+  .chip.inUse{background:#eaf5ee;color:var(--ok);border-color:#b4dcc3;}
+  .chip.spare{background:#eef0f3;color:var(--sub);border-color:#d5d9e0;}
+  .chip.trouble{background:#fbe9e7;color:var(--err);border-color:#f0b7ae;}
+  .chip.moving{background:#fdf3e7;color:var(--warn);border-color:#f0d5ae;}
+  .chip.gone{background:#f2f2f2;color:var(--na);border-color:#e0e0e0;}
+  .chip.rel{background:#eef4fc;color:var(--accent);border-color:#c3d6f0;}
+
+  /* --- 入力 --- */
+  label{display:block;font-size:12.5px;color:var(--sub);margin:12px 0 4px;font-weight:700;}
+  input[type=text],input[type=date],input[type=number],select,textarea{
+    width:100%;padding:9px 10px;border:1px solid var(--line);border-radius:6px;font-size:15px;
+    font-family:inherit;background:#fff;}
+  textarea{min-height:64px;resize:vertical;}
+  .row{display:flex;gap:10px;flex-wrap:wrap;}
+  .row > *{flex:1 1 180px;}
+  .choices{display:flex;flex-direction:column;gap:6px;margin-top:4px;}
+  .choices label{display:flex;align-items:center;gap:8px;margin:0;padding:9px 10px;
+                 border:1px solid var(--line);border-radius:6px;background:#fff;
+                 font-size:14.5px;color:var(--ink);font-weight:400;cursor:pointer;}
+  .choices label:has(input:checked){border-color:var(--accent);background:#eef4fc;font-weight:700;}
+  .choices input{margin:0;}
+
+  button{font-size:15px;font-weight:700;padding:11px 20px;border:none;border-radius:8px;
+         background:var(--accent);color:#fff;cursor:pointer;}
+  button:disabled{background:#b9c2ce;cursor:default;}
+  button.sub{background:#fff;color:var(--accent);border:1px solid var(--accent);}
+  button.danger{background:var(--err);}
+  .actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px;}
+
+  .filters{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;}
+  .filters input,.filters select{flex:1 1 150px;}
+
+  .note{font-size:12.5px;color:var(--sub);background:var(--soft);border-radius:8px;
+        padding:10px 14px;line-height:1.6;margin-top:12px;}
+  .flag{font-size:11.5px;color:var(--warn);}
+  .spin,.empty{padding:36px;text-align:center;color:var(--sub);}
+  .err{color:var(--err);font-weight:700;}
+
+  /* 画面下に出る結果表示。処理の成否をその場で伝える。 */
+  .toast{position:fixed;left:50%;transform:translateX(-50%);bottom:18px;max-width:92%;
+         background:#20262f;color:#fff;padding:12px 18px;border-radius:8px;font-size:14px;
+         box-shadow:0 4px 18px rgba(0,0,0,.28);z-index:50;line-height:1.5;}
+  .toast.bad{background:#8c2f24;}
+</style>

@@ -1,0 +1,703 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+/* ========== リセット & ベース ========== */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { font-size: 16px; -webkit-text-size-adjust: 100%; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Hiragino Sans', 'Meiryo', sans-serif;
+  background: #f0f2f5;
+  color: #1a1a1a;
+  line-height: 1.6;
+  min-height: 100vh;
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+/* ========== ヘッダー ========== */
+.header {
+  background: linear-gradient(135deg, #1565C0, #0D47A1);
+  color: #fff;
+  padding: 16px 20px;
+  position: sticky; top: 0; z-index: 100;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+}
+.header h1 { font-size: 1.1rem; font-weight: 600; }
+.header .back-btn {
+  background: none; border: none; color: #fff; font-size: 1rem;
+  cursor: pointer; padding: 4px 8px; margin-right: 8px; display: none;
+}
+
+/* ========== 画面共通 ========== */
+.screen { display: none; padding: 16px; max-width: 640px; margin: 0 auto; }
+.screen.active { display: block; }
+
+/* ========== カード ========== */
+.card {
+  background: #fff; border-radius: 12px; padding: 20px;
+  margin-bottom: 16px; box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+}
+.card-title {
+  font-size: 0.85rem; font-weight: 600; color: #666;
+  margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.5px;
+}
+
+/* ========== フォーム要素 ========== */
+.form-group { margin-bottom: 16px; }
+.form-group:last-child { margin-bottom: 0; }
+.form-label {
+  display: block; font-size: 0.9rem; font-weight: 500;
+  margin-bottom: 6px; color: #333;
+}
+.form-label .required {
+  color: #d32f2f; font-size: 0.75rem; margin-left: 4px;
+}
+.form-label .help-text {
+  display: block; font-size: 0.78rem; color: #888; font-weight: 400; margin-top: 2px;
+}
+
+input[type="text"], input[type="date"], input[type="time"], textarea, select {
+  width: 100%; padding: 12px; border: 1.5px solid #ddd; border-radius: 8px;
+  font-size: 1rem; background: #fafafa; transition: border-color 0.2s;
+  font-family: inherit;
+}
+input:focus, textarea:focus, select:focus {
+  outline: none; border-color: #1565C0; background: #fff;
+}
+textarea { min-height: 80px; resize: vertical; }
+select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23666' d='M6 8L1 3h10z'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 12px center; padding-right: 36px; }
+
+/* ========== ラジオ / チェック ========== */
+.option-group { display: flex; flex-wrap: wrap; gap: 8px; }
+.option-btn {
+  padding: 10px 16px; border: 1.5px solid #ddd; border-radius: 8px;
+  background: #fafafa; cursor: pointer; font-size: 0.9rem;
+  transition: all 0.2s; user-select: none; text-align: center;
+  min-width: 80px;
+}
+.option-btn:active { transform: scale(0.97); }
+.option-btn.selected {
+  border-color: #1565C0; background: #E3F2FD; color: #1565C0; font-weight: 600;
+}
+.option-btn input { display: none; }
+
+/* ========== セクションヘッダー ========== */
+.section-header {
+  font-size: 1rem; font-weight: 700; color: #1565C0;
+  padding: 12px 0 8px; border-bottom: 2px solid #1565C0;
+  margin-bottom: 12px;
+}
+
+/* ========== ファイルアップロード ========== */
+.file-upload-area {
+  border: 2px dashed #ccc; border-radius: 12px; padding: 24px; text-align: center;
+  cursor: pointer; transition: border-color 0.2s; background: #fafafa;
+}
+.file-upload-area:active { border-color: #1565C0; }
+.file-upload-area p { color: #888; font-size: 0.9rem; }
+.file-upload-area input[type="file"] { display: none; }
+.preview-grid {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 12px;
+}
+.preview-item {
+  position: relative; aspect-ratio: 1; border-radius: 8px; overflow: hidden;
+  background: #eee;
+}
+.preview-item img { width: 100%; height: 100%; object-fit: cover; }
+.preview-item .remove-btn {
+  position: absolute; top: 4px; right: 4px; width: 24px; height: 24px;
+  border-radius: 50%; background: rgba(0,0,0,0.6); color: #fff;
+  border: none; font-size: 14px; cursor: pointer; line-height: 24px; text-align: center;
+}
+
+/* ========== ボタン ========== */
+.btn {
+  display: block; width: 100%; padding: 16px; border: none; border-radius: 12px;
+  font-size: 1.05rem; font-weight: 600; cursor: pointer;
+  transition: all 0.2s; text-align: center;
+}
+.btn:active { transform: scale(0.98); }
+.btn-primary { background: linear-gradient(135deg, #1565C0, #0D47A1); color: #fff; }
+.btn-primary:disabled { background: #bbb; cursor: not-allowed; transform: none; }
+.btn-secondary { background: #e0e0e0; color: #333; }
+
+/* ========== カテゴリ選択 ========== */
+.category-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.category-btn {
+  padding: 14px 12px; border: 2px solid #ddd; border-radius: 12px;
+  background: #fff; cursor: pointer; font-size: 0.85rem; font-weight: 500;
+  text-align: center; transition: all 0.2s; color: #333;
+}
+.category-btn:active { transform: scale(0.97); }
+.category-btn.selected { border-color: #1565C0; background: #E3F2FD; color: #1565C0; font-weight: 700; }
+
+/* ========== 完了画面 ========== */
+.complete-icon { font-size: 4rem; text-align: center; margin: 40px 0 20px; }
+.complete-msg { text-align: center; font-size: 1.2rem; font-weight: 600; margin-bottom: 8px; }
+.complete-sub { text-align: center; color: #666; font-size: 0.9rem; margin-bottom: 32px; }
+
+/* ========== トースト ========== */
+.toast {
+  position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%);
+  background: #333; color: #fff; padding: 12px 24px; border-radius: 8px;
+  font-size: 0.9rem; z-index: 200; opacity: 0; transition: opacity 0.3s;
+  max-width: 90%;
+}
+.toast.show { opacity: 1; }
+
+/* ========== エラー ========== */
+.field-error { border-color: #d32f2f !important; }
+.error-msg { color: #d32f2f; font-size: 0.78rem; margin-top: 4px; display: none; }
+.error-msg.show { display: block; }
+
+/* ========== スピナー ========== */
+.spinner {
+  display: inline-block; width: 20px; height: 20px; border: 3px solid rgba(255,255,255,0.3);
+  border-top-color: #fff; border-radius: 50%;
+  animation: spin 0.8s linear infinite; vertical-align: middle; margin-right: 8px;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+</style>
+</head>
+<body>
+
+<!-- ヘッダー -->
+<div class="header">
+  <button class="back-btn" id="backBtn" onclick="goBack()">&larr;</button>
+  <h1 style="display:inline">現場管理報告フォーム</h1>
+</div>
+
+<!-- 画面1: 共通情報入力 -->
+<div class="screen active" id="screen-home">
+  <div class="card">
+    <div class="card-title">基本情報</div>
+
+    <div class="form-group">
+      <label class="form-label">提出者氏名<span class="required">*必須</span></label>
+      <input type="text" id="field-reporter" placeholder="氏名を入力">
+      <div class="error-msg" id="err-reporter">提出者氏名を入力してください</div>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">現場名<span class="required">*必須</span></label>
+      <select id="field-site">
+        <option value="">-- 選択してください --</option>
+      </select>
+      <div class="error-msg" id="err-site">現場を選択してください</div>
+    </div>
+
+    <div class="form-group" id="new-site-group" style="display:none;">
+      <label class="form-label">
+        新規現場名を入力
+        <span class="help-text">一つ前の質問で新規現場を入力を選択した場合のみご記入ください。</span>
+      </label>
+      <input type="text" id="field-new-site" placeholder="新規現場名">
+      <div class="error-msg" id="err-new-site">新規現場名を入力してください</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">実施する業務を選択してください<span class="required" style="margin-left:4px">*必須</span></div>
+    <div class="category-grid" id="category-grid"></div>
+    <div class="error-msg" id="err-category">業務カテゴリを選択してください</div>
+  </div>
+
+  <button class="btn btn-primary" style="margin-top:8px" onclick="goToForm()">次へ</button>
+</div>
+
+<!-- 画面2: フェーズ別フォーム -->
+<div class="screen" id="screen-form">
+  <div id="phase-form-container"></div>
+  <button class="btn btn-primary" id="submitBtn" style="margin-top:16px" onclick="handleSubmit()">送信する</button>
+</div>
+
+<!-- 画面3: 完了 -->
+<div class="screen" id="screen-complete">
+  <div class="complete-icon">&#10004;</div>
+  <div class="complete-msg">送信が完了しました</div>
+  <div class="complete-sub">報告内容が記録されました</div>
+  <button class="btn btn-secondary" onclick="resetForm()">新しい報告を作成</button>
+</div>
+
+<!-- トースト -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ========== ブートストラップデータ ==========
+var BOOTSTRAP = JSON.parse(<?!= JSON.stringify(bootstrap) ?>);
+var FORM_ITEMS = BOOTSTRAP.formStructure;
+var SITES = BOOTSTRAP.sites;
+var selectedCategory = '';
+var imageStore = {}; // { fieldId: [{ data, fileName, mimeType }] }
+
+// ========== 初期化 ==========
+(function init() {
+  // 現場リストを構築
+  var siteSelect = document.getElementById('field-site');
+  // 「新規現場を入力」を先頭に追加
+  var optNew = document.createElement('option');
+  optNew.value = '新規現場を入力';
+  optNew.textContent = '新規現場を入力';
+  siteSelect.appendChild(optNew);
+
+  SITES.forEach(function(name) {
+    var opt = document.createElement('option');
+    opt.value = name;
+    opt.textContent = name;
+    siteSelect.appendChild(opt);
+  });
+
+  siteSelect.addEventListener('change', function() {
+    var grp = document.getElementById('new-site-group');
+    grp.style.display = this.value === '新規現場を入力' ? 'block' : 'none';
+  });
+
+  // カテゴリボタンを構築
+  var categories = ['現場調査','仮設計画打合わせ','送り出し教育','解体前教育','足場工区点検','稼働現場巡回','安全衛生協議会'];
+  var grid = document.getElementById('category-grid');
+  categories.forEach(function(cat) {
+    var btn = document.createElement('div');
+    btn.className = 'category-btn';
+    btn.textContent = cat;
+    btn.onclick = function() {
+      document.querySelectorAll('.category-btn').forEach(function(b) { b.classList.remove('selected'); });
+      btn.classList.add('selected');
+      selectedCategory = cat;
+    };
+    grid.appendChild(btn);
+  });
+})();
+
+// ========== 画面遷移 ==========
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(function(s) { s.classList.remove('active'); });
+  document.getElementById(id).classList.add('active');
+  document.getElementById('backBtn').style.display = id === 'screen-home' ? 'none' : 'inline';
+  window.scrollTo(0, 0);
+}
+
+function goBack() {
+  showScreen('screen-home');
+}
+
+function goToForm() {
+  // バリデーション
+  var valid = true;
+  var reporter = document.getElementById('field-reporter').value.trim();
+  var site = document.getElementById('field-site').value;
+  var newSite = document.getElementById('field-new-site').value.trim();
+
+  toggleError('err-reporter', !reporter); if (!reporter) valid = false;
+  toggleError('err-site', !site); if (!site) valid = false;
+  if (site === '新規現場を入力') {
+    toggleError('err-new-site', !newSite); if (!newSite) valid = false;
+  }
+  toggleError('err-category', !selectedCategory); if (!selectedCategory) valid = false;
+
+  if (!valid) { toast('入力内容を確認してください'); return; }
+
+  // フォームを描画
+  renderPhaseForm(selectedCategory);
+  showScreen('screen-form');
+}
+
+// ========== フォーム動的描画 ==========
+function renderPhaseForm(phaseName) {
+  var container = document.getElementById('phase-form-container');
+  container.innerHTML = '';
+  imageStore = {};
+
+  // PAGE_BREAKの範囲を特定
+  var startIdx = -1, endIdx = FORM_ITEMS.length;
+  for (var i = 0; i < FORM_ITEMS.length; i++) {
+    if (FORM_ITEMS[i].type === 'PAGE_BREAK' && FORM_ITEMS[i].pageTitle && FORM_ITEMS[i].pageTitle.trim() === phaseName.trim()) {
+      startIdx = i + 1;
+    } else if (FORM_ITEMS[i].type === 'PAGE_BREAK' && startIdx > 0) {
+      endIdx = i;
+      break;
+    }
+  }
+
+  if (startIdx < 0) { container.innerHTML = '<p>フォーム定義が見つかりません</p>'; return; }
+
+  var card = createCard(phaseName);
+  for (var j = startIdx; j < endIdx; j++) {
+    var item = FORM_ITEMS[j];
+    var el = renderFormItem(item);
+    if (el) card.appendChild(el);
+  }
+  container.appendChild(card);
+}
+
+function createCard(title) {
+  var card = document.createElement('div');
+  card.className = 'card';
+  if (title) {
+    var t = document.createElement('div');
+    t.className = 'card-title';
+    t.textContent = title;
+    card.appendChild(t);
+  }
+  return card;
+}
+
+function renderFormItem(item) {
+  if (item.type === 'SECTION_HEADER') {
+    var h = document.createElement('div');
+    h.className = 'section-header';
+    h.textContent = item.title;
+    return h;
+  }
+
+  if (item.type === 'PAGE_BREAK') return null;
+
+  var group = document.createElement('div');
+  group.className = 'form-group';
+
+  // ラベル
+  var label = document.createElement('label');
+  label.className = 'form-label';
+  label.textContent = item.title;
+  if (item.isRequired) {
+    var req = document.createElement('span');
+    req.className = 'required';
+    req.textContent = '*必須';
+    label.appendChild(req);
+  }
+  if (item.helpText) {
+    var help = document.createElement('span');
+    help.className = 'help-text';
+    help.textContent = item.helpText;
+    label.appendChild(help);
+  }
+  group.appendChild(label);
+
+  var fieldId = 'q-' + item.index;
+
+  switch (item.type) {
+    case 'TEXT':
+      var inp = document.createElement('input');
+      inp.type = 'text';
+      inp.id = fieldId;
+      inp.dataset.title = item.title;
+      inp.dataset.required = item.isRequired ? '1' : '';
+      group.appendChild(inp);
+      break;
+
+    case 'PARAGRAPH_TEXT':
+      var ta = document.createElement('textarea');
+      ta.id = fieldId;
+      ta.dataset.title = item.title;
+      ta.dataset.required = item.isRequired ? '1' : '';
+      ta.rows = 3;
+      group.appendChild(ta);
+      break;
+
+    case 'DATE':
+      var di = document.createElement('input');
+      di.type = 'date';
+      di.id = fieldId;
+      di.dataset.title = item.title;
+      di.dataset.required = item.isRequired ? '1' : '';
+      group.appendChild(di);
+      break;
+
+    case 'TIME':
+      var ti = document.createElement('input');
+      ti.type = 'time';
+      ti.id = fieldId;
+      ti.dataset.title = item.title;
+      ti.dataset.required = item.isRequired ? '1' : '';
+      group.appendChild(ti);
+      break;
+
+    case 'MULTIPLE_CHOICE':
+      var og = document.createElement('div');
+      og.className = 'option-group';
+      og.id = fieldId;
+      og.dataset.title = item.title;
+      og.dataset.required = item.isRequired ? '1' : '';
+      og.dataset.type = 'radio';
+      (item.options || []).forEach(function(opt) {
+        var btn = document.createElement('div');
+        btn.className = 'option-btn';
+        btn.textContent = opt.value;
+        btn.dataset.value = opt.value;
+        btn.onclick = function() {
+          og.querySelectorAll('.option-btn').forEach(function(b) { b.classList.remove('selected'); });
+          btn.classList.add('selected');
+        };
+        og.appendChild(btn);
+      });
+      group.appendChild(og);
+      break;
+
+    case 'CHECKBOX':
+      var cg = document.createElement('div');
+      cg.className = 'option-group';
+      cg.id = fieldId;
+      cg.dataset.title = item.title;
+      cg.dataset.required = item.isRequired ? '1' : '';
+      cg.dataset.type = 'checkbox';
+      (item.options || []).forEach(function(opt) {
+        var btn = document.createElement('div');
+        btn.className = 'option-btn';
+        btn.textContent = opt.value;
+        btn.dataset.value = opt.value;
+        btn.onclick = function() { btn.classList.toggle('selected'); };
+        cg.appendChild(btn);
+      });
+      group.appendChild(cg);
+      break;
+
+    case 'LIST':
+      var sel = document.createElement('select');
+      sel.id = fieldId;
+      sel.dataset.title = item.title;
+      sel.dataset.required = item.isRequired ? '1' : '';
+      var defOpt = document.createElement('option');
+      defOpt.value = '';
+      defOpt.textContent = '-- 選択 --';
+      sel.appendChild(defOpt);
+      (item.options || []).forEach(function(opt) {
+        var o = document.createElement('option');
+        o.value = opt.value;
+        o.textContent = opt.value;
+        sel.appendChild(o);
+      });
+      group.appendChild(sel);
+      break;
+
+    case 'FILE_UPLOAD':
+      var area = document.createElement('div');
+      area.className = 'file-upload-area';
+      area.id = fieldId;
+      area.dataset.title = item.title;
+      area.dataset.type = 'file';
+      var p = document.createElement('p');
+      p.textContent = 'タップしてファイルを選択';
+      area.appendChild(p);
+      var fi = document.createElement('input');
+      fi.type = 'file';
+      fi.multiple = true;
+      fi.accept = 'image/*,video/*,.pdf';
+      fi.onchange = function(ev) { handleFiles(ev, fieldId); };
+      area.appendChild(fi);
+      area.onclick = function(ev) {
+        if (ev.target === area || ev.target === p) fi.click();
+      };
+      var preview = document.createElement('div');
+      preview.className = 'preview-grid';
+      preview.id = fieldId + '-preview';
+      group.appendChild(area);
+      group.appendChild(preview);
+      break;
+  }
+
+  // エラーメッセージ
+  var errDiv = document.createElement('div');
+  errDiv.className = 'error-msg';
+  errDiv.id = 'err-' + fieldId;
+  errDiv.textContent = 'この項目は必須です';
+  group.appendChild(errDiv);
+
+  return group;
+}
+
+// ========== ファイル処理 ==========
+function handleFiles(ev, fieldId) {
+  var files = ev.target.files;
+  if (!files || files.length === 0) return;
+  if (!imageStore[fieldId]) imageStore[fieldId] = [];
+
+  Array.from(files).forEach(function(file) {
+    var reader = new FileReader();
+    reader.onload = function(e) {
+      var dataUrl = e.target.result;
+
+      // 画像なら圧縮
+      if (file.type.startsWith('image/')) {
+        compressImage(dataUrl, function(compressed) {
+          var base64 = compressed.split(',')[1];
+          imageStore[fieldId].push({ data: base64, fileName: file.name, mimeType: 'image/jpeg' });
+          renderPreviews(fieldId);
+        });
+      } else {
+        // 画像以外はそのまま
+        var base64 = dataUrl.split(',')[1];
+        imageStore[fieldId].push({ data: base64, fileName: file.name, mimeType: file.type });
+        renderPreviews(fieldId);
+      }
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+function compressImage(dataUrl, callback) {
+  var img = new Image();
+  img.onload = function() {
+    var maxDim = 1200;
+    var w = img.width, h = img.height;
+    if (w > maxDim || h > maxDim) {
+      if (w > h) { h = Math.round(h * maxDim / w); w = maxDim; }
+      else { w = Math.round(w * maxDim / h); h = maxDim; }
+    }
+    var canvas = document.createElement('canvas');
+    canvas.width = w; canvas.height = h;
+    canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+    callback(canvas.toDataURL('image/jpeg', 0.8));
+  };
+  img.src = dataUrl;
+}
+
+function renderPreviews(fieldId) {
+  var container = document.getElementById(fieldId + '-preview');
+  container.innerHTML = '';
+  (imageStore[fieldId] || []).forEach(function(f, idx) {
+    var item = document.createElement('div');
+    item.className = 'preview-item';
+    if (f.mimeType && f.mimeType.startsWith('image/')) {
+      var img = document.createElement('img');
+      img.src = 'data:' + f.mimeType + ';base64,' + f.data;
+      item.appendChild(img);
+    } else {
+      item.style.display = 'flex';
+      item.style.alignItems = 'center';
+      item.style.justifyContent = 'center';
+      item.style.fontSize = '0.7rem';
+      item.style.padding = '4px';
+      item.style.wordBreak = 'break-all';
+      item.textContent = f.fileName;
+    }
+    var rmBtn = document.createElement('button');
+    rmBtn.className = 'remove-btn';
+    rmBtn.textContent = '\u00d7';
+    rmBtn.onclick = (function(i) {
+      return function(ev) {
+        ev.stopPropagation();
+        imageStore[fieldId].splice(i, 1);
+        renderPreviews(fieldId);
+      };
+    })(idx);
+    item.appendChild(rmBtn);
+    container.appendChild(item);
+  });
+}
+
+// ========== 送信処理 ==========
+function handleSubmit() {
+  // バリデーション
+  var valid = true;
+  var container = document.getElementById('phase-form-container');
+  var fields = container.querySelectorAll('[data-title]');
+
+  fields.forEach(function(el) {
+    var required = el.dataset.required === '1';
+    if (!required) return;
+    var val = getFieldValue(el);
+    var empty = !val || (Array.isArray(val) && val.length === 0);
+    var errEl = document.getElementById('err-' + el.id);
+    if (errEl) { errEl.classList.toggle('show', empty); }
+    if (empty) { valid = false; el.classList.add('field-error'); }
+    else { el.classList.remove('field-error'); }
+  });
+
+  if (!valid) { toast('必須項目を入力してください'); return; }
+
+  // payloadを構築
+  var answers = {};
+  // 共通フィールド
+  answers['提出者氏名'] = document.getElementById('field-reporter').value.trim();
+  var siteVal = document.getElementById('field-site').value;
+  answers['既存現場から入力'] = siteVal;
+  answers['新規現場を入力'] = siteVal === '新規現場を入力' ? document.getElementById('field-new-site').value.trim() : '';
+  answers['実施する業務を選択してください'] = selectedCategory;
+
+  // フェーズ別フィールド
+  var allFiles = [];
+  fields.forEach(function(el) {
+    var title = el.dataset.title;
+    if (el.dataset.type === 'file') {
+      // ファイルはfilesに格納、answersには入れない
+      var fieldFiles = imageStore[el.id] || [];
+      fieldFiles.forEach(function(f) {
+        allFiles.push({ fieldTitle: title, data: f.data, fileName: f.fileName, mimeType: f.mimeType });
+      });
+      return;
+    }
+    var val = getFieldValue(el);
+    if (val !== null && val !== undefined) {
+      answers[title] = Array.isArray(val) ? val.join(', ') : val;
+    }
+  });
+
+  // 送信
+  var btn = document.getElementById('submitBtn');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span>送信中...';
+
+  google.script.run
+    .withSuccessHandler(function(result) {
+      btn.disabled = false;
+      btn.textContent = '送信する';
+      if (result.success) {
+        showScreen('screen-complete');
+      } else {
+        toast(result.message || '送信に失敗しました');
+      }
+    })
+    .withFailureHandler(function(err) {
+      btn.disabled = false;
+      btn.textContent = '送信する';
+      toast('エラー: ' + err.message);
+    })
+    .submitWebForm({ answers: answers, files: allFiles });
+}
+
+function getFieldValue(el) {
+  if (el.dataset.type === 'radio') {
+    var sel = el.querySelector('.option-btn.selected');
+    return sel ? sel.dataset.value : '';
+  }
+  if (el.dataset.type === 'checkbox') {
+    var checked = el.querySelectorAll('.option-btn.selected');
+    var vals = [];
+    checked.forEach(function(b) { vals.push(b.dataset.value); });
+    return vals;
+  }
+  if (el.dataset.type === 'file') {
+    return imageStore[el.id] || [];
+  }
+  return el.value || '';
+}
+
+// ========== リセット ==========
+function resetForm() {
+  document.getElementById('field-reporter').value = '';
+  document.getElementById('field-site').value = '';
+  document.getElementById('field-new-site').value = '';
+  document.getElementById('new-site-group').style.display = 'none';
+  selectedCategory = '';
+  imageStore = {};
+  document.querySelectorAll('.category-btn').forEach(function(b) { b.classList.remove('selected'); });
+  document.querySelectorAll('.error-msg').forEach(function(e) { e.classList.remove('show'); });
+  document.getElementById('phase-form-container').innerHTML = '';
+  showScreen('screen-home');
+}
+
+// ========== ユーティリティ ==========
+function toggleError(id, show) {
+  var el = document.getElementById(id);
+  if (el) el.classList.toggle('show', show);
+}
+
+function toast(msg) {
+  var t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(function() { t.classList.remove('show'); }, 3000);
+}
+</script>
+</body>
+</html>

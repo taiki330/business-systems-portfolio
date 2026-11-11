@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<base target="_top">
+<style>
+  :root{ --line:#d8dde5; --ink:#1a1a1a; --sub:#5a6270; --accent:#1e5aa8;
+         --soft:#f4f6f9; --ok:#1e7a4d; --warn:#b3541e; --err:#c0392b; }
+  *{box-sizing:border-box;}
+  body{margin:0;font-family:"Yu Gothic",YuGothic,"Hiragino Kaku Gothic ProN","Meiryo",sans-serif;
+       color:var(--ink);background:#eef1f5;font-size:14px;}
+  header{position:sticky;top:0;z-index:10;background:#fff;border-bottom:2px solid var(--accent);
+         padding:10px 14px;box-shadow:0 1px 6px rgba(0,0,0,.06);}
+  .back{display:inline-block;margin-bottom:6px;font-size:13px;font-weight:700;color:var(--accent);text-decoration:none;}
+  h1{font-size:16px;margin:0 0 8px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+  .clinicTag{background:var(--accent);color:#fff;font-size:13px;padding:2px 10px;border-radius:4px;font-weight:700;}
+  .bar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;}
+  select,input[type=text]{font-size:14px;padding:6px 10px;border:1px solid var(--line);border-radius:5px;background:#fff;}
+  .hint{font-size:12px;color:var(--sub);margin-top:6px;}
+  main{padding:10px 14px 90px;}
+  table{width:100%;border-collapse:collapse;background:#fff;}
+  th,td{border:1px solid var(--line);padding:6px 8px;text-align:left;vertical-align:middle;}
+  th{background:var(--soft);position:sticky;top:96px;font-size:12.5px;white-space:nowrap;}
+  td.num{text-align:right;}
+  .cat{display:inline-block;font-size:11px;color:var(--sub);background:#eef2f8;padding:1px 6px;border-radius:3px;}
+  .done{display:inline-block;font-size:12px;font-weight:700;color:var(--ok);background:#e7f5ec;
+        padding:3px 7px;border-radius:4px;white-space:nowrap;}
+  .notyet{font-size:12px;color:var(--sub);white-space:nowrap;}
+  .cur{color:var(--sub);}
+  input.count{width:90px;text-align:right;font-size:15px;padding:7px 8px;border:1px solid var(--line);border-radius:6px;}
+  tr.entered td{background:#eef7f0;}
+  .empty,.spin{padding:40px;text-align:center;color:var(--sub);}
+  footer{position:fixed;left:0;right:0;bottom:0;background:#fff;border-top:1px solid var(--line);
+         padding:10px 14px;display:flex;gap:12px;align-items:center;justify-content:flex-end;box-shadow:0 -1px 6px rgba(0,0,0,.06);}
+  footer .status{margin-right:auto;color:var(--sub);font-size:13px;}
+  button{cursor:pointer;font-size:15px;font-weight:700;border:none;border-radius:6px;padding:10px 20px;background:var(--ok);color:#fff;}
+  button.ghost{background:#fff;color:var(--accent);border:1px solid var(--accent);}
+  button:disabled{opacity:.5;cursor:not-allowed;}
+  /* --- QR写真読み取り（標準カメラ／画像選択） --- */
+  .scanwrap{background:#fff;border:1px solid var(--line);border-radius:8px;padding:10px 12px;margin-bottom:10px;}
+  .badge{background:var(--soft);border:1px solid var(--line);border-radius:20px;padding:3px 10px;font-size:12.5px;}
+  #reader{width:100%;max-width:340px;margin:10px auto 0;border-radius:8px;overflow:hidden;}
+  .toast{min-height:20px;font-size:13px;margin-top:8px;}
+  .toast.ok{color:var(--ok);} .toast.err{color:var(--err);}
+  .hit{border-top:1px solid var(--line);margin-top:10px;padding-top:10px;}
+  .hit .nm{font-size:15px;font-weight:800;line-height:1.4;word-break:break-all;}
+  .hit .sub{font-size:12px;color:var(--sub);margin-top:2px;}
+  .qbox{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:8px;}
+  .qbtn{width:40px;height:40px;padding:0;background:var(--soft);color:var(--ink);
+        border:1px solid var(--line);border-radius:6px;font-size:20px;line-height:1;}
+  .qval{width:96px;text-align:center;font-size:17px;font-weight:700;padding:8px;
+        border:1px solid var(--line);border-radius:6px;}
+  .photoScanBtn{display:inline-block;cursor:pointer;font-size:13px;font-weight:700;border:1px solid var(--accent);
+                border-radius:6px;padding:7px 12px;background:#fff;color:var(--accent);}
+  tr.flash td{background:#fff3cd !important;}
+</style>
+</head>
+<body>
+<header>
+  <a class="back" id="homeBack" href="#">← 医院ホームに戻る</a>
+  <h1>一斉在庫登録 <span class="clinicTag" id="clinicTag">医院未選択</span></h1>
+  <div class="bar">
+    <label>カテゴリ：<select id="catFilter"><option value="">すべて</option></select></label>
+    <input type="text" id="search" placeholder="品名で絞り込み" style="min-width:180px;">
+    <button class="ghost" id="refreshBtn" style="font-size:13px;padding:7px 12px;">🔄 入力状況を更新</button>
+    <label class="photoScanBtn" id="photoScanLabel">📷 QRを撮影
+      <input type="file" id="qrPhoto" accept="image/*" capture="environment" hidden>
+    </label>
+    <span class="hint" id="counter"></span>
+  </div>
+  <div class="hint">数えた実数を入力してください。<b>空欄の行は変更しません</b>（在庫ゼロは「0」を入力）。手分けして同時に保存してOKです。</div>
+</header>
+
+<main>
+  <div class="scanwrap" id="scanPanel" style="display:none;">
+    <span class="badge">QR写真の読み取り結果</span>
+    <div id="reader"></div>
+    <div class="toast" id="scanToast"></div>
+    <div class="hit" id="hit" style="display:none;"></div>
+  </div>
+  <div id="wrap"><div class="spin">読み込み中…</div></div>
+</main>
+
+<footer>
+  <span class="status" id="status"></span>
+  <span id="editInfo" style="color:var(--sub);"></span>
+  <button id="saveBtn" disabled>入力分を保存</button>
+</footer>
+
+<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+<script>
+  var CLINIC_KEY = 'tanaoroshi_clinic';
+  var APP_URL = '<?= initParams && initParams.appUrl ? initParams.appUrl : "" ?>';
+  var CLINIC  = '<?= initParams && initParams.clinic ? initParams.clinic : "" ?>';
+  var items = [];             // {productId,name,category,stock}
+  var itemById = {};
+  var entered = {};           // productId -> 入力値（文字列）
+  var QR_PREFIX = 'INV-';
+  var html5Qr = null;
+  var hitId = '';
+  var statusRefreshing = false;
+  var $ = function(id){ return document.getElementById(id); };
+
+  if(!CLINIC){ try { CLINIC = localStorage.getItem(CLINIC_KEY) || ''; } catch(e){} }
+  else { try { localStorage.setItem(CLINIC_KEY, CLINIC); } catch(e){} }
+  $('homeBack').href = APP_URL + '?page=home' + (CLINIC ? '&clinic=' + encodeURIComponent(CLINIC) : '');
+
+  if(!CLINIC){
+    $('wrap').innerHTML = '<div class="empty" style="color:var(--err);">医院が指定されていません。医院ホームから開いてください。</div>';
+    $('photoScanLabel').style.display = 'none';
+  } else {
+    $('clinicTag').textContent = CLINIC;
+    load();
+  }
+  $('catFilter').onchange = render;
+  $('search').oninput = render;
+  $('saveBtn').onclick = save;
+  $('refreshBtn').onclick = refreshRegistrationStatus;
+  $('qrPhoto').onchange = scanQrPhoto;
+  window.addEventListener('focus', refreshRegistrationStatus);
+  document.addEventListener('visibilitychange', function(){
+    if(!document.hidden) refreshRegistrationStatus();
+  });
+
+  function load(preserveEntered){
+    $('wrap').innerHTML = '<div class="spin">読み込み中…</div>';
+    google.script.run
+      .withSuccessHandler(function(res){
+        items = res.items || [];
+        itemById = {};
+        items.forEach(function(it){ itemById[it.productId] = it; });
+        if(!preserveEntered) entered = {};
+        hideHit();
+        buildCatFilter();
+        render();
+        setStatus(items.length + ' 品目（数量管理）');
+      })
+      .withFailureHandler(function(err){ $('wrap').innerHTML = '<div class="empty">読み込み失敗：'+esc(err.message)+'</div>'; })
+      .getBulkStockList(CLINIC);
+  }
+
+  function buildCatFilter(){
+    var cats = {}; items.forEach(function(it){ if(it.category) cats[it.category]=1; });
+    var sel = $('catFilter'); sel.innerHTML = '<option value="">すべて</option>';
+    Object.keys(cats).sort().forEach(function(c){ var o=document.createElement('option'); o.value=c; o.textContent=c; sel.appendChild(o); });
+  }
+
+  function visible(){
+    var cat = $('catFilter').value, q = $('search').value.trim();
+    return items.filter(function(it){
+      if(cat && it.category !== cat) return false;
+      if(q && it.name.indexOf(q) < 0) return false;
+      return true;
+    });
+  }
+
+  function render(){
+    var list = visible();
+    if(!list.length){ $('wrap').innerHTML = '<div class="empty">該当する商品がありません。</div>'; updateFooter(); return; }
+    var html = '<table><thead><tr><th>入力状況</th><th>カテゴリ</th><th>品名</th><th>現在庫（参考）</th><th>数えた実数</th></tr></thead><tbody>';
+    list.forEach(function(it){
+      var v = entered[it.productId] != null ? entered[it.productId] : '';
+      html += '<tr id="tr_'+esc(it.productId)+'" class="'+(v!==''?'entered':'')+'">'
+        + '<td id="st_'+esc(it.productId)+'">'+(it.registeredToday
+          ? '<span class="done">✓ 本日入力済み '+esc(it.registeredAt)+'</span>'
+          : '<span class="notyet">未入力</span>')+'</td>'
+        + '<td><span class="cat">'+esc(it.category)+'</span></td>'
+        + '<td>'+esc(it.name)+'</td>'
+        + '<td class="num cur">'+esc(String(it.stock))+'</td>'
+        + '<td class="num"><input class="count" type="number" min="0" step="1" inputmode="numeric" '
+        +     'id="c_'+esc(it.productId)+'" value="'+esc(v)+'"></td>'
+        + '</tr>';
+    });
+    html += '</tbody></table>';
+    $('wrap').innerHTML = html;
+    list.forEach(function(it){
+      var el = $('c_'+it.productId);
+      el.oninput = function(){
+        var val = this.value.trim();
+        if(val==='') delete entered[it.productId]; else entered[it.productId] = val;
+        var tr = $('tr_'+it.productId); if(tr) tr.className = (val!=='' ? 'entered' : '');
+        updateFooter();
+      };
+    });
+    updateFooter();
+  }
+
+  function enteredList(){
+    return Object.keys(entered).filter(function(pid){ return String(entered[pid]).trim() !== ''; });
+  }
+  function updateFooter(){
+    var n = enteredList().length;
+    $('editInfo').textContent = n ? ('入力済み '+n+'件') : '未入力';
+    $('counter').textContent = n ? ('入力 '+n+'件') : '';
+    $('saveBtn').disabled = n === 0;
+  }
+  function setStatus(m){ $('status').textContent = m || ''; }
+
+  /** 他端末の保存結果だけを読み直す。入力中の数量欄や絞り込み状態は変更しない。 */
+  function refreshRegistrationStatus(){
+    if(!CLINIC || statusRefreshing || !items.length) return;
+    statusRefreshing = true;
+    google.script.run
+      .withSuccessHandler(function(map){
+        map = map || {};
+        items.forEach(function(it){
+          it.registeredAt = map[it.productId] || '';
+          it.registeredToday = !!it.registeredAt;
+          var cell = $('st_'+it.productId);
+          if(cell){
+            cell.innerHTML = it.registeredToday
+              ? '<span class="done">✓ 本日入力済み '+esc(it.registeredAt)+'</span>'
+              : '<span class="notyet">未入力</span>';
+          }
+        });
+        statusRefreshing = false;
+      })
+      .withFailureHandler(function(){ statusRefreshing = false; })
+      .getTodayBulkStockStatus(CLINIC);
+  }
+
+  function save(){
+    var pids = enteredList();
+    if(!pids.length) return;
+    // 数値チェック
+    var bad = pids.filter(function(pid){ var n=Number(entered[pid]); return isNaN(n)||n<0; });
+    if(bad.length){ alert('在庫数は0以上の数値で入力してください。'); return; }
+
+    var changes = pids.map(function(pid){ return { productId: pid, count: Number(entered[pid]) }; });
+    if(!confirm('入力した '+changes.length+' 品目の在庫を確定（上書き）します。よろしいですか？')) return;
+
+    $('saveBtn').disabled = true;
+    setStatus('保存中…');
+    google.script.run
+      .withSuccessHandler(function(res){
+        if(res.duplicated){ setStatus('この保存は送信済みです（二重送信を防止）。'); return; }
+        setStatus('✓ '+res.saved+' 品目を確定しました。最新を再読み込みします…');
+        load(); // 最新在庫を取り直し、入力欄をクリア
+      })
+      .withFailureHandler(function(err){
+        // ロック取得失敗（混雑）等：データは壊れていないので再送を促す
+        $('saveBtn').disabled = false;
+        setStatus('保存できませんでした：'+esc(err.message)+'　もう一度「保存」を押してください。');
+      })
+      .saveBulkStock(CLINIC, changes, genId());
+  }
+
+  /* ================= QR写真読み取り =================
+     標準カメラで撮影したQR画像から商品を特定し、数量を入力する。
+     QRの中身は日常の使用登録と同じもの（?p=商品ID）で、変更していない。
+     getUserMediaを使わないため、GAS iframeのカメラ制限を受けない。 */
+
+  function scanQrPhoto(){
+    var input = $('qrPhoto');
+    var file = input.files && input.files[0];
+    if(!file) return;
+    $('scanPanel').style.display = 'block';
+    hideHit();
+    if(!window.Html5Qrcode){ scanToast('QRライブラリを読み込めませんでした（通信環境をご確認ください）。','err'); return; }
+    if(html5Qr){ try{ html5Qr.clear(); }catch(e){} }
+    html5Qr = new Html5Qrcode('reader');
+    scanToast('QR写真を読み取り中…','');
+    html5Qr.scanFile(file, false)
+      .then(function(text){
+        try{ html5Qr.clear(); }catch(e){}
+        html5Qr = null;
+        input.value = '';
+        onScan(text);
+      })
+      .catch(function(e){
+        try{ html5Qr.clear(); }catch(ignore){}
+        html5Qr = null;
+        input.value = '';
+        scanToast('QRを読み取れませんでした。QR全体を明るく、正面から大きく撮影してください。','err');
+      });
+  }
+
+  function onScan(text){
+    var id = parseId(text);
+    if(!id){ feedback(false); scanToast('このシステムのQRではありません。','err'); return; }
+    var it = itemById[id];
+    if(!it){
+      feedback(false);
+      scanToast('この一覧にない資材です（'+id+'）。発注トリガー管理の資材、または他院の資材の可能性があります。','err');
+      return;
+    }
+    feedback(true);
+    showHit(it);
+  }
+
+  /** QRの文字列から商品IDを取り出す（URL形式 ?p=ID と 旧形式 INV-ID の両対応）。 */
+  function parseId(text){
+    var s = String(text || '').trim();
+    var m = s.match(/[?&]p=([^&]+)/);
+    if(m){ try{ return decodeURIComponent(m[1]) || null; }catch(e){ return m[1] || null; } }
+    if(s.indexOf(QR_PREFIX) === 0){ return s.substring(QR_PREFIX.length) || null; }
+    return null;
+  }
+
+  /** 読み取った商品の数量入力欄をカメラのすぐ下に出す（表をスクロールして探さなくてよい）。 */
+  function showHit(it){
+    hitId = it.productId;
+    var cur = entered[it.productId] != null ? entered[it.productId] : '';
+    $('hit').style.display = 'block';
+    $('hit').innerHTML =
+        '<div class="nm">'+esc(it.name)+'</div>'
+      + '<div class="sub">'+esc(it.category||'')+'　現在庫（参考）'+esc(String(it.stock))
+      +   (cur!=='' ? '　／　入力済み '+esc(cur) : '')+'</div>'
+      + '<div class="qbox">'
+      +   '<button class="qbtn" id="qm">－</button>'
+      +   '<input class="qval" id="qv" type="number" min="0" step="1" inputmode="numeric" '
+      +     'value="'+esc(cur)+'" placeholder="実数">'
+      +   '<button class="qbtn" id="qp">＋</button>'
+      +   '<button id="qok" style="padding:10px 18px;">この数で記入</button>'
+      + '</div>';
+    $('qm').onclick = function(){ setQ(qNum()-1); };
+    $('qp').onclick = function(){ setQ(qNum()+1); };
+    $('qok').onclick = applyHit;
+    scanToast('読み取りました：'+it.name+'。実数を入力してください。','ok');
+  }
+
+  function qNum(){ var v = parseInt($('qv').value, 10); return isNaN(v) ? 0 : v; }
+  function setQ(v){ if(v < 0) v = 0; $('qv').value = v; }
+  function hideHit(){ $('hit').style.display = 'none'; $('hit').innerHTML = ''; hitId = ''; }
+
+  /** 入力した数を表の「数えた実数」に反映する（保存は下の「入力分を保存」で従来どおり）。 */
+  function applyHit(){
+    if(!hitId) return;
+    var raw = $('qv').value.trim();
+    if(raw === ''){ scanToast('数を入力してください（在庫ゼロは 0）。','err'); return; }
+    var n = Number(raw);
+    if(isNaN(n) || n < 0){ scanToast('在庫数は0以上の数値で入力してください。','err'); return; }
+
+    var it = itemById[hitId], pid = hitId;
+    entered[pid] = String(n);
+    hideHit();
+    render();
+    flashRow(pid);
+    scanToast('✓ '+(it ? it.name : pid)+' に '+n+' を記入しました。次の商品は「QRを撮影」を押してください。','ok');
+  }
+
+  /** 反映した行を一瞬光らせる（表をスクロールしたときに分かるように）。 */
+  function flashRow(pid){
+    var tr = $('tr_'+pid);
+    if(!tr) return;
+    tr.className = tr.className + ' flash';
+    setTimeout(function(){ var e2 = $('tr_'+pid); if(e2) e2.className = e2.className.replace(' flash',''); }, 1500);
+  }
+
+  function scanToast(msg, kind){
+    var t = $('scanToast'); t.textContent = msg || ''; t.className = 'toast ' + (kind||'');
+  }
+  function feedback(ok){
+    try{ if(navigator.vibrate) navigator.vibrate(ok ? 60 : [40,40,40]); }catch(e){}
+  }
+
+  function genId(){
+    if(window.crypto && crypto.randomUUID) return crypto.randomUUID();
+    return 'b-'+Date.now()+'-'+Math.random().toString(16).slice(2);
+  }
+  function esc(s){
+    return String(s==null?'':s).replace(/[&<>"']/g,function(c){
+      return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];
+    });
+  }
+</script>
+</body>
+</html>

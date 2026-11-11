@@ -1,0 +1,645 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>トビ丸 マスコット動作確認</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700;900&display=swap" rel="stylesheet">
+<style>
+:root {
+    --primary: #FF6B35;
+    --primary-dark: #E85D2C;
+    --secondary: #2C3E50;
+    --accent: #F7C59F;
+    --success: #4CAF50;
+    --danger: #F44336;
+    --background: #F4F7F6;
+    --surface: #FFFFFF;
+    --text-main: #333333;
+    --text-muted: #7F8C8D;
+    --border: #E0E4E8;
+    --font-family: 'Noto Sans JP', sans-serif;
+    --border-radius: 16px;
+    --transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+    font-family: var(--font-family);
+    background: var(--background);
+    color: var(--text-main);
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    overflow-x: hidden;
+}
+
+/* === 本番と同じ .app-container / .view 構造 === */
+.app-container {
+    width: 100%;
+    max-width: 480px;
+    min-height: 100vh;
+    background: var(--surface);
+    position: relative;
+    overflow: hidden;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.08);
+}
+
+.view {
+    display: flex;
+    width: 100%;
+    min-height: 100vh;
+    flex-direction: column;
+    background: var(--surface);
+    position: relative;
+    padding-bottom: 80px;
+    transition: box-shadow 0.5s ease;
+}
+
+/* === トビ丸 SVG アバター === */
+.tobi-avatar-wrap {
+    width: 120px;
+    height: 120px;
+    position: relative;
+    flex-shrink: 0;
+    margin: 0 auto 12px;
+    display: block;
+}
+
+.tobi-avatar-wrap.small {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    overflow: hidden;
+    border: 4px solid var(--surface);
+    box-shadow: 0 4px 12px rgba(255, 107, 53, 0.3);
+    background: linear-gradient(135deg, #FFD7B5, #FAD02C);
+}
+
+.tobimaru-svg {
+    width: 100%;
+    height: 100%;
+    display: block;
+}
+
+/* === 表情切り替え === */
+.tobi-face, .tobi-fx { display: none; }
+.tobi-state--idle .tobi-face--idle { display: block; }
+.tobi-state--correct .tobi-face--correct,
+.tobi-state--correct .tobi-fx--correct { display: block; }
+.tobi-state--wrong .tobi-face--wrong { display: block; }
+.tobi-state--perfect .tobi-face--perfect,
+.tobi-state--perfect .tobi-fx--perfect { display: block; }
+
+/* === トビ丸アニメーション === */
+.tobi-state--idle .tobimaru-svg {
+    animation: tobi-breathe 3s ease-in-out infinite;
+}
+@keyframes tobi-breathe {
+    0%, 100% { transform: scale(1) translateY(0); }
+    50% { transform: scale(1.03) translateY(-2px); }
+}
+
+.tobi-state--correct .tobimaru-svg {
+    animation: tobi-bounce 0.7s cubic-bezier(0.28, 0.84, 0.42, 1);
+}
+@keyframes tobi-bounce {
+    0% { transform: scale(1); }
+    30% { transform: scale(1.25) translateY(-15px); }
+    50% { transform: scale(0.9) translateY(5px); }
+    70% { transform: scale(1.08) translateY(-3px); }
+    100% { transform: scale(1); }
+}
+
+.tobi-state--wrong .tobimaru-svg {
+    animation: tobi-headshake 0.6s cubic-bezier(.36,.07,.19,.97);
+}
+@keyframes tobi-headshake {
+    0%, 100% { transform: rotate(0deg); }
+    15% { transform: rotate(-8deg); }
+    30% { transform: rotate(6deg); }
+    45% { transform: rotate(-4deg); }
+    60% { transform: rotate(2deg); }
+    75% { transform: rotate(-1deg); }
+}
+
+.tobi-state--perfect .tobimaru-svg {
+    animation: tobi-celebrate 1.2s ease-in-out;
+}
+@keyframes tobi-celebrate {
+    0% { transform: scale(1) rotate(0deg); }
+    25% { transform: scale(1.3) rotate(10deg); }
+    50% { transform: scale(0.9) rotate(-10deg); }
+    75% { transform: scale(1.2) rotate(5deg); }
+    100% { transform: scale(1) rotate(0deg); }
+}
+
+.tobi-state--perfect.tobi-avatar-wrap {
+    filter: drop-shadow(0 0 12px rgba(255, 107, 53, 0.6));
+    animation: tobi-glow 1s ease-in-out infinite alternate;
+}
+@keyframes tobi-glow {
+    0% { filter: drop-shadow(0 0 8px rgba(255, 107, 53, 0.4)); }
+    100% { filter: drop-shadow(0 0 20px rgba(255, 193, 7, 0.6)); }
+}
+
+.tobi-state--correct .tobi-fx--correct circle {
+    animation: tobi-sparkle 0.8s ease-out forwards;
+}
+@keyframes tobi-sparkle {
+    0% { opacity: 1; transform: scale(0) translate(0, 0); }
+    50% { opacity: 1; }
+    100% { opacity: 0; transform: scale(1.5) translate(var(--spark-x), var(--spark-y)); }
+}
+
+.tobi-state--perfect .tobi-fx--perfect rect {
+    animation: tobi-confetti 1.5s ease-out forwards;
+    animation-delay: calc(var(--conf-d) * 0.08s);
+}
+@keyframes tobi-confetti {
+    0% { opacity: 1; transform: translate(0, 0) scale(1) rotate(0deg); }
+    100% { opacity: 0; transform: translate(var(--conf-x), var(--conf-y)) scale(0.3) rotate(720deg); }
+}
+
+.tobi-state--perfect .tobi-fire-eyes {
+    animation: tobi-flame 0.4s ease-in-out infinite alternate;
+}
+@keyframes tobi-flame {
+    0% { transform: scaleY(1) translateY(0); }
+    100% { transform: scaleY(1.1) translateY(-2px); }
+}
+
+/* === mascot-area エフェクト（バースト + 吹き出し色） === */
+.mascot-area {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    position: relative;
+    padding: 16px;
+    border-radius: var(--border-radius);
+    margin: 20px 16px;
+}
+
+.mascot-area::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    opacity: 0;
+    border-radius: inherit;
+    z-index: 0;
+}
+
+.mascot-area > * {
+    position: relative;
+    z-index: 1;
+}
+
+.mascot-area.tobi-bg--correct,
+.mascot-area.tobi-bg--wrong,
+.mascot-area.tobi-bg--perfect {
+    overflow: hidden;
+}
+
+.mascot-area.tobi-bg--correct {
+    background: radial-gradient(ellipse at 50% 20%, rgba(255,215,0,0.15) 0%, rgba(76,175,80,0.05) 50%, transparent 70%);
+    box-shadow: 0 0 30px rgba(76,175,80,0.2), 0 0 60px rgba(255,215,0,0.1), inset 0 0 30px rgba(255,215,0,0.05);
+}
+.mascot-area.tobi-bg--correct::before {
+    opacity: 1;
+    background: radial-gradient(circle at 50% 30%, rgba(255,215,0,0.45) 0%, transparent 60%);
+    animation: bg-golden-burst 1s ease-out forwards;
+}
+@keyframes bg-golden-burst {
+    0% { transform: scale(0.2); opacity: 1; }
+    60% { opacity: 0.6; }
+    100% { transform: scale(2); opacity: 0; }
+}
+.mascot-area.tobi-bg--correct .speech-bubble {
+    background: var(--success);
+    box-shadow: 0 4px 15px rgba(76,175,80,0.3);
+    animation: bubble-pop 0.5s cubic-bezier(0.175,0.885,0.32,1.275);
+}
+
+.mascot-area.tobi-bg--wrong {
+    background: linear-gradient(180deg, rgba(30,15,15,0.06) 0%, rgba(244,67,54,0.08) 100%);
+    box-shadow: 0 0 25px rgba(244,67,54,0.15), inset 0 0 40px rgba(244,67,54,0.06);
+    animation: bg-container-shake 0.5s ease-out;
+}
+.mascot-area.tobi-bg--wrong::before {
+    opacity: 1;
+    background: radial-gradient(circle at 50% 50%, rgba(244,67,54,0.35) 0%, transparent 55%);
+    animation: bg-red-flash 0.6s ease-out forwards;
+}
+@keyframes bg-red-flash {
+    0% { opacity: 0.8; }
+    100% { opacity: 0; }
+}
+@keyframes bg-container-shake {
+    0%, 100% { transform: translateX(0); }
+    10% { transform: translateX(-5px); }
+    20% { transform: translateX(5px); }
+    30% { transform: translateX(-4px); }
+    40% { transform: translateX(4px); }
+    50% { transform: translateX(-2px); }
+    60% { transform: translateX(2px); }
+}
+.mascot-area.tobi-bg--wrong .speech-bubble {
+    background: linear-gradient(135deg, #B71C1C, #D32F2F);
+    box-shadow: 0 4px 15px rgba(183,28,28,0.3);
+    animation: bubble-pop 0.4s ease-out;
+}
+
+.mascot-area.tobi-bg--perfect {
+    background:
+        radial-gradient(ellipse at 50% 30%, rgba(255,215,0,0.2) 0%, transparent 50%),
+        radial-gradient(2px 2px at 20% 30%, rgba(255,215,0,0.8), transparent),
+        radial-gradient(2px 2px at 80% 20%, rgba(255,255,255,0.9), transparent),
+        radial-gradient(1.5px 1.5px at 40% 70%, rgba(255,215,0,0.6), transparent),
+        radial-gradient(2px 2px at 70% 60%, rgba(255,255,255,0.7), transparent),
+        radial-gradient(1.5px 1.5px at 15% 80%, rgba(255,107,53,0.5), transparent),
+        radial-gradient(2px 2px at 90% 85%, rgba(255,215,0,0.6), transparent),
+        linear-gradient(135deg, rgba(255,107,53,0.06) 0%, rgba(255,215,0,0.08) 50%, rgba(255,64,129,0.06) 100%);
+    box-shadow: 0 0 40px rgba(255,215,0,0.3), 0 0 80px rgba(255,107,53,0.15), inset 0 0 30px rgba(255,215,0,0.08);
+    animation: bg-perfect-pulse 2s ease-in-out infinite;
+}
+@keyframes bg-perfect-pulse {
+    0%, 100% { box-shadow: 0 0 40px rgba(255,215,0,0.3), 0 0 80px rgba(255,107,53,0.15); }
+    50% { box-shadow: 0 0 60px rgba(255,215,0,0.5), 0 0 120px rgba(255,107,53,0.25); }
+}
+.mascot-area.tobi-bg--perfect::before {
+    opacity: 0.5;
+    background: conic-gradient(from 0deg at 50% 50%, rgba(255,215,0,0.3), rgba(255,107,53,0.2), rgba(255,64,129,0.15), rgba(33,150,243,0.12), rgba(76,175,80,0.15), rgba(255,215,0,0.3));
+    animation: bg-rainbow-rotate 4s linear infinite;
+}
+@keyframes bg-rainbow-rotate {
+    100% { transform: rotate(360deg); }
+}
+.mascot-area.tobi-bg--perfect .speech-bubble {
+    background: linear-gradient(135deg, #FF6B35, #FFD54F);
+    color: #FFF;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.2);
+    box-shadow: 0 4px 20px rgba(255,107,53,0.4);
+    animation: bubble-pop 0.6s cubic-bezier(0.175,0.885,0.32,1.275);
+    font-size: 1.1em;
+}
+@keyframes bubble-pop {
+    0% { transform: scale(0.8); opacity: 0.5; }
+    60% { transform: scale(1.05); }
+    100% { transform: scale(1); opacity: 1; }
+}
+
+/* === 全画面背景エフェクト（.view レベル） === */
+.view.tobi-bg--correct {
+    background: radial-gradient(ellipse at 50% 30%, rgba(255,215,0,0.10) 0%, rgba(76,175,80,0.04) 40%, var(--surface) 70%);
+    box-shadow: inset 0 0 150px rgba(255,215,0,0.06), inset 0 0 60px rgba(76,175,80,0.03);
+}
+.view.tobi-bg--wrong {
+    background: radial-gradient(ellipse at 50% 30%, rgba(244,67,54,0.08) 0%, rgba(30,15,15,0.03) 40%, var(--surface) 70%);
+    box-shadow: inset 0 0 120px rgba(244,67,54,0.06);
+}
+.view.tobi-bg--perfect {
+    background:
+        radial-gradient(ellipse at 50% 25%, rgba(255,215,0,0.14) 0%, transparent 50%),
+        radial-gradient(2px 2px at 15% 12%, rgba(255,215,0,0.7), transparent),
+        radial-gradient(2px 2px at 85% 8%, rgba(255,255,255,0.8), transparent),
+        radial-gradient(1.5px 1.5px at 50% 35%, rgba(255,215,0,0.5), transparent),
+        radial-gradient(2px 2px at 25% 55%, rgba(255,255,255,0.6), transparent),
+        radial-gradient(1.5px 1.5px at 75% 45%, rgba(255,107,53,0.4), transparent),
+        radial-gradient(2px 2px at 10% 70%, rgba(255,215,0,0.5), transparent),
+        radial-gradient(1.5px 1.5px at 90% 65%, rgba(255,255,255,0.5), transparent),
+        radial-gradient(2px 2px at 40% 85%, rgba(255,64,129,0.4), transparent),
+        radial-gradient(1.5px 1.5px at 65% 75%, rgba(76,175,80,0.4), transparent),
+        var(--surface);
+    box-shadow: inset 0 0 200px rgba(255,215,0,0.08), inset 0 0 400px rgba(255,107,53,0.03);
+}
+
+/* 画面揺れ */
+.app-container.tobi-shake {
+    animation: bg-screen-shake 0.5s ease-out;
+}
+@keyframes bg-screen-shake {
+    0%, 100% { transform: translateX(0); }
+    10% { transform: translateX(-6px); }
+    20% { transform: translateX(6px); }
+    30% { transform: translateX(-5px); }
+    40% { transform: translateX(5px); }
+    50% { transform: translateX(-3px); }
+    60% { transform: translateX(3px); }
+    70% { transform: translateX(-1px); }
+}
+
+/* 吹き出し */
+.speech-bubble {
+    background: var(--secondary);
+    color: #FFF;
+    padding: 12px 16px;
+    border-radius: 12px;
+    font-weight: 700;
+    font-size: 0.85rem;
+    text-align: center;
+    width: 100%;
+    max-width: 260px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    min-height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.3s ease, box-shadow 0.3s ease, color 0.3s ease;
+}
+
+/* ボタン（固定フッター） */
+.btn-bar {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    display: flex;
+    gap: 8px;
+    justify-content: center;
+    padding: 12px 16px 20px;
+    background: rgba(255,255,255,0.95);
+    backdrop-filter: blur(8px);
+    border-top: 1px solid var(--border);
+    z-index: 100;
+}
+
+.btn {
+    font-family: var(--font-family);
+    font-weight: 700;
+    font-size: 0.85rem;
+    padding: 10px 16px;
+    border: none;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: var(--transition);
+}
+.btn:active { transform: scale(0.96); }
+.btn-idle { background: #E8F5E9; color: #388E3C; }
+.btn-correct { background: #FFF8E1; color: #F57F17; }
+.btn-wrong { background: #FFEBEE; color: #D32F2F; }
+.btn-perfect { background: linear-gradient(135deg, #FF6B35, #E85D2C); color: #FFF; }
+
+/* ホーム風パーツ */
+.mascot-profile {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 16px;
+}
+.mascot-info { display: flex; flex-direction: column; }
+.mascot-title { font-size: 0.8rem; font-weight: 700; color: var(--text-muted); letter-spacing: 1px; }
+.mascot-name { font-size: 1.5rem; font-weight: 900; color: var(--secondary); }
+
+/* テスト用ヘッダー */
+.test-header {
+    text-align: center;
+    padding: 24px 16px 8px;
+}
+.test-header h1 { color: var(--secondary); font-size: 1.3rem; margin-bottom: 4px; }
+.test-header p { color: var(--text-muted); font-size: 0.8rem; }
+
+/* 疑似クイズヘッダー */
+.quiz-header-mock {
+    padding: 12px 16px;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    text-align: center;
+    font-weight: 900;
+    color: var(--secondary);
+    position: sticky;
+    top: 0;
+    z-index: 20;
+}
+
+/* 疑似問題カード */
+.quiz-card-mock {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--border-radius);
+    padding: 20px;
+    margin: 0 16px 20px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.06);
+}
+.quiz-card-mock .question { font-weight: 700; color: var(--secondary); margin-bottom: 16px; }
+.quiz-card-mock .option {
+    width: 100%;
+    text-align: left;
+    padding: 12px 16px;
+    margin-bottom: 8px;
+    background: var(--surface);
+    border: 2px solid var(--border);
+    border-radius: 12px;
+    font-size: 0.9rem;
+    color: var(--text-main);
+    cursor: default;
+    font-family: var(--font-family);
+}
+
+.state-indicator {
+    text-align: center;
+    padding: 8px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: var(--text-muted);
+    letter-spacing: 2px;
+}
+</style>
+</head>
+<body>
+
+<!-- SVGテンプレート -->
+<template id="tobimaruSvgTemplate">
+<svg class="tobimaru-svg" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg" overflow="visible">
+  <path d="M62,72 L40,22 L80,58 Z" fill="#E8C49A"/>
+  <path d="M62,66 L48,30 L76,56 Z" fill="#D4956B"/>
+  <path d="M138,72 L160,22 L120,58 Z" fill="#E8C49A"/>
+  <path d="M138,66 L152,30 L124,56 Z" fill="#D4956B"/>
+  <ellipse cx="100" cy="100" rx="56" ry="50" fill="#F5D6B1"/>
+  <ellipse cx="100" cy="112" rx="34" ry="24" fill="#FFF5E6"/>
+  <path d="M46,68 Q46,28 100,24 Q154,28 154,68 Q154,72 100,70 Q46,72 46,68" fill="#FFD54F"/>
+  <path d="M42,70 Q42,64 100,62 Q158,64 158,70 Q158,76 100,74 Q42,76 42,70" fill="#FFA000"/>
+  <path d="M56,48 Q100,36 144,48" fill="none" stroke="#FF8F00" stroke-width="2.5"/>
+  <circle cx="100" cy="36" r="6" fill="#FF6B35"/>
+  <circle cx="100" cy="36" r="3.5" fill="#FFAB91"/>
+  <ellipse cx="100" cy="108" rx="5.5" ry="4.5" fill="#4A3728"/>
+  <ellipse cx="101" cy="107" rx="2" ry="1.5" fill="#6D4C41" opacity="0.5"/>
+  <path d="M68,145 Q100,152 132,145 L138,188 Q100,198 62,188 Z" fill="#FF6B35"/>
+  <path d="M70,156 Q100,162 130,156" fill="none" stroke="#FFD700" stroke-width="3.5"/>
+  <path d="M66,168 Q100,174 134,168" fill="none" stroke="#FFD700" stroke-width="3.5"/>
+  <line x1="100" y1="145" x2="100" y2="192" stroke="#FFD700" stroke-width="2.5"/>
+  <g class="tobi-face tobi-face--idle">
+    <circle cx="78" cy="92" r="7" fill="#2C3E50"/>
+    <circle cx="80" cy="90" r="2.5" fill="#FFF"/>
+    <circle cx="122" cy="92" r="7" fill="#2C3E50"/>
+    <circle cx="124" cy="90" r="2.5" fill="#FFF"/>
+    <path d="M88,122 Q100,132 112,122" fill="none" stroke="#4A3728" stroke-width="2.5" stroke-linecap="round"/>
+    <circle cx="63" cy="106" r="9" fill="#FFCDD2" opacity="0.35"/>
+    <circle cx="137" cy="106" r="9" fill="#FFCDD2" opacity="0.35"/>
+  </g>
+  <g class="tobi-face tobi-face--correct">
+    <polygon points="78,85 80,89 84,89 81,92 82,96 78,94 74,96 75,92 72,89 76,89" fill="#FFD700" stroke="#FFA000" stroke-width="0.5"/>
+    <polygon points="122,85 124,89 128,89 125,92 126,96 122,94 118,96 119,92 116,89 120,89" fill="#FFD700" stroke="#FFA000" stroke-width="0.5"/>
+    <circle cx="78" cy="91" r="1.5" fill="#FFF"/>
+    <circle cx="122" cy="91" r="1.5" fill="#FFF"/>
+    <path d="M80,119 Q100,140 120,119" fill="#FF8A80" stroke="#4A3728" stroke-width="2.5" stroke-linecap="round"/>
+    <path d="M80,119 Q100,124 120,119" fill="#FFF"/>
+    <circle cx="60" cy="106" r="11" fill="#FF8A80" opacity="0.5"/>
+    <circle cx="140" cy="106" r="11" fill="#FF8A80" opacity="0.5"/>
+  </g>
+  <g class="tobi-face tobi-face--wrong">
+    <path d="M68,90 Q78,85 88,90" fill="none" stroke="#2C3E50" stroke-width="4" stroke-linecap="round"/>
+    <circle cx="78" cy="93" r="4" fill="#2C3E50"/>
+    <circle cx="79.5" cy="91.5" r="1.5" fill="#FFF"/>
+    <path d="M112,90 Q122,85 132,90" fill="none" stroke="#2C3E50" stroke-width="4" stroke-linecap="round"/>
+    <circle cx="122" cy="93" r="4" fill="#2C3E50"/>
+    <circle cx="123.5" cy="91.5" r="1.5" fill="#FFF"/>
+    <path d="M86,124 Q96,128 106,124 Q114,120 120,116" fill="none" stroke="#4A3728" stroke-width="2.5" stroke-linecap="round"/>
+  </g>
+  <g class="tobi-face tobi-face--perfect">
+    <g class="tobi-fire-eyes">
+      <path d="M78,98 Q70,86 74,76 Q78,84 82,76 Q86,86 78,98 Z" fill="#FF6B35"/>
+      <path d="M78,96 Q72,88 75,80 Q78,86 81,80 Q84,88 78,96 Z" fill="#FFD54F"/>
+      <circle cx="78" cy="90" r="2" fill="#FFF"/>
+      <path d="M122,98 Q114,86 118,76 Q122,84 126,76 Q130,86 122,98 Z" fill="#FF6B35"/>
+      <path d="M122,96 Q116,88 119,80 Q122,86 125,80 Q128,88 122,96 Z" fill="#FFD54F"/>
+      <circle cx="122" cy="90" r="2" fill="#FFF"/>
+    </g>
+    <path d="M76,118 Q100,148 124,118" fill="#FF8A80" stroke="#4A3728" stroke-width="2.5" stroke-linecap="round"/>
+    <path d="M76,118 Q100,125 124,118" fill="#FFF"/>
+    <circle cx="58" cy="106" r="13" fill="#FF5252" opacity="0.45"/>
+    <circle cx="142" cy="106" r="13" fill="#FF5252" opacity="0.45"/>
+  </g>
+  <g class="tobi-fx tobi-fx--correct">
+    <circle r="4" cx="100" cy="100" fill="#FFD700" style="--spark-x:-45px;--spark-y:-55px"/>
+    <circle r="3.5" cx="100" cy="100" fill="#FF6B35" style="--spark-x:50px;--spark-y:-45px"/>
+    <circle r="3" cx="100" cy="100" fill="#4CAF50" style="--spark-x:-55px;--spark-y:15px"/>
+    <circle r="3.5" cx="100" cy="100" fill="#FF4081" style="--spark-x:55px;--spark-y:10px"/>
+    <circle r="2.5" cx="100" cy="100" fill="#448AFF" style="--spark-x:-25px;--spark-y:-60px"/>
+    <circle r="2.5" cx="100" cy="100" fill="#FFD700" style="--spark-x:30px;--spark-y:-58px"/>
+  </g>
+  <g class="tobi-fx tobi-fx--perfect">
+    <rect x="98" y="98" width="6" height="6" rx="1" fill="#FF6B35" style="--conf-x:-65px;--conf-y:-75px;--conf-d:0"/>
+    <rect x="98" y="98" width="5" height="5" rx="1" fill="#FFD700" style="--conf-x:60px;--conf-y:-70px;--conf-d:1"/>
+    <rect x="98" y="98" width="6" height="6" rx="1" fill="#4CAF50" style="--conf-x:-75px;--conf-y:-25px;--conf-d:2"/>
+    <rect x="98" y="98" width="5" height="5" rx="1" fill="#2196F3" style="--conf-x:70px;--conf-y:-20px;--conf-d:3"/>
+    <rect x="98" y="98" width="6" height="6" rx="1" fill="#FF4081" style="--conf-x:-50px;--conf-y:45px;--conf-d:4"/>
+    <rect x="98" y="98" width="5" height="5" rx="1" fill="#FFD700" style="--conf-x:55px;--conf-y:40px;--conf-d:5"/>
+    <rect x="98" y="98" width="4" height="4" rx="1" fill="#FF6B35" style="--conf-x:-35px;--conf-y:-80px;--conf-d:6"/>
+    <rect x="98" y="98" width="4" height="4" rx="1" fill="#4CAF50" style="--conf-x:75px;--conf-y:5px;--conf-d:7"/>
+    <rect x="98" y="98" width="5" height="5" rx="1" fill="#2196F3" style="--conf-x:-60px;--conf-y:55px;--conf-d:8"/>
+    <rect x="98" y="98" width="4" height="4" rx="1" fill="#FF4081" style="--conf-x:45px;--conf-y:-80px;--conf-d:9"/>
+    <rect x="98" y="98" width="5" height="5" rx="1" fill="#FFD700" style="--conf-x:-70px;--conf-y:35px;--conf-d:10"/>
+    <rect x="98" y="98" width="4" height="4" rx="1" fill="#FF6B35" style="--conf-x:65px;--conf-y:55px;--conf-d:11"/>
+  </g>
+</svg>
+</template>
+
+<!-- ============================
+     本番に近い構造で全画面プレビュー
+     ============================ -->
+<div class="app-container" id="appContainer">
+  <section class="view" id="demoView">
+
+    <div class="quiz-header-mock">トビ丸テスト執行中</div>
+
+    <div class="test-header">
+      <h1>全画面エフェクト プレビュー</h1>
+      <p>下のボタンで状態を切り替えてください</p>
+    </div>
+
+    <div class="state-indicator" id="stateLabel">IDLE</div>
+
+    <div class="mascot-area" id="demoMascotArea">
+      <div class="tobi-avatar-wrap tobi-state--idle" id="demoAvatar"></div>
+      <div class="speech-bubble" id="demoBubble" style="margin-top:12px;">さあ、かかってこい！</div>
+    </div>
+
+    <div class="quiz-card-mock">
+      <div class="question">Q. 高所作業時に最も重要な保護具はどれか？</div>
+      <div class="option">A. 安全帯（フルハーネス型）</div>
+      <div class="option">B. 保護メガネ</div>
+      <div class="option">C. 耳栓</div>
+      <div class="option">D. 防塵マスク</div>
+    </div>
+
+  </section>
+</div>
+
+<!-- 操作ボタン（固定フッター） -->
+<div class="btn-bar">
+  <button class="btn btn-idle" onclick="setState('idle')">idle</button>
+  <button class="btn btn-correct" onclick="setState('correct')">correct</button>
+  <button class="btn btn-wrong" onclick="setState('wrong')">wrong</button>
+  <button class="btn btn-perfect" onclick="setState('perfect')">perfect</button>
+</div>
+
+<script>
+const MASCOT_MESSAGES = {
+    idle: ['さあ、かかってこい！','今日も安全ヨシ！いくぞ！','ビシバシいくぞ！覚悟しろ！','気合い入れていけ！','このトビ丸様に挑むとはいい度胸だ！'],
+    correct: ['ヨシ！完璧だ！さすがだな！！','おおっ！！やるじゃねえか！！','その調子だ！天才か！？','ヨシヨシヨシ！！指差し確認ヨシ！！','すげえ！一発で当てやがった！！','合格！現場監督犬が認めるぞ！！','ビシッ！！パーフェクトな判断だ！！','安全意識が高いな！！惚れるぜ！！'],
+    wrong: ['ブッブー！！残念だったな！ニヤリ','あちゃ～～ そっちかよ！ダメダメ！','お前さん…現場で同じミスしたら大変だぞ？','ハズレ！復習しな！…まあ俺も昔は間違えたけどな','その答え…俺の尻尾ほどの価値もないぜ！','ダメだダメだ！もう一回解説読み直せ！','ぷぷぷ！引っかかったな！','トビ丸がっかり…嘘だけどな！ニヤリ'],
+    perfect: ['全問正解！！お前は現場の星だ！！！','パーフェクト！！俺も尻尾ブンブンだ！！！','満点！！！俺様より優秀かもしれんな！！','完璧すぎる！！安全の神が降りてきたぞ！！！','文句なし！！今日はお前がボスだ！！！'],
+};
+
+const TOBI_STATE_CLASSES = ['tobi-state--idle', 'tobi-state--correct', 'tobi-state--wrong', 'tobi-state--perfect'];
+const TOBI_BG_CLASSES = ['tobi-bg--correct', 'tobi-bg--wrong', 'tobi-bg--perfect'];
+
+function getRandomMessage(cat) {
+    const msgs = MASCOT_MESSAGES[cat] || MASCOT_MESSAGES.idle;
+    return msgs[Math.floor(Math.random() * msgs.length)];
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    const tmpl = document.getElementById('tobimaruSvgTemplate');
+    document.querySelectorAll('.tobi-avatar-wrap').forEach(el => {
+        el.appendChild(tmpl.content.cloneNode(true));
+    });
+});
+
+function setState(stateType) {
+    const avatarWrap = document.getElementById('demoAvatar');
+    const mascotArea = document.getElementById('demoMascotArea');
+    const viewEl = document.getElementById('demoView');
+    const appContainer = document.getElementById('appContainer');
+    const bubble = document.getElementById('demoBubble');
+    const label = document.getElementById('stateLabel');
+
+    // アバター表情切り替え
+    TOBI_STATE_CLASSES.forEach(cls => avatarWrap.classList.remove(cls));
+    void avatarWrap.offsetWidth;
+    avatarWrap.classList.add('tobi-state--' + stateType);
+
+    // mascot-area 背景エフェクト
+    TOBI_BG_CLASSES.forEach(cls => mascotArea.classList.remove(cls));
+    void mascotArea.offsetWidth;
+    if (stateType !== 'idle') {
+        mascotArea.classList.add('tobi-bg--' + stateType);
+    }
+
+    // 画面全体の背景エフェクト
+    TOBI_BG_CLASSES.forEach(cls => viewEl.classList.remove(cls));
+    void viewEl.offsetWidth;
+    if (stateType !== 'idle') {
+        viewEl.classList.add('tobi-bg--' + stateType);
+    }
+
+    // 不正解: 画面揺れ
+    if (stateType === 'wrong') {
+        appContainer.classList.remove('tobi-shake');
+        void appContainer.offsetWidth;
+        appContainer.classList.add('tobi-shake');
+        setTimeout(() => appContainer.classList.remove('tobi-shake'), 600);
+    }
+
+    // メッセージ更新
+    bubble.innerText = getRandomMessage(stateType);
+
+    // ラベル更新
+    label.innerText = stateType.toUpperCase();
+}
+</script>
+</body>
+</html>

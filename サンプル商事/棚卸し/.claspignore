@@ -1,0 +1,17 @@
+# Apps Scriptに無関係な資料・ドキュメント類だけを除外する。
+# .js/.html/.json は clasp が既定で対象にするため、新しいスクリプトファイルを
+# 追加しても個別にここへ登録する必要はない。
+*.xlsx
+*.pdf
+*.txt
+*.md
+確認依頼書_歯科医院在庫管理システム.html
+
+# --- マニュアル自動生成の仕組み（GASへは絶対に push しない） ---
+# tools/ 配下の .mjs/.json、docs/ 配下、node_modules は Apps Script とは無関係。
+node_modules/**
+tools/**
+docs/**
+.claude/**
+package.json
+package-lock.json

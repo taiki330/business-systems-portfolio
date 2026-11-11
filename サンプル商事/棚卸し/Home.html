@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<base target="_top">
+<style>
+  :root{ --line:#d8dde5; --ink:#1a1a1a; --sub:#5a6270; --accent:#1e5aa8;
+         --soft:#f4f6f9; --ok:#1e7a4d; --warn:#b3541e; --err:#c0392b; --na:#8a90a0; }
+  *{box-sizing:border-box;}
+  body{margin:0;font-family:"Yu Gothic",YuGothic,"Hiragino Kaku Gothic ProN","Meiryo",sans-serif;
+       color:var(--ink);background:#eef1f5;font-size:14px;}
+  header{background:#fff;border-bottom:2px solid var(--accent);padding:16px;
+         box-shadow:0 1px 6px rgba(0,0,0,.06);}
+  h1{font-size:18px;margin:0;display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
+  .clinicTag{display:inline-block;background:var(--accent);color:#fff;font-weight:700;
+             padding:2px 14px;border-radius:14px;font-size:15px;}
+  /* PC・スマホ両対応：中央寄せ＆最大幅で、どちらでも自然に見えるようにする */
+  main{max-width:760px;margin:0 auto;padding:16px;}
+  a{text-decoration:none;color:inherit;}
+
+  .badge{display:block;background:#fbe9e7;border:1px solid #f0b7ae;color:var(--err);
+         border-radius:8px;padding:12px 14px;margin-bottom:16px;font-weight:700;}
+  .badge .arrow{float:right;font-weight:400;}
+
+  /* 画面が広ければ複数列、狭ければ1列に自動で切り替わる */
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:12px;}
+  .tile{background:#fff;border:1px solid var(--line);border-radius:10px;padding:20px 16px;
+        display:flex;flex-direction:column;gap:6px;min-height:104px;
+        box-shadow:0 1px 4px rgba(0,0,0,.05);transition:box-shadow .12s,transform .12s;}
+  .tile:hover{box-shadow:0 4px 14px rgba(0,0,0,.12);transform:translateY(-1px);}
+  .tile .ico{font-size:26px;line-height:1;}
+  .tile .t{font-size:16px;font-weight:700;}
+  .tile .d{font-size:12px;color:var(--sub);}
+  .tile.soon{opacity:.65;cursor:default;}
+  .tile.soon:hover{box-shadow:0 1px 4px rgba(0,0,0,.05);transform:none;}
+  .soonTag{align-self:flex-start;font-size:11px;background:#eef0f3;color:var(--na);
+           border-radius:4px;padding:1px 7px;font-weight:700;}
+
+  .note{margin-top:16px;font-size:12.5px;color:var(--sub);background:var(--soft);
+        border-radius:8px;padding:10px 14px;line-height:1.6;}
+  .modebox{background:#fff;border:2px solid var(--accent);border-radius:10px;padding:14px;margin-bottom:16px;}
+  .modebox .mt{font-size:15px;font-weight:800;margin-bottom:5px;}
+  .modebox .md{font-size:12.5px;color:var(--sub);line-height:1.5;}
+  .modebuttons{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;}
+  .modebuttons button{cursor:pointer;border:1px solid var(--accent);border-radius:7px;padding:9px 12px;
+                      background:#fff;color:var(--accent);font-weight:700;font-size:13px;}
+  .modebuttons button.active{background:var(--accent);color:#fff;}
+  .modebuttons button:disabled{opacity:.55;cursor:default;}
+  .foot{margin-top:18px;text-align:center;font-size:12.5px;}
+  .foot a{color:var(--accent);font-weight:700;}
+  .spin,.empty{padding:40px;text-align:center;color:var(--sub);}
+  .pick{display:flex;flex-wrap:wrap;gap:12px;margin-top:8px;}
+  .pick button{font-size:15px;font-weight:700;padding:12px 22px;border:none;border-radius:8px;
+               background:var(--accent);color:#fff;cursor:pointer;}
+</style>
+</head>
+<body>
+<header>
+  <h1 id="title">在庫管理ホーム</h1>
+</header>
+<main>
+  <div id="app"><div class="spin">読み込み中…</div></div>
+</main>
+
+<script>
+  var CLINIC_KEY = 'tanaoroshi_clinic';
+  var APP_URL = '<?= initParams && initParams.appUrl ? initParams.appUrl : "" ?>';
+  var CLINIC  = '<?= initParams && initParams.clinic ? initParams.clinic : "" ?>';
+  var $ = function(id){ return document.getElementById(id); };
+
+  // 各ツールへの絶対リンク（GASのiframe内では相対URLが解決されないため絶対URLで組む）
+  function link(page){
+    return APP_URL + '?page=' + page + '&clinic=' + encodeURIComponent(CLINIC);
+  }
+
+  if (!CLINIC) { showPicker(); } else { start(); }
+
+  // 医院未指定でホームを開いた場合の入口（?clinic= を選ばせて自分のURLへ）
+  function showPicker(){
+    $('title').textContent = '医院を選択してください';
+    google.script.run.withSuccessHandler(function(list){
+      var html = '<p class="empty" style="padding:20px 0;">利用する医院を選んでください。<br>'
+               + '（各医院には専用URLを配布します）</p><div class="pick">';
+      list.forEach(function(c){
+        html += '<button onclick="goHome(\'' + esc(c) + '\')">' + esc(c) + '</button>';
+      });
+      html += '</div>';
+      $('app').innerHTML = html;
+    }).withFailureHandler(fail).getClinicList();
+  }
+  function goHome(c){ location.href = APP_URL + '?page=home&clinic=' + encodeURIComponent(c); }
+
+  function start(){
+    // 既存ツール（在庫・発注・入荷・使用登録）はこのキーから医院を自動選択する。
+    // ここでセットしておくことで、リンク先で医院を選び直す必要がなくなる。
+    try { localStorage.setItem(CLINIC_KEY, CLINIC); } catch(e){}
+
+    $('title').innerHTML = '<span class="clinicTag">' + esc(CLINIC) + '</span> 在庫管理';
+    renderMenu();
+    loadQrMode();
+
+    // 期限バッジ件数は非同期で取得して差し込む
+    google.script.run.withSuccessHandler(function(res){
+      renderBadge(res && res.expiryCount ? res.expiryCount : 0);
+    }).withFailureHandler(function(){ /* バッジ取得失敗は無視（メニューは使える） */ })
+      .getClinicHome(CLINIC);
+  }
+
+  // 一斉在庫登録（?page=bulkstock）は棚卸しのときだけ使う画面なので、常設タイルは置かない。
+  // 使う日に「.../exec?page=bulkstock&clinic=医院コード」のURLを配って開いてもらう運用。
+  function renderMenu(){
+    var html = ''
+      + '<div id="badge"></div>'
+      + '<div class="modebox" id="qrModeBox">'
+      +   '<div class="mt">QR読取モード <span id="qrModeNow">読み込み中…</span></div>'
+      +   '<div class="md">この医院だけの設定です。この医院として設定されたスマホすべてに反映されます。</div>'
+      +   '<div class="modebuttons">'
+      +     '<button id="modeNormal">通常使用（1個減らす）</button>'
+      +     '<button id="modeStock">棚卸し入力（実数を上書き）</button>'
+      +   '</div>'
+      + '</div>'
+      + '<div class="grid">'
+      +   tile(link('stock'),   '📦', '在庫一覧・検索', '今ある在庫と状態を確認')
+      +   tile(link('order'),   '🛒', '発注する',       '発注候補の確認・発注登録')
+      +   tile(link('receive'), '📥', '入荷登録',       '届いた資材の入荷を記録')
+      +   tile(link('kanri'),     '⚙️', '管理方式を設定', '管理方式・発注基準数を変更')
+      +   tile(link('transfer'),  '🔁', '他院と貸し借り', '資材移動（QR写真を撮影）')
+      +   tile(link('correction'), '🛠', '訂正・取消',     '在庫修正・使用/入荷の取消')
+      +   tile(link('expiry'),     '🗓', '使用期限',       'この医院の期限が近い資材')
+      +   tile(link('qrprint'),    '🏷', 'QRコード発行',   'この医院で使う資材のQRを印刷')
+      + '</div>'
+      + '<div class="note">💡 日々の<b>使用登録</b>は、このアプリを開かずに'
+      +   '資材のQRコードを<b>スマホの標準カメラ</b>で写すだけで完了します。</div>';
+    $('app').innerHTML = html;
+  }
+
+  function loadQrMode(){
+    google.script.run
+      .withSuccessHandler(function(res){ showQrMode(res.mode); })
+      .withFailureHandler(function(err){ $('qrModeNow').textContent='読込失敗'; })
+      .getClinicQrMode(CLINIC);
+  }
+
+  function showQrMode(mode){
+    var normal = mode === '通常使用';
+    $('qrModeNow').textContent = normal ? '通常使用' : '棚卸し入力';
+    $('modeNormal').className = normal ? 'active' : '';
+    $('modeStock').className = normal ? '' : 'active';
+    $('modeNormal').disabled = normal;
+    $('modeStock').disabled = !normal;
+    $('modeNormal').onclick = function(){ changeQrMode('通常使用'); };
+    $('modeStock').onclick = function(){ changeQrMode('棚卸し入力'); };
+  }
+
+  function changeQrMode(mode){
+    var detail = mode === '通常使用'
+      ? 'QRを読み、ボタンを押すと在庫が1個減る通常運用にします。'
+      : 'QRを読むと、数えた実数を入力して現在庫を上書きする棚卸し運用にします。';
+    if(!confirm(CLINIC+' のQR読取モードを「'+mode+'」に切り替えます。\n'+detail+'\n\nこの医院の全スマホに反映されます。よろしいですか？')) return;
+    $('modeNormal').disabled = true; $('modeStock').disabled = true;
+    $('qrModeNow').textContent = '変更中…';
+    google.script.run
+      .withSuccessHandler(function(res){ showQrMode(res.mode); })
+      .withFailureHandler(function(err){ alert('変更できませんでした：'+err.message); loadQrMode(); })
+      .setClinicQrMode(CLINIC, mode);
+  }
+
+  function tile(href, ico, t, d){
+    return '<a class="tile" href="' + href + '">'
+         +   '<span class="ico">' + ico + '</span>'
+         +   '<span class="t">' + esc(t) + '</span>'
+         +   '<span class="d">' + esc(d) + '</span>'
+         + '</a>';
+  }
+  // 資材移動は①の実装後に有効化する。今回は枠だけ置く（押しても遷移しない）。
+  function soonTile(ico, t, d){
+    return '<div class="tile soon">'
+         +   '<span class="ico">' + ico + '</span>'
+         +   '<span class="t">' + esc(t) + '</span>'
+         +   '<span class="d">' + esc(d) + '</span>'
+         +   '<span class="soonTag">準備中</span>'
+         + '</div>';
+  }
+
+  function renderBadge(count){
+    var el = $('badge');
+    if (!el) return;
+    if (!count) { el.innerHTML = ''; return; }
+    el.innerHTML = '<a class="badge" href="' + link('expiry') + '">'
+                 + '🔴 期限が近い資材が ' + count + ' 件あります'
+                 + '<span class="arrow">確認する →</span></a>';
+  }
+
+  function fail(err){
+    $('app').innerHTML = '<div class="empty">読み込みに失敗しました：' + esc(err && err.message) + '</div>';
+  }
+
+  function esc(s){
+    return String(s==null?'':s).replace(/[&<>"']/g,function(c){
+      return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];
+    });
+  }
+</script>
+</body>
+</html>

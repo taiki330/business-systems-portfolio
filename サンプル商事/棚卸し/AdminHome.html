@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<base target="_top">
+<style>
+  :root{ --line:#d8dde5; --ink:#1a1a1a; --sub:#5a6270; --accent:#1e5aa8;
+         --soft:#f4f6f9; --ok:#1e7a4d; --warn:#b3541e; --err:#c0392b; --na:#8a90a0; }
+  *{box-sizing:border-box;}
+  body{margin:0;font-family:"Yu Gothic",YuGothic,"Hiragino Kaku Gothic ProN","Meiryo",sans-serif;
+       color:var(--ink);background:#eef1f5;font-size:14px;}
+  header{background:#fff;border-bottom:2px solid var(--accent);padding:16px;
+         box-shadow:0 1px 6px rgba(0,0,0,.06);}
+  h1{font-size:18px;margin:0;display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
+  .roleTag{display:inline-block;background:var(--accent);color:#fff;font-weight:700;
+           padding:2px 14px;border-radius:14px;font-size:15px;}
+  .sub{font-size:12.5px;color:var(--sub);margin-top:5px;line-height:1.6;}
+  /* PC・スマホ両対応：中央寄せ＆最大幅で、どちらでも自然に見えるようにする */
+  main{max-width:760px;margin:0 auto;padding:16px;}
+  a{text-decoration:none;color:inherit;}
+
+  /* 画面が広ければ複数列、狭ければ1列に自動で切り替わる */
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:12px;}
+  .tile{background:#fff;border:1px solid var(--line);border-radius:10px;padding:20px 16px;
+        display:flex;flex-direction:column;gap:6px;min-height:112px;
+        box-shadow:0 1px 4px rgba(0,0,0,.05);transition:box-shadow .12s,transform .12s;}
+  .tile:hover{box-shadow:0 4px 14px rgba(0,0,0,.12);transform:translateY(-1px);}
+  .tile .ico{font-size:26px;line-height:1;}
+  .tile .t{font-size:16px;font-weight:700;}
+  .tile .d{font-size:12px;color:var(--sub);line-height:1.5;}
+
+  /* 年1回しか使わない作業は、日常の3つと分けて下に置く */
+  .secondary{margin-top:18px;}
+  .secondary .st{font-size:12px;font-weight:800;color:var(--sub);margin-bottom:8px;}
+  .row{background:#fff;border:1px solid var(--line);border-radius:10px;padding:14px 16px;
+       display:flex;align-items:center;gap:12px;
+       box-shadow:0 1px 4px rgba(0,0,0,.05);transition:box-shadow .12s;}
+  .row:hover{box-shadow:0 4px 14px rgba(0,0,0,.12);}
+  .row .ico{font-size:21px;}
+  .row .txt{display:flex;flex-direction:column;}
+  .row .txt .t{font-size:14.5px;font-weight:700;}
+  .row .txt .d{font-size:12px;color:var(--sub);margin-top:2px;}
+  .row .go{margin-left:auto;font-size:12.5px;color:var(--sub);white-space:nowrap;}
+
+  .note{margin-top:18px;font-size:12.5px;color:var(--sub);background:var(--soft);
+        border-radius:8px;padding:11px 14px;line-height:1.7;}
+  .clinicPick{margin-top:18px;}
+  .clinicPick .st{font-size:12px;font-weight:800;color:var(--sub);margin-bottom:8px;}
+  .chips{display:flex;flex-wrap:wrap;gap:8px;}
+  .chips a{background:#fff;border:1px solid var(--line);border-radius:8px;padding:8px 14px;
+           font-weight:700;font-size:13px;color:var(--accent);}
+  .chips a:hover{border-color:var(--accent);}
+</style>
+</head>
+<body>
+<header>
+  <h1><span class="roleTag">理事長・事務</span> 在庫管理ホーム</h1>
+  <div class="sub">全医院をまとめて見る画面です。各医院のホームとは別の入口になっています。</div>
+</header>
+<main>
+  <div class="grid" id="tiles"></div>
+
+  <div class="secondary">
+    <div class="st">年1回の作業</div>
+    <div id="secondary"></div>
+  </div>
+
+  <div class="clinicPick">
+    <div class="st">各医院のホームを開く</div>
+    <div class="chips" id="clinics"><span class="sub">読み込み中…</span></div>
+  </div>
+
+  <div class="note">💡 この画面のURLは理事長・事務の方だけにお渡しください。
+    各医院には、それぞれの医院ホームのURLをお配りする運用です。</div>
+</main>
+
+<script>
+  var APP_URL = '<?= initParams && initParams.appUrl ? initParams.appUrl : "" ?>';
+  var $ = function(id){ return document.getElementById(id); };
+
+  function link(page){ return APP_URL + '?page=' + page; }
+
+  $('tiles').innerHTML =
+      tile('director',      '💰', '総資産・全医院サマリ', '医院ごとの資産額・在庫不足・期限の件数')
+    + tile('usagerate',     '📉', '資材の稼働率',         '動いていない資材を見つけて在庫を見直す')
+    + tile('productmaster', '🗂', '商品マスタ管理',       '単価・発注先・使用期限管理などの設定');
+
+  $('secondary').innerHTML =
+    row('historyadmin', '🗃', '履歴の保管・削除',
+        '1年分の記録を書き出して保管し、元の履歴から消します');
+
+  // 各医院ホームへの入口。医院コードはサーバー（CLINICS）から取る。
+  google.script.run.withSuccessHandler(function(list){
+    $('clinics').innerHTML = (list || []).map(function(c){
+      return '<a href="' + APP_URL + '?page=home&clinic=' + encodeURIComponent(c) + '">'
+           + esc(c) + '</a>';
+    }).join('');
+  }).withFailureHandler(function(){
+    $('clinics').innerHTML = '<span class="sub">医院一覧を取得できませんでした。</span>';
+  }).getClinicList();
+
+  function tile(page, ico, t, d){
+    return '<a class="tile" href="' + link(page) + '">'
+         +   '<span class="ico">' + ico + '</span>'
+         +   '<span class="t">' + esc(t) + '</span>'
+         +   '<span class="d">' + esc(d) + '</span>'
+         + '</a>';
+  }
+
+  function row(page, ico, t, d){
+    return '<a class="row" href="' + link(page) + '">'
+         +   '<span class="ico">' + ico + '</span>'
+         +   '<span class="txt"><span class="t">' + esc(t) + '</span>'
+         +     '<span class="d">' + esc(d) + '</span></span>'
+         +   '<span class="go">開く →</span>'
+         + '</a>';
+  }
+
+  function esc(s){
+    return String(s==null?'':s).replace(/[&<>"']/g,function(c){
+      return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];
+    });
+  }
+</script>
+</body>
+</html>

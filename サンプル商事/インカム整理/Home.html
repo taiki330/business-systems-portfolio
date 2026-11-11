@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<base target="_top">
+<?!= include('Style'); ?>
+</head>
+<body>
+<header><h1 id="title">インカム管理</h1></header>
+<main>
+  <div id="app"><div class="spin">読み込み中…</div></div>
+</main>
+
+<script>
+  var APP_URL = '<?= initParams && initParams.appUrl ? initParams.appUrl : "" ?>';
+  var CLINIC  = '<?= initParams && initParams.clinic ? initParams.clinic : "" ?>';
+</script>
+<?!= include('Common'); ?>
+<script>
+  var CLINIC_KEY = 'incom_clinic';
+
+  if (requireClinic('title')) start();
+
+  function start(){
+    // 同じ端末で次に開いたときのために医院を覚えておく
+    try { localStorage.setItem(CLINIC_KEY, CLINIC); } catch(e){}
+
+    google.script.run.withSuccessHandler(render).withFailureHandler(function(err){
+      $('app').innerHTML = '<div class="card"><p class="err">読み込みに失敗しました</p><p>'
+                         + esc(err && err.message) + '</p></div>';
+    }).getHomeSummary(CLINIC);
+  }
+
+  function render(s){
+    $('title').innerHTML = '<span class="clinicTag">' + esc(s.clinicLabel) + '</span> インカム管理';
+
+    var html = badges(s) + statsBlock(s.devices) + menu(s);
+    if (s.flaggedCount) {
+      html += '<div class="note">📝 移行時に確認が必要と判定された機器が <b>' + s.flaggedCount
+           +  '件</b> あります。現況一覧の「要確認のみ」で絞り込めます。</div>';
+    }
+    $('app').innerHTML = html;
+  }
+
+  // 「次に何をすべきか」だけを上に出す。件数を眺めるための画面にはしない。
+  function badges(s){
+    var html = '';
+    if (s.toSendCount) {
+      html += '<a class="badge err" href="' + link('devices') + '">'
+           +  '🔴 故障報告した ' + s.toSendCount + '台 を本部（サンプル商事）へお送りください'
+           +  '<span class="arrow">確認する →</span></a>';
+    }
+    if (s.isHq && s.pool) {
+      if (s.pool.reached) {
+        html += '<a class="badge err" href="' + link('pool') + '">'
+             +  '🔴 修理待ちが ' + s.pool.total + '台（目安 ' + s.pool.threshold
+             +  '台）たまりました。修理依頼の時期です<span class="arrow">まとめて依頼 →</span></a>';
+      } else if (s.pool.total) {
+        html += '<a class="badge warn" href="' + link('pool') + '">'
+             +  '🟠 修理待ち ' + s.pool.total + '台（あと ' + (s.pool.threshold - s.pool.total)
+             +  '台で修理依頼の目安）<span class="arrow">一覧 →</span></a>';
+      }
+      if (s.returnQueueCount) {
+        html += '<a class="badge ok" href="' + link('order') + '">'
+             +  '🟢 修理から戻った ' + s.returnQueueCount + '台 を各医院へ返却してください'
+             +  '<span class="arrow">返却を登録 →</span></a>';
+      }
+    }
+    if (s.warrantyCount) {
+      html += '<div class="badge warn">🟠 保証期限が ' + s.warrantyDays + '日以内の機器が '
+           +  s.warrantyCount + '台あります</div>';
+    }
+    return html;
+  }
+
+  function statsBlock(d){
+    return '<div class="stats">'
+      + stat(d.total, '手元の台数') + stat(d.inUse, '使用中') + stat(d.spare, '予備')
+      + stat(d.trouble, '故障・修理中')
+      + (d.lent ? stat(d.lent, '他院へ貸出') : '')
+      + (d.borrowed ? stat(d.borrowed, '他院から借用') : '')
+      + '</div>';
+  }
+  function stat(n, label){
+    return '<div class="stat"><div class="n">' + n + '</div><div class="l">' + label + '</div></div>';
+  }
+
+  function menu(s){
+    var html = '<h2>メニュー</h2><div class="grid">'
+      + tile(link('devices'), '📋', '現況一覧', '誰が何番を持っているか')
+      + tile(link('report'),  '🛠', '故障を報告', '不具合が出たときはここから')
+      + tile(link('history'), '🕘', '履歴',     'いつ誰が何をしたか');
+    if (s.isHq) {
+      html += tile(link('pool'),  '📦', '修理待ち（全院）',
+                   '集約状況と、まとめて修理依頼')
+           +  tile(link('order'), '🔧', '修理依頼・完了・返却',
+                   '依頼中 ' + (s.orderedCount || 0) + '件／返却待ち ' + s.returnQueueCount + '件');
+    }
+    return html + '</div>';
+  }
+
+  function tile(href, ico, t, d){
+    return '<a class="tile" href="' + href + '"><span class="ico">' + ico + '</span>'
+         + '<span class="t">' + esc(t) + '</span><span class="d">' + esc(d) + '</span></a>';
+  }
+</script>
+</body>
+</html>

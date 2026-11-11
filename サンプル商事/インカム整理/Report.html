@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<base target="_top">
+<?!= include('Style'); ?>
+</head>
+<body>
+<header><h1 id="title">故障を報告する</h1></header>
+<main>
+  <a class="back" id="homeLink" href="#">← ホームへ</a>
+  <div id="app"><div class="spin">読み込み中…</div></div>
+</main>
+
+<script>
+  var APP_URL = '<?= initParams && initParams.appUrl ? initParams.appUrl : "" ?>';
+  var CLINIC  = '<?= initParams && initParams.clinic ? initParams.clinic : "" ?>';
+  // 症状は選択式にする。自由記入だけにすると現行シートと同じ表記ゆれが起きて、
+  // 「どの症状が多いか」が後から分からなくなるため。
+  var SYMPTOMS = ['音が聞こえない','マイクが入らない（相手に声が届かない）','雑音が入る',
+                  '電源が入らない','充電できない','その他'];
+</script>
+<?!= include('Common'); ?>
+<script>
+  $('homeLink').href = link('home');
+  if (requireClinic('title')) load();
+
+  function load(){
+    showLoading('app');
+    google.script.run.withSuccessHandler(render).withFailureHandler(fail)
+      .getReportableDevices(CLINIC);
+  }
+
+  function render(devices){
+    $('title').innerHTML = '<span class="clinicTag">' + esc(CLINIC) + '</span> 故障を報告する';
+
+    if (!devices.length) {
+      $('app').innerHTML = '<div class="card"><p class="empty">'
+        + '報告できる機器がありません。<br>（すでに報告済みの機器や、修理中の機器は選べません）'
+        + '</p></div>';
+      return;
+    }
+
+    var options = '<option value="">選んでください</option>';
+    devices.forEach(function(d){
+      options += '<option value="' + esc(d.id) + '">' + esc(d.label)
+              +  (d.user ? '　- ' + esc(d.user) : '') + '</option>';
+    });
+
+    var choices = '';
+    SYMPTOMS.forEach(function(s, i){
+      choices += '<label><input type="radio" name="sym" value="' + esc(s) + '"'
+              +  ' onchange="onSymptom()">' + esc(s) + '</label>';
+    });
+
+    $('app').innerHTML =
+        '<div class="card">'
+      +   '<label>どの機器ですか？ ※必須</label>'
+      +   '<select id="dev">' + options + '</select>'
+      +   '<label>どんな症状ですか？ ※必須</label>'
+      +   '<div class="choices">' + choices + '</div>'
+      +   '<div id="otherWrap" style="display:none;">'
+      +     '<label>症状の内容 ※必須</label>'
+      +     '<input type="text" id="other" placeholder="できるだけ具体的にご記入ください">'
+      +   '</div>'
+      +   '<div class="row">'
+      +     '<div><label>いつから？</label>'
+      +       '<input type="date" id="faultDate" value="' + today() + '"></div>'
+      +     '<div><label>報告者（お名前） ※必須</label>'
+      +       '<input type="text" id="reporter" placeholder="山田"></div>'
+      +   '</div>'
+      +   '<label>補足（任意）</label>'
+      +   '<textarea id="note" placeholder="落として以降おかしい、など"></textarea>'
+      +   '<div class="actions"><button id="btn" onclick="submit()">この内容で報告する</button></div>'
+      + '</div>'
+      + '<div class="note">報告すると本部（サンプル商事）の修理待ち一覧に載ります。'
+      + '<br>報告後は<b>実機を本部へお送りください</b>。'
+      + 'まとまった台数になったところで本部からメーカーへ修理に出します。</div>';
+
+    // 前回入力した名前を覚えておく（毎回打つのは現場の手間になるため）
+    try {
+      var saved = localStorage.getItem('incom_reporter');
+      if (saved) $('reporter').value = saved;
+    } catch(e){}
+  }
+
+  function onSymptom(){
+    var v = checkedRadio('sym');
+    $('otherWrap').style.display = (v === 'その他') ? 'block' : 'none';
+  }
+
+  function checkedRadio(name){
+    var r = document.getElementsByName(name);
+    for (var i = 0; i < r.length; i++) if (r[i].checked) return r[i].value;
+    return '';
+  }
+
+  function submit(){
+    var deviceId = $('dev').value;
+    var symptom = checkedRadio('sym');
+    var reporter = $('reporter').value.trim();
+
+    if (!deviceId) { toast('機器を選んでください。', true); return; }
+    if (!symptom)  { toast('症状を選んでください。', true); return; }
+    if (symptom === 'その他' && !$('other').value.trim()) {
+      toast('症状の内容を入力してください。', true); return;
+    }
+    if (!reporter) { toast('報告者のお名前を入力してください。', true); return; }
+
+    try { localStorage.setItem('incom_reporter', reporter); } catch(e){}
+    $('btn').disabled = true;
+
+    google.script.run.withSuccessHandler(function(res){
+      var msg = '報告を受け付けました（' + res.caseId + '）。実機を本部へお送りください。';
+      if (res.reached) {
+        msg += ' 全院の修理待ちが ' + res.poolCount + '台になり、修理依頼の目安に達しました。';
+      }
+      $('app').innerHTML = '<div class="card"><p class="badge ok" style="margin:0;">✅ '
+        + esc(msg) + '</p>'
+        + '<div class="actions">'
+        +   '<button onclick="location.reload()">続けて報告する</button>'
+        +   '<button class="sub" onclick="go(\'home\')">ホームへ戻る</button>'
+        + '</div></div>';
+    }).withFailureHandler(fail).reportFault(CLINIC, {
+      deviceId: deviceId,
+      symptom: symptom,
+      symptomOther: $('other') ? $('other').value : '',
+      faultDate: $('faultDate').value,
+      reporter: reporter,
+      note: $('note').value
+    });
+  }
+</script>
+</body>
+</html>

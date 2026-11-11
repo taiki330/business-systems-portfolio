@@ -1,0 +1,173 @@
+{
+  "getStockList": {
+    "clinic": "サンプル歯科",
+    "items": [
+      {
+        "category": "消耗品",
+        "name": "サンプルグローブ Mサイズ",
+        "supplier": "サンプル商会",
+        "stock": 4,
+        "openQty": 0,
+        "kijun": 6,
+        "status": "在庫不足",
+        "valuation": 1400
+      },
+      {
+        "category": "消耗品",
+        "name": "サンプルグローブ Sサイズ",
+        "supplier": "サンプル商会",
+        "stock": 2,
+        "openQty": 0,
+        "kijun": 6,
+        "status": "在庫不足",
+        "valuation": 700
+      },
+      {
+        "category": "薬剤",
+        "name": "サンプル麻酔カートリッジ",
+        "supplier": "サンプル資材",
+        "stock": 30,
+        "openQty": 5,
+        "kijun": 20,
+        "status": "正常",
+        "valuation": 126000
+      },
+      {
+        "category": "消耗品",
+        "name": "サンプルマスク 50枚入",
+        "supplier": "サンプル商会",
+        "stock": 12,
+        "openQty": 0,
+        "kijun": 10,
+        "status": "正常",
+        "valuation": 8160
+      },
+      {
+        "category": "事務用品",
+        "name": "サンプル紙コップ",
+        "supplier": "サンプル薬品",
+        "stock": null,
+        "openQty": 0,
+        "kijun": null,
+        "status": "管理対象外",
+        "valuation": null
+      },
+      {
+        "category": "消耗品",
+        "name": "サンプルエプロン",
+        "supplier": "サンプル商会",
+        "stock": 18,
+        "openQty": 0,
+        "kijun": 10,
+        "status": "正常",
+        "valuation": 16200
+      },
+      {
+        "category": "診療室",
+        "name": "サンプル研磨ブラシ",
+        "supplier": "サンプル資材",
+        "stock": 3,
+        "openQty": 0,
+        "kijun": 5,
+        "status": "在庫不足",
+        "valuation": 3750
+      },
+      {
+        "category": "薬剤",
+        "name": "サンプル印象材",
+        "supplier": "サンプル薬品",
+        "stock": 7,
+        "openQty": 5,
+        "kijun": 4,
+        "status": "正常",
+        "valuation": 21700
+      },
+      {
+        "category": "消耗品",
+        "name": "サンプルコットンロール",
+        "supplier": "サンプル商会",
+        "stock": 0,
+        "openQty": 0,
+        "kijun": 5,
+        "status": "在庫不足",
+        "valuation": 0
+      },
+      {
+        "category": "診療室",
+        "name": "サンプル注射針 27G",
+        "supplier": "サンプル資材",
+        "stock": 25,
+        "openQty": 0,
+        "kijun": 20,
+        "status": "正常",
+        "valuation": 45000
+      },
+      {
+        "category": "薬剤",
+        "name": "サンプルうがい薬 500ml",
+        "supplier": "サンプル薬品",
+        "stock": 5,
+        "openQty": 0,
+        "kijun": 3,
+        "status": "正常",
+        "valuation": 3800
+      },
+      {
+        "category": "事務用品",
+        "name": "サンプルティッシュ",
+        "supplier": "サンプル商会",
+        "stock": null,
+        "openQty": 0,
+        "kijun": null,
+        "status": "管理対象外",
+        "valuation": null
+      },
+      {
+        "category": "診療室",
+        "name": "サンプルバキュームチップ",
+        "supplier": "サンプル資材",
+        "stock": 40,
+        "openQty": 5,
+        "kijun": 30,
+        "status": "正常",
+        "valuation": 60000
+      },
+      {
+        "category": "薬剤",
+        "name": "サンプルセメント",
+        "supplier": "サンプル薬品",
+        "stock": 2,
+        "openQty": 0,
+        "kijun": 2,
+        "status": "正常",
+        "valuation": 10400
+      },
+      {
+        "category": "消耗品",
+        "name": "サンプルトレー使い捨て",
+        "supplier": "サンプル商会",
+        "stock": -1,
+        "openQty": 0,
+        "kijun": 4,
+        "status": "マイナス",
+        "valuation": 0
+      },
+      {
+        "category": "事務用品",
+        "name": "サンプルペーパータオル",
+        "supplier": "サンプル資材",
+        "stock": null,
+        "openQty": 0,
+        "kijun": null,
+        "status": "管理対象外",
+        "valuation": null
+      }
+    ],
+    "summary": {
+      "count": 16,
+      "lowStockCount": 4,
+      "negativeCount": 1,
+      "totalValuation": 297110
+    }
+  }
+}

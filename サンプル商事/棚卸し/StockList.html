@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<base target="_top">
+<style>
+  :root{ --line:#d8dde5; --ink:#1a1a1a; --sub:#5a6270; --accent:#1e5aa8;
+         --soft:#f4f6f9; --ok:#1e7a4d; --warn:#b3541e; --err:#c0392b; --na:#8a90a0; }
+  *{box-sizing:border-box;}
+  body{margin:0;font-family:"Yu Gothic",YuGothic,"Hiragino Kaku Gothic ProN","Meiryo",sans-serif;
+       color:var(--ink);background:#eef1f5;font-size:14px;}
+  header{position:sticky;top:0;z-index:10;background:#fff;border-bottom:2px solid var(--accent);
+         padding:12px 16px;box-shadow:0 1px 6px rgba(0,0,0,.06);}
+  h1{font-size:17px;margin:0 0 10px;}
+  .bar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;}
+  select,input,button{font-size:14px;padding:6px 10px;border:1px solid var(--line);border-radius:5px;background:#fff;}
+  button{cursor:pointer;background:var(--accent);color:#fff;border:none;font-weight:700;}
+  button.ghost{background:#fff;color:var(--accent);border:1px solid var(--accent);}
+  .summary{display:flex;gap:10px;flex-wrap:wrap;margin-top:10px;}
+  .card{background:var(--soft);border-radius:6px;padding:6px 12px;font-size:12.5px;}
+  .card b{font-size:15px;display:block;color:var(--accent);}
+  .card.warn b{color:var(--warn);} .card.err b{color:var(--err);}
+  main{padding:12px 16px 40px;}
+  table{width:100%;border-collapse:collapse;background:#fff;}
+  th,td{border:1px solid var(--line);padding:6px 8px;text-align:left;vertical-align:middle;}
+  th{background:var(--soft);position:sticky;top:118px;font-size:12.5px;white-space:nowrap;}
+  td.num{text-align:right;}
+  .status{display:inline-block;font-size:11px;padding:2px 8px;border-radius:10px;}
+  .status.ok{background:#e9f5ee;color:var(--ok);}
+  .status.warn{background:#fdf1e7;color:var(--warn);}
+  .status.err{background:#fbe9e7;color:var(--err);}
+  .status.na{background:#eef0f3;color:var(--na);}
+  .cat{display:inline-block;font-size:11px;color:var(--sub);background:#eef2f8;padding:1px 6px;border-radius:3px;}
+  .empty,.spin{padding:40px;text-align:center;color:var(--sub);}
+  .clinicTag{background:var(--accent);color:#fff;font-size:13px;padding:2px 10px;border-radius:4px;font-weight:700;}
+</style>
+</head>
+<body>
+<header>
+  <a id="homeBack" href="#" style="display:inline-block;margin-bottom:8px;font-size:13px;font-weight:700;color:var(--accent);text-decoration:none;">← 医院ホームに戻る</a>
+  <h1>現在庫一覧・検索 <span class="clinicTag" id="clinicTag">医院未選択</span></h1>
+  <div class="bar">
+    <button id="loadBtn" class="ghost">再読み込み</button>
+    <label>カテゴリ：<select id="catFilter"><option value="">すべて</option></select></label>
+    <input type="text" id="search" placeholder="品名・発注先で検索" style="min-width:200px;">
+    <label><input type="checkbox" id="lowOnly"> 在庫不足・マイナスのみ表示</label>
+  </div>
+  <div class="summary" id="summary"></div>
+</header>
+
+<main>
+  <div id="wrap"><div class="spin">読み込み中…</div></div>
+</main>
+
+<script>
+  var CLINIC_KEY = 'tanaoroshi_clinic';
+  var CLINIC = '<?= initParams && initParams.clinic ? initParams.clinic : "" ?>';
+  var allItems = [];
+  var $ = function(id){ return document.getElementById(id); };
+
+  // 医院はURL優先、無ければ端末記憶から（他の医院専用画面と同じ方式。切り替えUIは持たない）
+  if(!CLINIC){ try { CLINIC = localStorage.getItem(CLINIC_KEY) || ''; } catch(e){} }
+  else { try { localStorage.setItem(CLINIC_KEY, CLINIC); } catch(e){} }
+
+  $('loadBtn').onclick = load;
+  $('catFilter').onchange = render;
+  $('search').oninput = render;
+  $('lowOnly').onchange = render;
+
+  if(!CLINIC){
+    $('wrap').innerHTML = '<div class="empty">医院が指定されていません。医院ホームから開いてください。</div>';
+  } else {
+    $('clinicTag').textContent = CLINIC;
+    load();
+  }
+
+  function load(){
+    if(!CLINIC) return;
+    $('wrap').innerHTML = '<div class="spin">読み込み中…</div>';
+    $('summary').innerHTML = '';
+    google.script.run
+      .withSuccessHandler(function(res){
+        allItems = res.items || [];
+        buildCatFilter();
+        renderSummary(res.summary);
+        render();
+      })
+      .withFailureHandler(function(err){
+        $('wrap').innerHTML = '<div class="empty">読み込みに失敗：'+esc(err.message)+'</div>';
+      })
+      .getStockList(CLINIC);
+  }
+
+  function buildCatFilter(){
+    var cats = {};
+    allItems.forEach(function(it){ if(it.category) cats[it.category]=1; });
+    var sel = $('catFilter');
+    sel.innerHTML = '<option value="">すべて</option>';
+    Object.keys(cats).sort().forEach(function(c){
+      var o=document.createElement('option'); o.value=c; o.textContent=c; sel.appendChild(o);
+    });
+  }
+
+  function renderSummary(s){
+    if(!s) return;
+    $('summary').innerHTML =
+        '<div class="card"><b>'+s.count+'</b>品目</div>'
+      + '<div class="card warn"><b>'+s.lowStockCount+'</b>在庫不足</div>'
+      + '<div class="card err"><b>'+s.negativeCount+'</b>マイナス在庫</div>'
+      + '<div class="card"><b>￥'+Math.round(s.totalValuation).toLocaleString()+'</b>評価額合計（税抜・この医院）</div>';
+  }
+
+  function visibleItems(){
+    var cat = $('catFilter').value;
+    var q = $('search').value.trim();
+    var lowOnly = $('lowOnly').checked;
+    return allItems.filter(function(it){
+      if(cat && it.category !== cat) return false;
+      if(q && (it.name+it.supplier).indexOf(q) < 0) return false;
+      if(lowOnly && it.status !== '在庫不足' && it.status !== 'マイナス') return false;
+      return true;
+    });
+  }
+
+  function render(){
+    var items = visibleItems();
+    if(!items.length){
+      $('wrap').innerHTML = '<div class="empty">該当する商品がありません。</div>';
+      return;
+    }
+    var html = '<table><thead><tr>'
+      + '<th>カテゴリ</th><th>品名</th><th>発注先</th><th>現在庫</th><th>未入荷</th>'
+      + '<th>発注基準</th><th>状態</th><th>評価額<br><span style="font-weight:400;font-size:11px;">（税抜）</span></th>'
+      + '</tr></thead><tbody>';
+    items.forEach(function(it){ html += renderRow(it); });
+    html += '</tbody></table>';
+    $('wrap').innerHTML = html;
+  }
+
+  function renderRow(it){
+    var statusCls = { '正常':'ok', '在庫不足':'warn', 'マイナス':'err', '管理対象外':'na' }[it.status] || '';
+    // サーバーが返す null は google.script.run を通ると undefined になるため、
+    // 「== null」（null と undefined の両方に一致）で判定する。
+    // 「=== null」だと発注トリガー管理の行が undefined／￥NaN と表示されてしまう。
+    var stockCell = (it.stock == null) ? '<span style="color:#b3b8c0;">対象外</span>' : it.stock;
+    var valCell = (it.valuation == null) ? '-' : ('￥' + Math.round(it.valuation).toLocaleString());
+    return '<tr>'
+      + '<td><span class="cat">'+esc(it.category)+'</span></td>'
+      + '<td>'+esc(it.name)+'</td>'
+      + '<td>'+esc(it.supplier)+'</td>'
+      + '<td class="num">'+stockCell+'</td>'
+      + '<td class="num">'+it.openQty+'</td>'
+      + '<td class="num">'+(it.kijun || '-')+'</td>'
+      + '<td><span class="status '+statusCls+'">'+esc(it.status)+'</span></td>'
+      + '<td class="num">'+valCell+'</td>'
+      + '</tr>';
+  }
+
+  function esc(s){
+    return String(s==null?'':s).replace(/[&<>"']/g,function(c){
+      return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];
+    });
+  }
+</script>
+<script>
+  // 「医院ホームに戻る」リンク：現在の医院（localStorage）＋実行URL（appUrl）でホームURLを組む
+  (function(){
+    var b = document.getElementById('homeBack');
+    if (!b) return;
+    var base = '<?= initParams && initParams.appUrl ? initParams.appUrl : "" ?>';
+    b.href = base + '?page=home' + (CLINIC ? '&clinic=' + encodeURIComponent(CLINIC) : '');
+  })();
+</script>
+</body>
+</html>

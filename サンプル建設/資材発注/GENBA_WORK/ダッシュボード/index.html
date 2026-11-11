@@ -1,0 +1,4122 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <base target="_top">
+    <meta charset="utf-8">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html,
+        body {
+            height: 100%;
+            overflow: hidden;
+            font-family: 'Noto Sans JP', 'Helvetica Neue', Arial, sans-serif;
+            background: #f5f7fa;
+        }
+
+        /* ---- Toolbar ---- */
+        .toolbar {
+            height: 52px;
+            background: linear-gradient(135deg, #1565C0, #0d47a1);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 20px;
+            flex-shrink: 0;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+            position: relative;
+            z-index: 20;
+        }
+
+        .toolbar-left {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            flex-shrink: 0;
+            min-width: 0;
+        }
+
+        .toolbar-title {
+            font-size: 18px;
+            font-weight: 700;
+            letter-spacing: 1px;
+            display: flex;
+            align-items: center;
+            flex-shrink: 0;
+        }
+
+        .toolbar-actions {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-shrink: 0;
+        }
+
+        .toolbar-right {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex: 1;
+            min-width: 0;
+            justify-content: flex-end;
+            flex-wrap: wrap;
+        }
+
+        .toolbar-btn {
+            padding: 7px 16px;
+            border: 1px solid rgba(255, 255, 255, 0.4);
+            border-radius: 6px;
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 500;
+            transition: all 0.2s ease;
+            backdrop-filter: blur(4px);
+            white-space: nowrap;
+            flex-shrink: 0;
+        }
+
+        .toolbar-btn-accent {
+            background: rgba(255, 255, 255, 0.24);
+            border-color: rgba(255, 255, 255, 0.72);
+            font-weight: 700;
+            min-width: 92px;
+        }
+
+        .toolbar-btn:hover {
+            background: rgba(255, 255, 255, 0.25);
+            transform: translateY(-1px);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+        }
+
+        .toolbar-btn:active {
+            transform: translateY(0);
+        }
+
+        /* ---- 完工仕分けUI（画面上のみ・保存なし） ---- */
+        .status-filter {
+            display: inline-flex;
+            border: 1px solid rgba(255, 255, 255, 0.4);
+            border-radius: 6px;
+            overflow: hidden;
+        }
+
+        .status-filter button {
+            padding: 7px 12px;
+            border: none;
+            background: rgba(255, 255, 255, 0.08);
+            color: white;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 500;
+            transition: background 0.15s ease;
+        }
+
+        .status-filter button + button {
+            border-left: 1px solid rgba(255, 255, 255, 0.25);
+        }
+
+        .status-filter button:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .status-filter button.active {
+            background: rgba(255, 255, 255, 0.85);
+            color: #1565C0;
+            font-weight: 700;
+        }
+
+        .bulk-complete-btn {
+            padding: 7px 12px;
+            border: 1px solid rgba(255, 255, 255, 0.4);
+            border-radius: 6px;
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        .bulk-complete-btn:hover {
+            background: rgba(255, 255, 255, 0.25);
+        }
+
+        .bulk-complete-btn:disabled {
+            opacity: 0.4;
+            cursor: default;
+        }
+
+        .site-select-chk {
+            margin-right: 4px;
+            cursor: pointer;
+            vertical-align: middle;
+        }
+
+        .complete-btn {
+            margin-left: 6px;
+            padding: 1px 7px;
+            border: 1px solid #bbb;
+            border-radius: 4px;
+            background: #f5f5f5;
+            color: #555;
+            cursor: pointer;
+            font-size: 11px;
+            line-height: 1.5;
+        }
+
+        .complete-btn:hover {
+            background: #e8f5e9;
+            border-color: #66bb6a;
+            color: #2e7d32;
+        }
+
+        .complete-btn.is-completed {
+            background: #fff3e0;
+            border-color: #ffb74d;
+            color: #e65100;
+        }
+
+        .completed-badge {
+            margin-left: 6px;
+            padding: 1px 6px;
+            border-radius: 4px;
+            background: #9e9e9e;
+            color: #fff;
+            font-size: 10px;
+            font-weight: 700;
+        }
+
+        .entry.parent.site-completed .site-link {
+            color: #9e9e9e;
+            text-decoration: line-through;
+        }
+
+        .legend {
+            display: flex;
+            gap: 10px;
+            font-size: 10px;
+            margin-right: 16px;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 3px;
+        }
+
+        .legend-sw {
+            width: 14px;
+            height: 8px;
+            border-radius: 2px;
+            display: inline-block;
+        }
+
+        .alert-legend {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            margin-left: 6px;
+            padding-left: 8px;
+            border-left: 1px solid rgba(255, 255, 255, 0.35);
+            font-size: 10px;
+            white-space: nowrap;
+        }
+
+        .alert-legend-item {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .alert-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            display: inline-block;
+        }
+
+        .alert-dot.warning {
+            background: #f9a825;
+        }
+
+        .alert-dot.danger {
+            background: #d32f2f;
+        }
+
+        /* ---- Main layout ---- */
+        .main {
+            display: flex;
+            height: calc(100% - 52px);
+        }
+
+        /* ---- Left panel ---- */
+        .left-panel {
+            width: 558px;
+            min-width: 558px;
+            display: flex;
+            flex-direction: column;
+            border-right: 1px solid #dde3ea;
+            background: #fff;
+        }
+
+        .left-header {
+            display: flex;
+            background: linear-gradient(180deg, #f8f9fb, #eef1f5);
+            border-bottom: 1px solid #dde3ea;
+            flex-shrink: 0;
+        }
+
+        .lh-cell {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 12px;
+            border-right: 1px solid #dde3ea;
+            height: 50px;
+            color: #37474f;
+        }
+
+        .lh-name {
+            width: 290px;
+        }
+
+        .lh-status {
+            width: 268px;
+            border-right: none;
+        }
+
+        .left-body {
+            flex: 1;
+            overflow-y: scroll;
+            overflow-x: hidden;
+            scrollbar-width: none;
+            -ms-overflow-style: none;
+        }
+
+        .left-body::-webkit-scrollbar {
+            display: none;
+        }
+
+        /* ---- Entry rows (left) ---- */
+        .entry {
+            display: flex;
+            height: 80px;
+            border-bottom: 1px solid #e8ecf0;
+            overflow: hidden;
+            transition: background 0.15s ease;
+        }
+
+        .left-body,
+        .right-body {
+            overscroll-behavior: none;
+        }
+
+        .entry:hover {
+            background: rgba(21, 101, 192, 0.03);
+        }
+
+        .entry.parent {
+            border-bottom: 2px solid #b0bec5;
+        }
+
+        .entry.parent .entry-name,
+        .entry.parent .entry-status {
+            background: linear-gradient(180deg, #e8f0fe, #dce8fc);
+        }
+
+        .entry.parent .entry-name {
+            border-left: 3px solid #1565C0;
+        }
+
+        .entry-name {
+            width: 290px;
+            min-width: 290px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            border-right: 1px solid #eee;
+            overflow: hidden;
+        }
+
+        .entry-status {
+            width: 268px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-wrap: nowrap;
+            font-size: 14px;
+            letter-spacing: 1px;
+        }
+
+        .entry.parent .name-top {
+            font-weight: 700;
+            font-size: 14px;
+            /* 現場名が途中で切れないよう折り返し可（長すぎる名前は行高内で自然に省略） */
+            white-space: normal;
+            overflow-wrap: anywhere;
+            word-break: break-word;
+            line-height: 1.25;
+        }
+
+        .entry.parent .entry-status {
+            font-size: 15px;
+            letter-spacing: 0.5px;
+        }
+
+        .entry.child .name-top {
+            font-size: 11px;
+            padding-left: 16px;
+        }
+
+        .entry.child .entry-status {
+            font-size: 9px;
+            letter-spacing: 0;
+        }
+
+        /* ---- 棟行（左パネル） ---- */
+        .entry.building {
+            height: 40px;
+            border-bottom: 1px solid #e8ecf0;
+        }
+
+        .entry.building .entry-name {
+            border-left: 3px solid #78909c;
+            background: linear-gradient(180deg, #f5f7fa, #eceff1);
+        }
+
+        .entry.building .name-top {
+            font-size: 12px;
+            font-weight: 600;
+            padding-left: 20px;
+            color: #37474f;
+        }
+
+        .entry.building .entry-status {
+            display: none;
+        }
+
+        /* ---- 工区行（左パネル） ---- */
+        .entry.zone {
+            height: 40px;
+            border-bottom: 1px solid #f0f0f0;
+        }
+
+        .entry.zone .entry-name {
+            border-left: 3px solid #b0bec5;
+        }
+
+        .entry.zone .name-top {
+            font-size: 11px;
+            padding-left: 36px;
+            color: #546e7a;
+        }
+
+        .entry.zone .entry-status {
+            display: none;
+        }
+
+        /* 棟なし現場の工区行（インデント浅め） */
+        .entry.zone.no-building .name-top {
+            padding-left: 20px;
+        }
+
+        /* ---- 棟/工区行（ガントチャート） ---- */
+        .gantt-entry.building,
+        .gantt-entry.zone {
+            height: 40px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .gantt-entry.building .gantt-bars-layer,
+        .gantt-entry.zone .gantt-bars-layer {
+            height: 40px;
+        }
+
+        .gantt-entry:not(.building):not(.zone) .gantt-bars-layer {
+            height: 80px;
+        }
+
+        /* ---- 工区バッジ ---- */
+        /* ---- アラートバッジ（左パネル現場名の横） ---- */
+        .alert-badge {
+            display: inline-block;
+            font-size: 10px;
+            font-weight: 700;
+            padding: 1px 6px;
+            border-radius: 8px;
+            margin-left: 4px;
+            line-height: 1.4;
+            vertical-align: middle;
+        }
+
+        .alert-badge.warning {
+            background: #fff3e0;
+            color: #e65100;
+            border: 1px solid #ffcc80;
+        }
+
+        .alert-badge.danger {
+            background: #ffebee;
+            color: #c62828;
+            border: 1px solid #ef9a9a;
+        }
+
+        /* ---- ガントチャート上の警告マーカー ---- */
+        .gantt-alert {
+            position: absolute;
+            font-size: 12px;
+            text-align: center;
+            cursor: pointer;
+            z-index: 10;
+        }
+
+        .zone-badge {
+            display: inline-block;
+            background: #e3f2fd;
+            color: #1565C0;
+            font-size: 10px;
+            font-weight: 600;
+            padding: 2px 8px;
+            border-radius: 10px;
+            border: 1px solid #bbdefb;
+            line-height: 1.4;
+        }
+
+        .name-top {
+            padding: 2px 6px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .name-bottom {
+            font-size: 8px;
+            color: #666;
+            padding: 0 6px 2px;
+            line-height: 1.3;
+            white-space: pre-line;
+            display: flex;
+            align-items: flex-start;
+            gap: 4px;
+        }
+
+        .name-bottom-text {
+            flex: 1;
+            overflow: hidden;
+        }
+
+        .collapse-toggle {
+            cursor: pointer;
+            display: inline-block;
+            width: 16px;
+            text-align: center;
+            color: #546e7a;
+            user-select: none;
+            transition: transform 0.2s ease;
+        }
+
+        .site-link {
+            color: #1565C0;
+            text-decoration: none;
+            font-weight: 500;
+        }
+
+        .site-link:hover {
+            text-decoration: underline;
+        }
+
+        .edit-btn {
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 16px;
+            color: #bbb;
+            padding: 2px 6px;
+            flex-shrink: 0;
+            transition: color 0.15s;
+        }
+
+        .edit-btn:hover {
+            color: #1565C0;
+        }
+
+        /* ---- Status icon hover ---- */
+        .status-icon {
+            cursor: default;
+            position: relative;
+            display: inline-block;
+            padding: 1px;
+            border-radius: 3px;
+            transition: background 0.15s;
+        }
+
+        .status-icon:hover {
+            background: rgba(0, 0, 0, 0.06);
+        }
+
+        .status-icon.status-icon--overdue {
+            background: rgba(211, 47, 47, 0.14);
+            box-shadow: 0 0 0 1px rgba(211, 47, 47, 0.5);
+            border-radius: 3px;
+        }
+
+        .status-icon.status-icon--overdue:hover {
+            background: rgba(211, 47, 47, 0.22);
+        }
+
+        .popup-status-overdue {
+            color: #c62828;
+            font-weight: 600;
+        }
+
+        /* ---- Phase Popup ---- */
+        .phase-popup {
+            position: fixed;
+            background: #fff;
+            border: 1px solid #dde3ea;
+            border-radius: 8px;
+            padding: 10px 14px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.12);
+            z-index: 300;
+            min-width: 180px;
+            max-width: 340px;
+            font-size: 13px;
+            pointer-events: none;
+            opacity: 0;
+            transform: translateY(4px);
+            transition: opacity 0.15s ease, transform 0.15s ease;
+            word-break: break-word;
+        }
+
+        .phase-popup.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .popup-title {
+            font-weight: 700;
+            font-size: 13px;
+            color: #1565C0;
+            margin-bottom: 6px;
+            padding-bottom: 4px;
+            border-bottom: 1px solid #e8ecf0;
+        }
+
+        .popup-body {
+            font-size: 12px;
+            color: #37474f;
+            line-height: 1.6;
+        }
+
+        /* ---- Right panel ---- */
+        .right-panel {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            background: #fff;
+            --gantt-label-w: 72px;
+        }
+
+        .right-header {
+            height: 50px;
+            overflow: hidden;
+            flex-shrink: 0;
+            background: linear-gradient(180deg, #f8f9fb, #eef1f5);
+            border-bottom: 1px solid #dde3ea;
+        }
+
+        .timeline-months {
+            display: flex;
+            height: 24px;
+        }
+
+        .month-block {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 11px;
+            font-weight: 700;
+            border-right: 1px solid #c5cad0;
+            border-bottom: 1px solid #dde3ea;
+            background: linear-gradient(180deg, #e8eaf6, #d5d9ef);
+            white-space: nowrap;
+            overflow: hidden;
+            flex-shrink: 0;
+            color: #37474f;
+        }
+
+        .timeline-days {
+            display: flex;
+            height: 26px;
+        }
+
+        .day-cell {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 9px;
+            color: #90a4ae;
+            border-right: 1px solid #f0f0f0;
+            flex-shrink: 0;
+        }
+
+        .day-cell.first-of-month {
+            border-left: 1px solid #aaa;
+            font-weight: 700;
+            color: #37474f;
+        }
+
+        .day-cell.weekend {
+            background: #fafbfc;
+            color: #cfd8dc;
+        }
+
+        .day-cell.today-cell {
+            background: #ff9800 !important;
+            font-weight: 700;
+            color: #fff !important;
+            border-radius: 4px;
+        }
+
+        .today-line {
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            width: 2px;
+            background: #ff9800;
+            z-index: 10;
+            pointer-events: none;
+            box-shadow: 0 0 6px rgba(255, 152, 0, 0.5);
+        }
+
+        .day-cell.saturday {
+            background: #e3f2fd;
+            color: #1976d2;
+        }
+
+        .day-cell.sunday,
+        .day-cell.holiday {
+            background: #ffebee;
+            color: #c62828;
+        }
+
+        .photo-thumb-wrap {
+            position: relative;
+            display: inline-block;
+        }
+
+        /* Lightbox */
+        .lightbox {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.9);
+            z-index: 2000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.2s;
+        }
+
+        .lightbox.visible {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .lightbox img {
+            max-width: 85%;
+            max-height: 85%;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+            transition: opacity 0.2s ease;
+        }
+
+        .lightbox-close {
+            position: absolute;
+            top: 20px;
+            right: 30px;
+            color: #fff;
+            font-size: 40px;
+            cursor: pointer;
+            z-index: 2001;
+            user-select: none;
+        }
+
+        .lightbox-close:hover {
+            text-shadow: 0 0 12px rgba(255, 255, 255, 0.5);
+        }
+
+        .lightbox-nav {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 56px;
+            height: 56px;
+            background: rgba(255, 255, 255, 0.15);
+            color: white;
+            font-size: 28px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            border-radius: 50%;
+            user-select: none;
+            transition: background 0.2s;
+            z-index: 2001;
+            pointer-events: auto;
+        }
+
+        .lightbox-nav:hover {
+            background: rgba(255, 255, 255, 0.35);
+        }
+
+        .lightbox-prev {
+            left: 24px;
+        }
+
+        .lightbox-next {
+            right: 24px;
+        }
+
+        .lightbox-nav.disabled {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .lightbox-counter {
+            position: absolute;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 14px;
+            user-select: none;
+            z-index: 2002;
+        }
+
+        .lightbox-caption {
+            position: absolute;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: #fff;
+            font-size: 16px;
+            font-weight: 700;
+            text-shadow: 0 1px 4px rgba(0, 0, 0, 0.8);
+            text-align: center;
+            width: 80%;
+            pointer-events: none;
+            user-select: none;
+            z-index: 2002;
+        }
+
+        .right-body {
+            flex: 1;
+            overflow: auto;
+        }
+
+        /* Custom scrollbar for right panel */
+        .right-body::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+
+        .right-body::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        .right-body::-webkit-scrollbar-thumb {
+            background: #c5cad0;
+            border-radius: 3px;
+        }
+
+        .right-body::-webkit-scrollbar-thumb:hover {
+            background: #90a4ae;
+        }
+
+        /* ---- Gantt ---- */
+        .gantt-container {
+            position: relative;
+            min-height: 100%;
+            --gantt-label-w: 72px;
+            padding-left: var(--gantt-label-w);
+            box-sizing: border-box;
+        }
+
+        .gantt-timeline-row {
+            display: flex;
+            min-width: min-content;
+        }
+
+        .gantt-header-label-spacer {
+            width: var(--gantt-label-w);
+            min-width: var(--gantt-label-w);
+            flex-shrink: 0;
+            position: sticky;
+            left: 0;
+            z-index: 12;
+            background: linear-gradient(180deg, #f8f9fb, #eef1f5);
+            border-right: 1px solid #dde3ea;
+        }
+
+        .gantt-row-labels {
+            position: sticky;
+            left: 0;
+            z-index: 8;
+            display: flex;
+            flex-direction: column;
+            font-size: 8px;
+            line-height: 1.15;
+            color: #546e7a;
+            background: rgba(255, 255, 255, 0.97);
+            border-right: 1px solid #e8ecf0;
+            box-sizing: border-box;
+        }
+
+        .gantt-entry:not(.building):not(.zone) .gantt-row-labels {
+            height: 80px;
+        }
+
+        .gantt-entry.building .gantt-row-labels,
+        .gantt-entry.zone .gantt-row-labels {
+            height: 40px;
+        }
+
+        .gantt-row-label {
+            display: flex;
+            align-items: flex-start;
+            padding: 2px 4px;
+            overflow: hidden;
+            white-space: normal;
+            word-break: keep-all;
+            box-sizing: border-box;
+        }
+
+        /* 80px行: 予定(y=2) / 組立実績(y=26) / 解体実績(y=50) に帯対応 */
+        .gantt-row-labels--site .gantt-row-label:nth-child(1) {
+            height: 26px;
+        }
+
+        .gantt-row-labels--site .gantt-row-label:nth-child(2) {
+            height: 26px;
+        }
+
+        .gantt-row-labels--site .gantt-row-label:nth-child(3) {
+            height: 28px;
+        }
+
+        /* 40px行: 組立(y=2) / 解体(y=22) に帯対応 */
+        .gantt-row-labels--detail .gantt-row-label:nth-child(1) {
+            height: 20px;
+        }
+
+        .gantt-row-labels--detail .gantt-row-label:nth-child(2) {
+            height: 20px;
+        }
+
+        .gantt-bars-layer {
+            position: relative;
+            flex-shrink: 0;
+            min-width: 0;
+        }
+
+        .gantt-entry {
+            display: grid;
+            grid-template-columns: var(--gantt-label-w) minmax(0, 1fr);
+            width: calc(100% + var(--gantt-label-w));
+            margin-left: calc(-1 * var(--gantt-label-w));
+            height: 80px;
+            border-bottom: 1px solid #eee;
+            position: relative;
+            background: rgba(255, 255, 255, 0.5);
+            z-index: 1;
+            overflow: visible;
+        }
+
+        .gantt-entry .gantt-row-labels {
+            background: rgba(255, 255, 255, 0.97);
+        }
+
+        .gantt-entry:hover {
+            background-color: rgba(245, 245, 245, 0.8);
+        }
+
+        .gantt-entry:hover .gantt-row-labels {
+            background: rgba(245, 245, 245, 0.97);
+        }
+
+        /* Background Layer（timeline x=0 = padding-left 直後） */
+        .gantt-bg {
+            position: absolute;
+            top: 0;
+            left: 0;
+            bottom: 0;
+            z-index: 0;
+            pointer-events: none;
+        }
+
+        .gantt-bg-col {
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            /* Width set by JS */
+        }
+
+        .bg-holiday {
+            background-color: rgba(255, 235, 238, 0.6);
+            /* Red tint */
+            border-left: 1px solid rgba(255, 205, 210, 0.3);
+            border-right: 1px solid rgba(255, 205, 210, 0.3);
+        }
+
+        .bg-sat {
+            background-color: rgba(227, 242, 253, 0.6);
+            /* Blue tint */
+            border-left: 1px solid rgba(187, 222, 251, 0.3);
+            border-right: 1px solid rgba(187, 222, 251, 0.3);
+        }
+
+        .gantt-entry.parent {
+            background: rgba(250, 250, 250, 0.8);
+            border-bottom: 2px solid #ddd;
+        }
+
+        .gantt-entry.parent:hover {
+            background: linear-gradient(180deg, #dce8fc, #d0e0fa);
+        }
+
+        .gantt-entry.parent .gantt-row-labels {
+            background: rgba(250, 250, 250, 0.97);
+        }
+
+        .gantt-entry.parent:hover .gantt-row-labels {
+            background: linear-gradient(180deg, #dce8fc, #d0e0fa);
+        }
+
+        .gantt-bar {
+            position: absolute;
+            border-radius: 3px;
+            opacity: 0.85;
+            z-index: 2;
+        }
+
+        .gantt-marker {
+            position: absolute;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 10px;
+            font-weight: bold;
+            height: 22px;
+            z-index: 3;
+            pointer-events: none;
+            text-shadow:
+                -1px -1px 0 #fff, 1px -1px 0 #fff,
+                -1px 1px 0 #fff, 1px 1px 0 #fff,
+                0 -1px 0 #fff, 0 1px 0 #fff,
+                -1px 0 0 #fff, 1px 0 0 #fff;
+        }
+
+        .gantt-gradient {
+            position: absolute;
+            z-index: 1;
+            cursor: default;
+            pointer-events: auto;
+        }
+
+        .today-line {
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            width: 2px;
+            background: #f44336;
+            z-index: 10;
+            pointer-events: none;
+        }
+
+        /* ---- Modals ---- */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.45);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 100;
+            opacity: 0;
+            animation: fadeIn 0.2s ease forwards;
+        }
+
+        @keyframes fadeIn {
+            to {
+                opacity: 1;
+            }
+        }
+
+        .modal-content {
+            background: #fff;
+            border-radius: 12px;
+            padding: 24px;
+            max-width: 500px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+            transform: scale(0.95);
+            animation: modalIn 0.25s ease forwards;
+        }
+
+        @keyframes modalIn {
+            to {
+                transform: scale(1);
+            }
+        }
+
+        .modal-title {
+            font-size: 18px;
+            font-weight: 700;
+            color: #1565C0;
+            margin-bottom: 16px;
+            border-bottom: 2px solid #e3f2fd;
+            padding-bottom: 8px;
+        }
+
+        .form-group {
+            margin-bottom: 12px;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 12px;
+            font-weight: 700;
+            color: #546e7a;
+            margin-bottom: 4px;
+        }
+
+        .form-group input,
+        .form-group select {
+            width: 100%;
+            padding: 8px 10px;
+            border: 1px solid #dde3ea;
+            border-radius: 6px;
+            font-size: 14px;
+            font-family: inherit;
+            transition: border-color 0.15s;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: #1565C0;
+            box-shadow: 0 0 0 2px rgba(21, 101, 192, 0.12);
+        }
+
+        .modal-buttons {
+            display: flex;
+            gap: 8px;
+            margin-top: 16px;
+        }
+
+        .modal-buttons button {
+            flex: 1;
+            padding: 10px;
+            border: none;
+            border-radius: 6px;
+            font-weight: 700;
+            cursor: pointer;
+            font-size: 14px;
+            font-family: inherit;
+            transition: all 0.15s ease;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #1976D2, #1565C0);
+            color: #fff;
+            box-shadow: 0 2px 6px rgba(21, 101, 192, 0.3);
+        }
+
+        .btn-primary:hover {
+            background: linear-gradient(135deg, #1565C0, #0d47a1);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 10px rgba(21, 101, 192, 0.35);
+        }
+
+        .btn-primary:active {
+            transform: translateY(0);
+        }
+
+        .btn-primary:disabled {
+            background: #90CAF9;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .btn-secondary {
+            background: #f5f7fa;
+            color: #546e7a;
+            border: 1px solid #dde3ea;
+        }
+
+        .btn-secondary:hover {
+            background: #eef1f5;
+        }
+
+        .info-box {
+            font-size: 14px;
+            background: #e3f2fd;
+            padding: 10px 14px;
+            border-radius: 6px;
+            margin-bottom: 16px;
+            border-left: 3px solid #1565C0;
+        }
+
+        /* ---- Toast ---- */
+        .toast {
+            position: fixed;
+            bottom: 24px;
+            left: 50%;
+            transform: translateX(-50%) translateY(20px);
+            background: linear-gradient(135deg, #333, #424242);
+            color: #fff;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            z-index: 200;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+            opacity: 0;
+            transition: opacity 0.3s ease, transform 0.3s ease;
+        }
+
+        .toast.show {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0);
+        }
+
+        /* ---- Loading ---- */
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(255, 255, 255, 0.8);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 150;
+            gap: 16px;
+            backdrop-filter: blur(2px);
+        }
+
+        .spinner {
+            width: 36px;
+            height: 36px;
+            border: 3px solid #e3f2fd;
+            border-top-color: #1565C0;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        .loading-text {
+            font-size: 14px;
+            color: #1565C0;
+            font-weight: 500;
+        }
+
+        /* ---- Detail Page ---- */
+        .detail-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: #f5f7fa;
+            z-index: 50;
+            display: none;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .detail-overlay.active {
+            display: flex;
+        }
+
+        .detail-header {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            padding: 14px 24px;
+            background: linear-gradient(135deg, #1565C0, #0d47a1);
+            color: #fff;
+            flex-shrink: 0;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+        }
+
+        .detail-back {
+            background: rgba(255, 255, 255, 0.15);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            color: #fff;
+            padding: 6px 14px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            font-family: inherit;
+            transition: background 0.15s;
+        }
+
+        .detail-back:hover {
+            background: rgba(255, 255, 255, 0.25);
+        }
+
+        .detail-site-name {
+            font-size: 18px;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+        }
+
+        .detail-body {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px 24px;
+        }
+
+        .detail-body::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .detail-body::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        .detail-body::-webkit-scrollbar-thumb {
+            background: #c5cad0;
+            border-radius: 3px;
+        }
+
+        .detail-empty {
+            text-align: center;
+            padding: 60px;
+            color: #90a4ae;
+            font-size: 16px;
+        }
+
+        /* ---- Phase Detail Modal ---- */
+        .phase-detail-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: #f5f7fa;
+            z-index: 55;
+            display: none;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .phase-detail-overlay.active {
+            display: flex;
+        }
+
+        /* ---- Schedule Viewer (工程表ビューア) ---- */
+        .schedule-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: #f5f7fa;
+            z-index: 56;
+            display: none;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .schedule-overlay.active {
+            display: flex;
+        }
+
+        .schedule-body {
+            flex: 1;
+            overflow: hidden;
+        }
+
+        .schedule-body iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+        }
+
+        .phase-report-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+        }
+
+        .phase-report-table tr {
+            border-bottom: 1px solid #eef1f5;
+        }
+
+        .phase-report-table tr:last-child {
+            border-bottom: none;
+        }
+
+        .phase-report-table th {
+            text-align: left;
+            padding: 8px 12px;
+            background: #f8f9fb;
+            color: #546e7a;
+            font-weight: 600;
+            font-size: 12px;
+            white-space: nowrap;
+            width: 160px;
+            vertical-align: top;
+        }
+
+        .phase-report-table td {
+            padding: 8px 12px;
+            color: #37474f;
+            word-break: break-word;
+        }
+
+        .status-icon {
+            cursor: pointer;
+        }
+
+        .report-card {
+            background: #fff;
+            border-radius: 10px;
+            margin-bottom: 16px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+            overflow: hidden;
+            transition: box-shadow 0.15s;
+        }
+
+        .report-card:hover {
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+        }
+
+        .report-card-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 18px;
+            background: linear-gradient(180deg, #f8f9fb, #eef1f5);
+            border-bottom: 1px solid #e8ecf0;
+        }
+
+        .report-date {
+            font-size: 15px;
+            font-weight: 700;
+            color: #1565C0;
+        }
+
+        .report-meta {
+            font-size: 12px;
+            color: #78909c;
+        }
+
+        .report-card-body {
+            padding: 16px 18px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .progress-row {
+            display: flex;
+            gap: 24px;
+        }
+
+        .progress-item {
+            flex: 1;
+        }
+
+        .progress-label {
+            font-size: 11px;
+            font-weight: 700;
+            color: #546e7a;
+            margin-bottom: 4px;
+        }
+
+        .progress-bar-bg {
+            height: 20px;
+            background: #eceff1;
+            border-radius: 10px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .progress-bar-fill {
+            height: 100%;
+            border-radius: 10px;
+            transition: width 0.4s ease;
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            padding-right: 8px;
+            font-size: 11px;
+            font-weight: 700;
+            color: #fff;
+            min-width: 30px;
+        }
+
+        .progress-bar-fill.assembly {
+            background: linear-gradient(90deg, #42A5F5, #1565C0);
+        }
+
+        .progress-bar-fill.dismantle {
+            background: linear-gradient(90deg, #66BB6A, #2E7D32);
+        }
+
+        .report-work {
+            font-size: 13px;
+            color: #37474f;
+            line-height: 1.6;
+        }
+
+        .report-work-type {
+            display: inline-block;
+            background: #e3f2fd;
+            color: #1565C0;
+            padding: 2px 10px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 700;
+            margin-right: 8px;
+        }
+
+        .report-issue {
+            background: #fff3e0;
+            border-left: 3px solid #ef6c00;
+            padding: 10px 14px;
+            border-radius: 0 6px 6px 0;
+            font-size: 13px;
+            color: #e65100;
+        }
+
+        .report-issue-title {
+            font-weight: 700;
+            margin-bottom: 4px;
+        }
+
+        .report-photos {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .photo-thumb {
+            width: 120px;
+            height: 90px;
+            border-radius: 6px;
+            object-fit: cover;
+            background: #eceff1;
+            cursor: pointer;
+            transition: transform 0.15s, box-shadow 0.15s;
+        }
+
+        .photo-thumb:hover {
+            transform: scale(1.05);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+
+        .photo-label {
+            font-size: 9px;
+            color: #78909c;
+            text-align: center;
+            margin-top: 2px;
+        }
+
+        /* Custom Sort Select */
+        .custom-select-wrapper {
+            position: relative;
+            user-select: none;
+            width: 240px;
+            margin-right: 12px;
+        }
+
+        .custom-select {
+            position: relative;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .custom-select-trigger {
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 7px 12px;
+            font-size: 13px;
+            font-weight: 500;
+            color: white;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.4);
+            border-radius: 6px;
+            cursor: pointer;
+            backdrop-filter: blur(4px);
+            transition: all 0.2s ease;
+        }
+
+        .custom-select-trigger:hover {
+            background: rgba(255, 255, 255, 0.25);
+        }
+
+        .custom-options {
+            position: absolute;
+            display: block;
+            top: 100%;
+            left: 0;
+            right: 0;
+            border: 1px solid #dde3ea;
+            border-radius: 6px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+            background: #fff;
+            transition: all 0.2s ease;
+            opacity: 0;
+            visibility: hidden;
+            pointer-events: none;
+            transform: translateY(10px);
+            z-index: 100;
+            margin-top: 8px;
+            overflow: hidden;
+        }
+
+        .custom-select.open .custom-options {
+            opacity: 1;
+            visibility: visible;
+            pointer-events: all;
+            transform: translateY(0);
+        }
+
+        .custom-option {
+            position: relative;
+            display: block;
+            padding: 10px 14px;
+            font-size: 13px;
+            font-weight: 500;
+            color: #37474f;
+            cursor: pointer;
+            transition: all 0.2s;
+            border-bottom: 1px solid #f5f7fa;
+        }
+
+        .custom-option:last-child {
+            border-bottom: none;
+        }
+
+        .custom-option:hover {
+            background-color: #e3f2fd;
+            /* Light blue hover */
+            color: #1565C0;
+            padding-left: 18px;
+            /* Indent effect */
+        }
+
+        .custom-option.selected {
+            background-color: #f5f7fa;
+            color: #1565C0;
+            font-weight: 700;
+        }
+
+        .c-arrow {
+            width: 0;
+            height: 0;
+            border-left: 5px solid transparent;
+            border-right: 5px solid transparent;
+            border-top: 5px solid rgba(255, 255, 255, 0.8);
+            transition: transform 0.2s;
+        }
+
+        .custom-select.open .c-arrow {
+            transform: rotate(180deg);
+        }
+
+        .sort-select:hover {
+            background-color: rgba(255, 255, 255, 0.25);
+            transform: translateY(-1px);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+        }
+
+        .sort-select:focus {
+            border-color: rgba(255, 255, 255, 0.7);
+            box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.2);
+        }
+
+        .sort-select option {
+            background: #1565C0;
+            color: white;
+        }
+
+        /* ---- Search Box ---- */
+        .search-box-wrapper {
+            position: relative;
+            display: flex;
+            align-items: center;
+        }
+
+        .search-input {
+            padding: 6px 28px 6px 10px;
+            border: 1px solid rgba(255, 255, 255, 0.4);
+            border-radius: 6px;
+            background: rgba(255, 255, 255, 0.12);
+            color: white;
+            font-size: 13px;
+            width: 200px;
+            outline: none;
+            transition: all 0.2s ease;
+            font-family: inherit;
+        }
+
+        .search-input::placeholder {
+            color: rgba(255, 255, 255, 0.6);
+        }
+
+        .search-input:focus {
+            background: rgba(255, 255, 255, 0.22);
+            border-color: rgba(255, 255, 255, 0.7);
+            width: 240px;
+        }
+
+        .search-clear {
+            position: absolute;
+            right: 6px;
+            background: none;
+            border: none;
+            color: rgba(255, 255, 255, 0.7);
+            cursor: pointer;
+            font-size: 12px;
+            padding: 2px;
+            line-height: 1;
+        }
+
+        .search-clear:hover {
+            color: white;
+        }
+
+        .search-count {
+            font-size: 11px;
+            color: rgba(255, 255, 255, 0.85);
+            white-space: nowrap;
+            background: rgba(255, 255, 255, 0.15);
+            padding: 4px 8px;
+            border-radius: 4px;
+        }
+
+        /* ---- Mascot Avatar (トビ丸) ---- */
+        .toolbar-mascot {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            overflow: hidden;
+            background: linear-gradient(135deg, #FFD7B5, #FAD02C);
+            box-shadow: 0 2px 8px rgba(255, 107, 53, 0.35);
+            flex-shrink: 0;
+            margin-right: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            animation: mascot-breathe 3s ease-in-out infinite;
+        }
+
+        .toolbar-mascot svg {
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+
+        @keyframes mascot-breathe {
+
+            0%,
+            100% {
+                transform: scale(1) translateY(0);
+            }
+
+            50% {
+                transform: scale(1.06) translateY(-1px);
+            }
+        }
+
+        .toolbar-mascot:hover {
+            animation: none;
+            transform: scale(1.15);
+            transition: transform 0.2s ease;
+        }
+
+        /* ---- Mascot Speech Bubble ---- */
+        .mascot-bubble {
+            position: absolute;
+            top: 52px;
+            left: 16px;
+            background: #fff;
+            color: #37474f;
+            font-size: 13px;
+            font-weight: 600;
+            padding: 8px 14px;
+            border-radius: 10px;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+            white-space: nowrap;
+            pointer-events: none;
+            opacity: 0;
+            transform: translateY(6px) scale(0.9);
+            transition: opacity 0.2s ease, transform 0.2s ease;
+            z-index: 100;
+        }
+
+        .mascot-bubble::before {
+            content: '';
+            position: absolute;
+            top: -7px;
+            left: 18px;
+            width: 0;
+            height: 0;
+            border-left: 7px solid transparent;
+            border-right: 7px solid transparent;
+            border-bottom: 7px solid #fff;
+        }
+
+        .mascot-bubble.visible {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+        }
+
+        /* =====================================================
+           印刷 / PDF 出力用レイアウト
+           - 画面表示ロジック・ガント計算は変更しない
+           - body.printing クラス + @media print で見た目だけ切替
+           - 用紙サイズは printPageStyle に PrintManager が動的に注入
+           ===================================================== */
+        @media print {
+
+            /* 既定の用紙（PrintManager がガント幅に合わせて上書き） */
+            @page {
+                size: A4 landscape;
+                margin: 8mm;
+            }
+
+            html,
+            body {
+                height: auto !important;
+                overflow: visible !important;
+                background: #fff !important;
+            }
+
+            /* 操作系（ボタン・検索・並び替え）は印刷しない。凡例は残す */
+            .toolbar-actions,
+            .toolbar-btn,
+            .toolbar-mascot,
+            .mascot-bubble,
+            .status-filter,
+            .bulk-complete-btn,
+            .search-box-wrapper,
+            .search-count,
+            .custom-select-wrapper,
+            .site-select-chk,
+            .complete-btn,
+            .edit-btn,
+            .collapse-toggle,
+            .loading-overlay,
+            .toast,
+            .modal-overlay,
+            .schedule-overlay {
+                display: none !important;
+            }
+
+            /* ツールバー右側は凡例だけを残して折り返し表示 */
+            .toolbar-right {
+                flex-wrap: wrap !important;
+                gap: 6px 14px !important;
+            }
+
+            .legend,
+            .alert-legend {
+                color: #000 !important;
+            }
+
+            /* ツールバーはタイトルだけ残してヘッダー化 */
+            .toolbar {
+                height: auto !important;
+                background: #fff !important;
+                color: #000 !important;
+                box-shadow: none !important;
+                border-bottom: 2px solid #333;
+                padding: 4px 0 6px !important;
+                display: block !important;
+            }
+
+            .toolbar-title {
+                color: #000 !important;
+                font-size: 14px !important;
+            }
+
+            /* 本体を縦横とも自然サイズで展開（スクロール内も全件出す） */
+            .main {
+                display: flex !important;
+                height: auto !important;
+                overflow: visible !important;
+                align-items: flex-start !important;
+            }
+
+            .left-panel {
+                width: 558px !important;
+                min-width: 558px !important;
+            }
+
+            .left-body,
+            .right-body,
+            .right-panel,
+            .right-header {
+                overflow: visible !important;
+                height: auto !important;
+                flex: none !important;
+            }
+
+            .left-body::-webkit-scrollbar,
+            .right-body::-webkit-scrollbar {
+                display: none !important;
+            }
+
+            /* ヘッダー（タイムライン）とガントの先頭を揃える */
+            .right-header {
+                position: static !important;
+            }
+
+            .gantt-container {
+                min-height: 0 !important;
+            }
+
+            /* 行が改ページで途中分割されないように */
+            .entry,
+            .gantt-entry {
+                break-inside: avoid;
+                page-break-inside: avoid;
+            }
+
+            .gantt-row-labels,
+            .gantt-header-label-spacer {
+                position: static !important;
+            }
+
+            /* 色背景・グラデーションを忠実に出す */
+            * {
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+            }
+        }
+    </style>
+
+</head>
+
+<body>
+    <!-- 印刷時の用紙サイズを内容に合わせて動的に設定する（PrintManagerが書き換える） -->
+    <style id="printPageStyle"></style>
+    <div class="toolbar">
+        <div class="toolbar-left">
+        <div class="toolbar-title">
+            <div class="toolbar-mascot" id="tobiMascot"><svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M62,72 L40,22 L80,58 Z" fill="#E8C49A" />
+                    <path d="M62,66 L48,30 L76,56 Z" fill="#D4956B" />
+                    <path d="M138,72 L160,22 L120,58 Z" fill="#E8C49A" />
+                    <path d="M138,66 L152,30 L124,56 Z" fill="#D4956B" />
+                    <ellipse cx="100" cy="100" rx="56" ry="50" fill="#F5D6B1" />
+                    <ellipse cx="100" cy="112" rx="34" ry="24" fill="#FFF5E6" />
+                    <path d="M46,68 Q46,28 100,24 Q154,28 154,68 Q154,72 100,70 Q46,72 46,68" fill="#FFD54F" />
+                    <path d="M42,70 Q42,64 100,62 Q158,64 158,70 Q158,76 100,74 Q42,76 42,70" fill="#FFA000" />
+                    <path d="M56,48 Q100,36 144,48" fill="none" stroke="#FF8F00" stroke-width="2.5" />
+                    <circle cx="100" cy="36" r="6" fill="#FF6B35" />
+                    <circle cx="100" cy="36" r="3.5" fill="#FFAB91" />
+                    <ellipse cx="100" cy="108" rx="5.5" ry="4.5" fill="#4A3728" />
+                    <ellipse cx="101" cy="107" rx="2" ry="1.5" fill="#6D4C41" opacity="0.5" />
+                    <path d="M68,145 Q100,152 132,145 L138,188 Q100,198 62,188 Z" fill="#FF6B35" />
+                    <path d="M70,156 Q100,162 130,156" fill="none" stroke="#FFD700" stroke-width="3.5" />
+                    <path d="M66,168 Q100,174 134,168" fill="none" stroke="#FFD700" stroke-width="3.5" />
+                    <line x1="100" y1="145" x2="100" y2="192" stroke="#FFD700" stroke-width="2.5" />
+                    <circle cx="78" cy="92" r="7" fill="#2C3E50" />
+                    <circle cx="80" cy="90" r="2.5" fill="#FFF" />
+                    <circle cx="122" cy="92" r="7" fill="#2C3E50" />
+                    <circle cx="124" cy="90" r="2.5" fill="#FFF" />
+                    <path d="M88,122 Q100,132 112,122" fill="none" stroke="#4A3728" stroke-width="2.5"
+                        stroke-linecap="round" />
+                    <circle cx="63" cy="106" r="9" fill="#FFCDD2" opacity="0.35" />
+                    <circle cx="137" cy="106" r="9" fill="#FFCDD2" opacity="0.35" />
+                </svg></div>ダッシュボード
+        </div>
+        <div class="toolbar-actions">
+            <button class="toolbar-btn" onclick="App.refresh()">&#8635; 再描画</button>
+            <button class="toolbar-btn" id="printBtn" onclick="PrintManager.open()"
+                title="現場一覧＋ガントを印刷／PDF出力します。期間を指定すれば、その範囲のガントだけを出力できます（横長・複数ページ可）">&#128424;
+                印刷 / PDF</button>
+            <button class="toolbar-btn toolbar-btn-accent" id="correctionStatsBtn"
+                onclick="App.openCorrectionStats()" title="是正報告システムの集計画面を開きます">是正集計</button>
+        </div>
+        </div>
+        <div class="mascot-bubble" id="mascotBubble"></div>
+        <div class="toolbar-right">
+            <div class="legend"><span class="legend-item"><span class="legend-sw"
+                        style="background:#a4c2f4"></span>組立予定</span><span class="legend-item"><span class="legend-sw"
+                        style="background:#93c47d"></span>解体予定</span><span class="legend-item"><span class="legend-sw"
+                        style="background:#1976D2"></span>組立実績</span><span class="legend-item"><span class="legend-sw"
+                        style="background:#388E3C"></span>解体実績</span><span class="legend-item"><span class="legend-sw"
+                        style="background:linear-gradient(to right, #FFCDD2, #B71C1C)"></span>進捗率</span><span
+                    class="legend-item"><span class="legend-sw" style="background:#f44336"></span>今日</span><span
+                    class="alert-legend"><span class="alert-legend-item"><span class="alert-dot warning"></span>期日3日前〜前日</span><span
+                        class="alert-legend-item"><span class="alert-dot danger"></span>期日当日以降</span></span></div>
+            <div class="status-filter" id="statusFilter">
+                <button data-status="all" onclick="App.setStatusFilter('all')">全て</button>
+                <button data-status="active" class="active" onclick="App.setStatusFilter('active')">施工中</button>
+                <button data-status="completed" onclick="App.setStatusFilter('completed')">完工</button>
+            </div>
+            <button class="bulk-complete-btn" id="bulkCompleteBtn" disabled
+                onclick="App.bulkComplete()">選択を完工</button>
+            <div class="search-box-wrapper">
+                <input type="text" id="searchInput" class="search-input" placeholder="🔍 現場名で検索..."
+                    oninput="App.search(this.value)">
+                <button class="search-clear" id="searchClear"
+                    onclick="document.getElementById('searchInput').value='';App.search('');"
+                    style="display:none">&#10005;</button>
+            </div>
+            <div class="search-count" id="searchCount" style="display:none"></div>
+            <div class="custom-select-wrapper" id="sortSelectWrapper">
+                <div class="custom-select">
+                    <div class="custom-select-trigger">
+                        <span id="sortSelectText">並び替え: 標準</span>
+                        <div class="c-arrow"></div>
+                    </div>
+                    <div class="custom-options">
+                        <div class="custom-option selected" data-value="default">並び替え: 標準</div>
+                        <div class="custom-option" data-value="updateDesc">就業前報告順</div>
+                        <div class="custom-option" data-value="safetyDesc">報告状況順 (安全・現場調査など)</div>
+                        <div class="custom-option" data-value="nameAsc">五十音順</div>
+                    </div>
+                </div>
+            </div><input type="hidden" id="sortSelectValue" class="sort-select" value="default">
+        </div>
+    </div>
+    <div class="main">
+        <div class="left-panel">
+            <div class="left-header">
+                <div class="lh-cell lh-name">現場情報</div>
+                <div class="lh-cell lh-status">報告状況</div>
+            </div>
+            <div class="left-body" id="leftBody"></div>
+        </div>
+        <div class="right-panel">
+            <div class="right-header" id="rightHeader">
+                <div class="gantt-timeline-row" id="ganttTimelineRow">
+                    <div class="gantt-header-label-spacer" aria-hidden="true"></div>
+                    <div id="timelineContent">
+                        <div id="timelineMonths" class="timeline-months"></div>
+                        <div id="timelineDays" class="timeline-days"></div>
+                    </div>
+                </div>
+            </div>
+            <div class="right-body" id="rightBody">
+                <div id="ganttContainer" class="gantt-container"></div>
+            </div>
+        </div>
+    </div>
+    <!-- 印刷設定モーダル（印刷範囲の指定） -->
+    <div class="modal-overlay" id="printModal" style="display:none"
+        onclick="if(event.target===this)PrintManager.hide()">
+        <div class="modal-content">
+            <div class="modal-title">印刷 / PDF 出力</div>
+            <div class="info-box" id="printInfo" style="font-size:12px;line-height:1.6">
+                現在表示中の現場一覧とガントチャートを印刷します。<br>
+                「期間を指定」を選ぶと、その期間を <b>A3横にきっちり収めて</b> 出力します（行数が多い場合は縦に複数ページ）。<br>
+                印刷ダイアログでは用紙「A3」・向き「横」を選んでください。<br>
+                「全期間」はガントが非常に横長になるため、A3には収まりません。
+            </div>
+            <div class="form-group">
+                <label>印刷範囲</label>
+                <div style="display:flex;gap:16px;align-items:center;margin-top:4px">
+                    <label style="display:flex;align-items:center;gap:6px;font-weight:400;cursor:pointer">
+                        <input type="radio" name="printRange" value="all" checked
+                            onchange="PrintManager.onRangeModeChange()"> 全期間
+                    </label>
+                    <label style="display:flex;align-items:center;gap:6px;font-weight:400;cursor:pointer">
+                        <input type="radio" name="printRange" value="custom"
+                            onchange="PrintManager.onRangeModeChange()"> 期間を指定
+                    </label>
+                </div>
+            </div>
+            <div id="printRangeFields" style="display:none">
+                <div class="form-group"><label>開始日</label><input type="date" id="printFrom"></div>
+                <div class="form-group"><label>終了日</label><input type="date" id="printTo"></div>
+                <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px">
+                    <button class="btn-secondary" style="padding:4px 10px;font-size:12px"
+                        onclick="PrintManager.setQuickRange('view')">表示中の範囲</button>
+                    <button class="btn-secondary" style="padding:4px 10px;font-size:12px"
+                        onclick="PrintManager.setQuickRange('thisMonth')">今月</button>
+                    <button class="btn-secondary" style="padding:4px 10px;font-size:12px"
+                        onclick="PrintManager.setQuickRange('2months')">今月＋翌月</button>
+                </div>
+            </div>
+            <div class="modal-buttons">
+                <button class="btn-secondary" onclick="PrintManager.hide()">キャンセル</button>
+                <button class="btn-primary" onclick="PrintManager.run()">印刷する</button>
+            </div>
+        </div>
+    </div>
+    < !-- Schedule Modal -->
+        <div class="modal-overlay" id="scheduleModal" style="display:none"
+            onclick="if(event.target===this)ScheduleModal.hide()">
+            <div class="modal-content">
+                <div class="modal-title">予定日（閲覧専用）</div>
+                <div class="info-box" id="smInfo"></div>
+                <div class="form-group"><label>組立開始予定日</label><input type="date" id="smAS"></div>
+                <div class="form-group"><label>組立終了予定日</label><input type="date" id="smAE"></div>
+                <div class="form-group"><label>解体開始予定日</label><input type="date" id="smDS"></div>
+                <div class="form-group"><label>解体終了予定日</label><input type="date" id="smDE"></div>
+                <div class="modal-buttons"><button class="btn-secondary"
+                        onclick="ScheduleModal.hide()">閉じる</button><button class="btn-primary" id="smSubmit"
+                        onclick="ScheduleModal.submit()">閲覧専用</button></div>
+            </div>
+        </div>
+    < !-- Schedule Modal -->
+        <div class="modal-overlay" id="scheduleModal" style="display:none"
+            onclick="if(event.target===this)ScheduleModal.hide()">
+            <div class="modal-content">
+                <div class="modal-title">予定日の手動修正</div>
+                <div class="info-box" id="smInfo"></div>
+                <div class="form-group"><label>組立開始予定日</label><input type="date" id="smAS"></div>
+                <div class="form-group"><label>組立終了予定日</label><input type="date" id="smAE"></div>
+                <div class="form-group"><label>解体開始予定日</label><input type="date" id="smDS"></div>
+                <div class="form-group"><label>解体終了予定日</label><input type="date" id="smDE"></div>
+                <div class="modal-buttons"><button class="btn-secondary"
+                        onclick="ScheduleModal.hide()">キャンセル</button><button class="btn-primary" id="smSubmit"
+                        onclick="ScheduleModal.submit()">保存する</button></div>
+            </div>
+        </div>
+        < !-- Detail Page -->
+            <div class="detail-overlay" id="detailOverlay">
+                <div class="detail-header"><button class="detail-back" onclick="DetailPage.hide()">←
+                        戻る</button><span class="detail-site-name" id="detailSiteName"></span></div>
+                <div class="detail-body" id="detailBody"></div>
+            </div>
+            <!-- Phase Detail Modal -->
+            <div class="phase-detail-overlay" id="phaseDetailOverlay">
+                <div class="detail-header">
+                    <button class="detail-back" onclick="PhaseDetailModal.hide()">← 戻る</button>
+                    <span class="detail-site-name" id="phaseDetailTitle"></span>
+                </div>
+                <div class="detail-body" id="phaseDetailBody"></div>
+            </div>
+            <!-- Schedule Viewer (工程表ビューア) -->
+            <div class="schedule-overlay" id="scheduleOverlay">
+                <div class="detail-header">
+                    <button class="detail-back" onclick="ScheduleViewer.hide()">← 戻る</button>
+                    <span class="detail-site-name" id="scheduleSiteName"></span>
+                </div>
+                <div class="schedule-body" id="scheduleBody"></div>
+            </div>
+            <div class="loading-overlay" id="loadingOverlay" style="display:none">
+                <div class="spinner"></div>
+                <div class="loading-text">読み込み中...</div>
+            </div>
+            <div class="toast" id="toast"></div>
+            <!-- Phase Popup -->
+                <div class="phase-popup" id="phasePopup">
+                    <div class="popup-title" id="popupTitle"></div>
+                    <div class="popup-body" id="popupBody"></div>
+                </div>
+                <script>var BOOTSTRAP = <?!= JSON.stringify(bootstrap) ?>;
+
+                    (function () {
+                        'use strict';
+
+                        var DATA, CFG, TIMELINE, TIMELINE_START;
+                        var DAY_WIDTH = 30;
+                        var GANTT_LABEL_WIDTH = 72;
+                        var DAY_MS = 86400000;
+                        var TOTAL_WIDTH;
+                        var GANTT_SCROLL_WIDTH;
+                        var ALERTS = {};
+                        var currentSearchQuery = '';
+
+                        // ---- 完工仕分け（ブラウザのlocalStorageに保存。DB/サーバーには保存しない） ----
+                        var COMPLETED_STORAGE_KEY = 'dashboard_completed_sites_v1';
+                        function loadCompletedSites() {
+                            try {
+                                var raw = window.localStorage.getItem(COMPLETED_STORAGE_KEY);
+                                if (!raw) return {};
+                                var obj = JSON.parse(raw);
+                                return (obj && typeof obj === 'object') ? obj : {};
+                            } catch (e) { return {}; }
+                        }
+                        function saveCompletedSites() {
+                            try {
+                                window.localStorage.setItem(COMPLETED_STORAGE_KEY, JSON.stringify(completedSites));
+                            } catch (e) { /* localStorage不可（プライベートモード等）は無視 */ }
+                        }
+                        var completedSites = loadCompletedSites(); // key: site.name -> true
+                        var currentStatusFilter = 'active'; // 'all' | 'active' | 'completed'
+                        var selectedSites = {};       // key: site.name -> true（チェックボックス選択）
+
+                        // 祝日データ（フロントエンド保証用）
+                        var JP_HOLIDAYS = [ // 2026
+                            '2026-01-01', '2026-01-12', '2026-02-11', '2026-02-23', '2026-03-20',
+                            '2026-04-29', '2026-05-03', '2026-05-04', '2026-05-05', '2026-05-06',
+                            '2026-07-20', '2026-08-11', '2026-09-21', '2026-09-22', '2026-09-23',
+                            '2026-10-12', '2026-11-03', '2026-11-23',
+                            // 2027
+                            '2027-01-01', '2027-01-11', '2027-02-11', '2027-02-23', '2027-03-20',
+                            '2027-04-29', '2027-05-03', '2027-05-04', '2027-05-05',
+                            '2027-07-19', '2027-08-11', '2027-09-20', '2027-09-23',
+                            '2027-10-11', '2027-11-03', '2027-11-23'
+                        ];
+
+                        var collapsedSites = {}
+
+                            ;
+                        var siteDetailCache = {}; // Cache for progress details
+                        var currentEdit = null;
+
+                        var leftBody, rightBody, rightHeader, ganttContainer, timelineContent, timelineMonths, timelineDays;
+
+                        function loadData(d) {
+                            DATA = d; CFG = d.config; TIMELINE = d.timeline;
+                            TIMELINE_START = new Date(TIMELINE.startDate + 'T00:00:00');
+                            TOTAL_WIDTH = TIMELINE.days * DAY_WIDTH;
+
+                            // 印刷機能用にタイムライン基準情報を公開（計算ロジックは不変・参照のみ）
+                            window.GanttPrintMeta = {
+                                startDate: TIMELINE.startDate,
+                                days: TIMELINE.days,
+                                dayWidth: DAY_WIDTH,
+                                totalWidth: TOTAL_WIDTH
+                            };
+
+                            if (DATA.sites) {
+                                DATA.sites.forEach(function (s, i) {
+                                    s.originalIndex = i;
+                                });
+                            }
+                        }
+
+                        /* ---- Timeline Helpers ---- */
+                        function dayOffset(s) {
+                            if (!s) return -1;
+                            var d = new Date(s); if (isNaN(d.getTime())) return -1;
+                            d.setHours(0, 0, 0, 0);
+                            return Math.floor((d - TIMELINE_START) / DAY_MS);
+                        }
+
+                        function todayISO() {
+                            var t = new Date();
+                            return t.getFullYear() + '-' + p2(t.getMonth() + 1) + '-' + p2(t.getDate());
+                        }
+
+                        function p2(n) {
+                            return n < 10 ? '0' + n : '' + n;
+                        }
+
+                        function normalizePct(v) {
+                            if (v === null || v === undefined || v === '') return 0;
+                            var n = parseFloat(String(v).replace('%', '').trim());
+                            if (isNaN(n)) return 0;
+                            // 0〜1の小数で来た場合は百分率に補正
+                            if (n > 0 && n <= 1) n = n * 100;
+                            return n;
+                        }
+
+                        /* ---- Render Header ---- */
+                        function renderHeader() {
+                            timelineMonths.innerHTML = '';
+                            timelineDays.innerHTML = '';
+
+                            var cur = new Date(TIMELINE_START);
+                            var end = new Date(TIMELINE_START); end.setDate(end.getDate() + TIMELINE.days - 1);
+
+                            while (cur <= end) {
+                                var y = cur.getFullYear(), m = cur.getMonth();
+                                var dim = new Date(y, m + 1, 0).getDate();
+                                var ms = new Date(y, m, 1), me = new Date(y, m, dim);
+                                var vs = ms < TIMELINE_START ? new Date(TIMELINE_START) : ms;
+                                var ve = me > end ? end : me;
+                                var vd = Math.floor((ve - vs) / DAY_MS) + 1;
+
+                                var blk = document.createElement('div');
+                                blk.className = 'month-block';
+                                blk.style.width = blk.style.minWidth = (vd * DAY_WIDTH) + 'px';
+                                blk.textContent = y + '/' + (m + 1);
+                                timelineMonths.appendChild(blk);
+
+                                cur = new Date(y, m + 1, 1);
+                            }
+
+                            var today = todayISO();
+
+                            for (var i = 0; i < TIMELINE.days; i++) {
+                                var dd = new Date(TIMELINE_START); dd.setDate(dd.getDate() + i);
+                                var dow = dd.getDay();
+                                var c = document.createElement('div');
+                                c.className = 'day-cell';
+                                c.style.width = c.style.minWidth = DAY_WIDTH + 'px';
+                                if (dd.getDate() === 1) c.classList.add('first-of-month');
+
+                                var iso = dd.getFullYear() + '-' + p2(dd.getMonth() + 1) + '-' + p2(dd.getDate());
+
+                                // 祝日判定（バックエンド + フロントエンドの両方をチェック）
+                                var isHoliday = JP_HOLIDAYS.indexOf(iso) >= 0 || (CFG.HOLIDAYS && CFG.HOLIDAYS.indexOf(iso) >= 0);
+
+                                if (isHoliday) {
+                                    c.classList.add('holiday');
+                                }
+
+                                else if (dow === 0) {
+                                    c.classList.add('sunday');
+                                }
+
+                                else if (dow === 6) {
+                                    c.classList.add('saturday');
+                                }
+
+                                if (iso === today) c.classList.add('today-cell');
+                                c.textContent = dd.getDate();
+                                timelineDays.appendChild(c);
+                            }
+                        }
+
+                        /* ---- Render Bar ---- */
+                        function renderBar(ct, s, e, color, top, h) {
+                            if (!s) return;
+                            var es = e || s;
+                            var so = dayOffset(s), eo = dayOffset(es);
+                            if (so < 0 && eo < 0) return;
+                            if (so >= TIMELINE.days) return;
+                            so = Math.max(0, so);
+                            eo = Math.min(TIMELINE.days - 1, eo);
+                            if (eo < so) return;
+                            var bar = document.createElement('div');
+                            bar.className = 'gantt-bar';
+                            bar.style.cssText = 'left:' + (so * DAY_WIDTH) + 'px;width:' + ((eo - so + 1) * DAY_WIDTH) + 'px;top:' + top + 'px;height:' + h + 'px;background:' + color;
+                            ct.appendChild(bar);
+                        }
+
+                        /* ---- Render Markers ---- */
+                        function renderMarkers(ct, log, topY) {
+                            if (!log) return;
+
+                            var byDay = {}
+
+                                ;
+
+                            Object.keys(log).forEach(function (ph) {
+                                var dates = log[ph];
+                                if (!Array.isArray(dates)) return;
+
+                                dates.forEach(function (ds) {
+                                    var off = dayOffset(ds);
+                                    if (off < 0 || off >= TIMELINE.days) return;
+                                    if (!byDay[off]) byDay[off] = [];
+
+                                    byDay[off].push({
+                                        icon: CFG.phaseIcons[ph] || '●', color: CFG.phaseColors[ph] || '#000'
+                                    });
+                                });
+                            });
+
+                            Object.keys(byDay).forEach(function (off) {
+                                var ms = byDay[off];
+
+                                ms.sort(function (a, b) {
+                                    return a.icon.localeCompare(b.icon);
+                                });
+                                var el = document.createElement('div');
+                                el.className = 'gantt-marker';
+                                el.style.left = (off * DAY_WIDTH) + 'px';
+                                el.style.top = topY + 'px';
+                                el.style.width = DAY_WIDTH + 'px';
+
+                                ms.forEach(function (m) {
+                                    var sp = document.createElement('span');
+                                    sp.textContent = m.icon; sp.style.color = m.color;
+                                    el.appendChild(sp);
+                                });
+                                ct.appendChild(el);
+                            });
+                        }
+
+                        /* ---- Render Progress Gradients ---- */
+                        function renderGradients(ct, siteName, zoneName, type, topY, h) {
+                            var pd = DATA.progressData;
+                            if (!pd || !pd[siteName] || !pd[siteName][zoneName]) return;
+                            var zp = pd[siteName][zoneName];
+                            var gradients = CFG.progressGradients;
+
+                            Object.keys(zp).forEach(function (dk) {
+                                var off = dayOffset(dk);
+                                if (off < 0 || off >= TIMELINE.days) return;
+                                var pr = zp[dk];
+
+                                // typeに応じて組立または解体の進捗を取得
+                                var pct = 0;
+                                if (type === 'assembly' && pr.assembly !== undefined) pct = normalizePct(pr.assembly);
+                                if (type === 'dismantle' && pr.dismantle !== undefined) pct = normalizePct(pr.dismantle);
+                                if (pct <= 0) return;
+
+                                var idx = Math.min(Math.floor(pct / 10) - 1, 9);
+                                if (idx < 0) idx = 0;
+                                var color = gradients[idx];
+
+                                var label = type === 'assembly' ? '組立' : '解体';
+                                var tooltip = label + ' 進捗率: ' + Math.round(pct) + '%\n(' + dk + ')';
+
+                                var c = document.createElement('div');
+                                c.className = 'gantt-gradient';
+                                c.style.cssText = 'left:' + (off * DAY_WIDTH) + 'px;top:' + topY + 'px;width:' + DAY_WIDTH + 'px;height:' + h + 'px;background:' + color;
+
+                                (function (tip, sName) {
+                                    c.addEventListener('mouseenter', function (e) {
+                                        var popup = document.getElementById('phasePopup');
+                                        var popupTitle = document.getElementById('popupTitle');
+                                        var popupBody = document.getElementById('popupBody');
+                                        var lines = tip.split('\n');
+                                        popupTitle.textContent = lines[0];
+                                        popupBody.textContent = lines[1] || '';
+                                        var rect = c.getBoundingClientRect();
+                                        popup.style.left = rect.left + 'px';
+                                        popup.style.top = (rect.bottom + 4) + 'px';
+                                        popup.classList.add('visible');
+                                    });
+
+                                    c.addEventListener('mouseleave', function () {
+                                        document.getElementById('phasePopup').classList.remove('visible');
+                                    });
+
+                                    c.addEventListener('click', function () {
+                                        document.getElementById('phasePopup').classList.remove('visible');
+                                        DetailPage.show(sName);
+                                    });
+                                    c.style.cursor = 'pointer';
+                                })(tooltip, siteName);
+
+                                ct.appendChild(c);
+                            });
+                        }
+
+                        /* ---- 棟/工区 進捗グラデーション描画 ---- */
+                        function renderBuildingGradients(ct, siteName, buildingName, zoneName, type, topY, h) {
+                            var bp = DATA.buildingProgress;
+                            if (!bp || !bp[siteName]) return;
+                            var siteData = bp[siteName];
+
+                            var progressSource;
+                            if (buildingName && !zoneName) {
+                                // 棟全体の進捗
+                                progressSource = siteData[buildingName] && siteData[buildingName].progress;
+                            } else if (buildingName && zoneName) {
+                                // 棟内の工区進捗
+                                progressSource = siteData[buildingName] && siteData[buildingName][zoneName];
+                            } else if (zoneName) {
+                                // 棟なし現場の工区進捗
+                                progressSource = siteData[zoneName];
+                            }
+                            if (!progressSource) return;
+
+                            var gradients = CFG.progressGradients;
+                            Object.keys(progressSource).forEach(function (dk) {
+                                var off = dayOffset(dk);
+                                if (off < 0 || off >= TIMELINE.days) return;
+                                var pr = progressSource[dk];
+
+                                var pct = 0;
+                                if (type === 'assembly' && pr.assembly !== undefined) pct = normalizePct(pr.assembly);
+                                if (type === 'dismantle' && pr.dismantle !== undefined) pct = normalizePct(pr.dismantle);
+                                if (pct <= 0) return;
+
+                                var idx = Math.min(Math.floor(pct / 10) - 1, 9);
+                                if (idx < 0) idx = 0;
+                                var color = gradients[idx];
+
+                                var label = type === 'assembly' ? '組立' : '解体';
+                                var displayName = zoneName || buildingName || '';
+                                var tooltip = displayName + ' ' + label + ' 進捗率: ' + Math.round(pct) + '%\n(' + dk + ')';
+
+                                var c = document.createElement('div');
+                                c.className = 'gantt-gradient';
+                                c.style.cssText = 'left:' + (off * DAY_WIDTH) + 'px;top:' + topY + 'px;width:' + DAY_WIDTH + 'px;height:' + h + 'px;background:' + color;
+
+                                (function (tip) {
+                                    c.addEventListener('mouseenter', function (e) {
+                                        var popup = document.getElementById('phasePopup');
+                                        var popupTitle = document.getElementById('popupTitle');
+                                        var popupBody = document.getElementById('popupBody');
+                                        var lines = tip.split('\n');
+                                        popupTitle.textContent = lines[0];
+                                        popupBody.textContent = lines[1] || '';
+                                        var rect = c.getBoundingClientRect();
+                                        popup.style.left = rect.left + 'px';
+                                        popup.style.top = (rect.bottom + 4) + 'px';
+                                        popup.classList.add('visible');
+                                    });
+                                    c.addEventListener('mouseleave', function () {
+                                        document.getElementById('phasePopup').classList.remove('visible');
+                                    });
+                                })(tooltip);
+
+                                ct.appendChild(c);
+                            });
+                        }
+
+                        /* ---- 棟/工区 左パネル行生成 ---- */
+                        function createBuildingLeftEntry(name, level, noBuilding) {
+                            var entry = document.createElement('div');
+                            entry.className = 'entry ' + level;
+                            if (noBuilding) entry.classList.add('no-building');
+
+                            var nameCol = document.createElement('div');
+                            nameCol.className = 'entry-name';
+
+                            var nameTop = document.createElement('div');
+                            nameTop.className = 'name-top';
+
+                            if (level === 'zone') {
+                                // バッジ風表示（数字のみなら「工区」を付加）
+                                var badge = document.createElement('span');
+                                badge.className = 'zone-badge';
+                                var displayName = name.indexOf('工区') !== -1 ? name : name + '工区';
+                                badge.textContent = displayName;
+                                nameTop.appendChild(badge);
+                            } else {
+                                nameTop.textContent = name;
+                            }
+
+                            nameCol.appendChild(nameTop);
+                            entry.appendChild(nameCol);
+
+                            var statusCol = document.createElement('div');
+                            statusCol.className = 'entry-status';
+                            entry.appendChild(statusCol);
+
+                            return entry;
+                        }
+
+                        /* ---- ガント行ラベル列 ---- */
+                        function createGanttRowLabels(type) {
+                            var wrap = document.createElement('div');
+                            wrap.className = 'gantt-row-labels gantt-row-labels--' + type;
+                            var texts = type === 'site'
+                                ? ['予定', '組立実績/進捗', '解体実績/進捗']
+                                : ['組立進捗', '解体進捗'];
+                            texts.forEach(function (text) {
+                                var label = document.createElement('div');
+                                label.className = 'gantt-row-label';
+                                label.textContent = text;
+                                wrap.appendChild(label);
+                            });
+                            return wrap;
+                        }
+
+                        function createGanttBarsLayer() {
+                            var layer = document.createElement('div');
+                            layer.className = 'gantt-bars-layer';
+                            layer.style.width = TOTAL_WIDTH + 'px';
+                            return layer;
+                        }
+
+                        /* ---- 棟/工区 ガントチャート行生成 ---- */
+                        function createBuildingGanttEntry(siteName, buildingName, zoneName, entryType) {
+                            var entry = document.createElement('div');
+                            entry.className = 'gantt-entry ' + entryType;
+                            entry.appendChild(createGanttRowLabels('detail'));
+                            var barsLayer = createGanttBarsLayer();
+
+                            if (entryType === 'building') {
+                                // 棟行: 組立グラデーション(y=2, h=16) + 解体グラデーション(y=22, h=16)
+                                renderBuildingGradients(barsLayer, siteName, buildingName, '', 'assembly', 2, 16);
+                                renderBuildingGradients(barsLayer, siteName, buildingName, '', 'dismantle', 22, 16);
+                            } else {
+                                // 工区行: 組立(y=2, h=16) + 解体(y=22, h=16)
+                                renderBuildingGradients(barsLayer, siteName, buildingName, zoneName, 'assembly', 2, 16);
+                                renderBuildingGradients(barsLayer, siteName, buildingName, zoneName, 'dismantle', 22, 16);
+                            }
+
+                            entry.appendChild(barsLayer);
+                            return entry;
+                        }
+
+                        /* ---- Render Status Icons ---- */
+                        function escapePopupHtml(str) {
+                            return String(str || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+                        }
+
+                        function buildPhasePopupBody(detail) {
+                            if (!detail) {
+                                return '未報告';
+                            }
+                            if (detail.status) {
+                                var planned = detail.plannedDateDisplay || '—';
+                                var impl = detail.implementedDateDisplay || '—';
+                                var statusClass = detail.status === '期限超過' ? 'popup-status-overdue' : '';
+                                var bodyHtml = '<b>予定日:</b> ' + escapePopupHtml(planned) +
+                                    '<br><b>実施日:</b> ' + escapePopupHtml(impl) +
+                                    '<br><b>状態:</b> <span class="' + statusClass + '">' + escapePopupHtml(detail.status) + '</span>';
+                                if (detail.extras && detail.extras.length > 0) {
+                                    detail.extras.forEach(function (ex) {
+                                        bodyHtml += '<br><b>' + escapePopupHtml(ex.label) + ':</b> ' + escapePopupHtml(ex.value);
+                                    });
+                                }
+                                return bodyHtml;
+                            }
+                            var dateStr = detail.date || null;
+                            var legacyHtml = dateStr ? '<b>報告日:</b> ' + escapePopupHtml(dateStr) : '未報告';
+                            if (detail.extras && detail.extras.length > 0) {
+                                detail.extras.forEach(function (ex) {
+                                    legacyHtml += '<br><b>' + escapePopupHtml(ex.label) + ':</b> ' + escapePopupHtml(ex.value);
+                                });
+                            }
+                            return legacyHtml;
+                        }
+
+                        function renderStatusIcons(container, iconsStr, phaseDetails, siteName) {
+                            if (!iconsStr) return;
+                            var parts = iconsStr.split(' ');
+                            var popup = document.getElementById('phasePopup');
+                            var popupTitle = document.getElementById('popupTitle');
+                            var popupBody = document.getElementById('popupBody');
+
+                            parts.forEach(function (part, i) {
+                                var sp = document.createElement('span');
+                                sp.className = 'status-icon';
+                                sp.textContent = part + ' ';
+                                if (part !== '\u2705') sp.style.color = CFG.phaseColors[i + 1] || '#999';
+
+                                var phaseNum = i + 1;
+                                var phaseDetail = phaseDetails ? phaseDetails[phaseNum] : null;
+
+                                if (phaseDetail && phaseDetail.status === '期限超過') {
+                                    sp.classList.add('status-icon--overdue');
+                                }
+
+                                sp.addEventListener('click', function (e) {
+                                    e.stopPropagation();
+                                    popup.classList.remove('visible');
+                                    if (siteName) PhaseDetailModal.show(siteName, phaseNum);
+                                });
+
+                                sp.addEventListener('mouseenter', function (e) {
+                                    var detail = phaseDetails ? phaseDetails[phaseNum] : null;
+                                    var phaseName = (detail && detail.name) || (CFG.phases[phaseNum] || 'フェーズ' + phaseNum);
+                                    var iconLabel = (CFG.phaseIcons && CFG.phaseIcons[phaseNum]) || String(phaseNum);
+                                    popupTitle.textContent = iconLabel + ' ' + phaseName;
+                                    popupBody.innerHTML = buildPhasePopupBody(detail);
+
+                                    var rect = sp.getBoundingClientRect();
+                                    var popupW = 200;
+                                    var left = rect.left + rect.width / 2 - popupW / 2;
+                                    if (left < 8) left = 8;
+                                    if (left + popupW > window.innerWidth - 8) left = window.innerWidth - popupW - 8;
+                                    popup.style.left = left + 'px';
+                                    popup.style.top = (rect.bottom + 6) + 'px';
+                                    popup.classList.add('visible');
+                                });
+
+                                sp.addEventListener('mouseleave', function () {
+                                    popup.classList.remove('visible');
+                                });
+
+                                container.appendChild(sp);
+                            });
+                        }
+
+                        /* ---- Create Left Entry ---- */
+                        function createLeftEntry(data, siteIdx, isParent, childIdx, parentSite) {
+                            var entry = document.createElement('div');
+                            entry.className = 'entry ' + (isParent ? 'parent' : 'child');
+
+                            var nameCol = document.createElement('div');
+                            nameCol.className = 'entry-name';
+
+                            var nameTop = document.createElement('div');
+                            nameTop.className = 'name-top';
+
+                            if (isParent) {
+                                var isCompleted = !!completedSites[data.name];
+                                if (isCompleted) entry.classList.add('site-completed');
+
+                                // 一括選択チェックボックス（画面上のみ）
+                                var chk = document.createElement('input');
+                                chk.type = 'checkbox';
+                                chk.className = 'site-select-chk';
+                                chk.checked = !!selectedSites[data.name];
+                                chk.title = '選択（まとめて完工用）';
+                                chk.onclick = function (e) {
+                                    e.stopPropagation();
+                                    App.toggleSelect(data.name, chk.checked);
+                                };
+                                nameTop.appendChild(chk);
+
+                                if (data.children && data.children.length > 0) {
+                                    var tog = document.createElement('span');
+                                    tog.className = 'collapse-toggle';
+                                    tog.textContent = '\u25BE';
+                                    tog.setAttribute('data-idx', siteIdx);
+
+                                    tog.onclick = function () {
+                                        App.toggleChildren(siteIdx);
+                                    }
+
+                                        ;
+                                    nameTop.appendChild(tog);
+                                }
+
+                                var siteLink = document.createElement('span');
+                                siteLink.className = 'site-link';
+                                siteLink.textContent = data.name;
+                                siteLink.style.cursor = 'pointer';
+                                siteLink.onclick = function () {
+                                    ScheduleViewer.show(data.name);
+                                };
+                                nameTop.appendChild(siteLink);
+
+                                // アラートバッジ
+                                var siteAlerts = ALERTS[data.name];
+                                if (siteAlerts && siteAlerts.length > 0) {
+                                    var maxLevel = siteAlerts.some(function (a) { return a.level === 'danger'; }) ? 'danger' : 'warning';
+                                    var badge = document.createElement('span');
+                                    badge.className = 'alert-badge ' + maxLevel;
+                                    badge.textContent = '\u26A0' + siteAlerts.length;
+                                    badge.title = siteAlerts.map(function (a) {
+                                        var levelLabel = a.level === 'danger' ? '期限超過' : '期限接近';
+                                        return '[' + levelLabel + '] ' + a.message;
+                                    }).join('\n');
+                                    nameTop.appendChild(badge);
+                                }
+
+                                // 完工バッジ（完工扱いの現場のみ）
+                                if (isCompleted) {
+                                    var cBadge = document.createElement('span');
+                                    cBadge.className = 'completed-badge';
+                                    cBadge.textContent = '完工';
+                                    nameTop.appendChild(cBadge);
+                                }
+
+                                // 完工 / 施工中に戻す ボタン（画面上のみ・保存しない）
+                                var compBtn = document.createElement('button');
+                                compBtn.className = 'complete-btn' + (isCompleted ? ' is-completed' : '');
+                                compBtn.textContent = isCompleted ? '施工中に戻す' : '完工';
+                                compBtn.title = isCompleted ? 'この現場を施工中に戻す' : 'この現場を完工扱いにする';
+                                compBtn.onclick = function (e) {
+                                    e.stopPropagation();
+                                    App.toggleComplete(data.name);
+                                };
+                                nameTop.appendChild(compBtn);
+                            }
+
+                            else {
+                                nameTop.textContent = '  \u25B8 ' + data.name;
+                            }
+
+                            nameCol.appendChild(nameTop);
+
+                            var nameBottom = document.createElement('div');
+                            nameBottom.className = 'name-bottom';
+                            var nbText = document.createElement('span');
+                            nbText.className = 'name-bottom-text';
+                            nbText.textContent = data.dateInfo || '';
+                            nameBottom.appendChild(nbText);
+
+                            if (!(CFG && CFG.readOnlyMode === true)) {
+                                var editBtn = document.createElement('button');
+                                editBtn.className = 'edit-btn'; editBtn.textContent = '\u270F'; editBtn.title = '予定日を修正';
+
+                                editBtn.onclick = function () {
+                                    ScheduleModal.show(siteIdx, isParent ? undefined : childIdx);
+                                }
+
+                                    ;
+                                nameBottom.appendChild(editBtn);
+                            }
+
+                            nameCol.appendChild(nameBottom);
+                            entry.appendChild(nameCol);
+
+                            var statusCol = document.createElement('div');
+                            statusCol.className = 'entry-status';
+                            var actualSiteName = isParent ? data.name : (parentSite ? parentSite.name : data.name);
+                            renderStatusIcons(statusCol, data.statusIcons || '', data.phaseDetails || null, actualSiteName);
+                            entry.appendChild(statusCol);
+
+                            return entry;
+                        }
+
+                        /* ---- Create Gantt Entry (3-row layout) ---- */
+                        function createGanttEntry(data, siteIdx, isParent, childIdx, parentSite) {
+                            var entry = document.createElement('div');
+                            entry.className = 'gantt-entry' + (isParent ? ' parent' : '');
+                            entry.appendChild(createGanttRowLabels('site'));
+                            var barsLayer = createGanttBarsLayer();
+
+                            var sc = data.schedule || {}
+
+                                ;
+
+                            var ac = data.actual || {}
+
+                                ;
+                            var bc = CFG.barColors;
+
+                            // --- 1段目: 予定バー（組立+解体） y=2, h=22 ---
+                            if (isParent) {
+                                renderBar(barsLayer, sc.assemblyStart, sc.assemblyEnd, bc.assemblyPlan, 2, 22);
+                                renderBar(barsLayer, sc.dismantleStart, sc.dismantleEnd, bc.dismantlePlan, 2, 22);
+                            }
+
+                            else {
+                                renderBar(barsLayer, sc.assemblyStart, sc.assemblyEnd, bc.assemblyChild, 2, 22);
+                                renderBar(barsLayer, sc.dismantleStart, sc.dismantleEnd, bc.dismantleChild, 2, 22);
+                            }
+
+                            // Milestones (予定段に表示)
+                            var ml = isParent ? (data.milestones || {}) : (parentSite ? parentSite.milestones || {}
+
+                                : {});
+                            if (ml.sendOut) renderBar(barsLayer, ml.sendOut, ml.sendOut, bc.sendOutMilestone, 0, 26);
+                            if (ml.preEducation) renderBar(barsLayer, ml.preEducation, ml.preEducation, bc.preEducationMilestone, 2, 22);
+
+                            // --- 2段目: 組立実績 + 組立進捗グラデーション y=26, h=22 ---
+                            if (isParent) {
+                                renderGradients(barsLayer, data.name, '', 'assembly', 26, 22);
+                            }
+
+                            else if (parentSite) {
+                                renderGradients(barsLayer, parentSite.name, data.name, 'assembly', 26, 22);
+                            }
+
+                            if (ac.assemblyStart) renderBar(barsLayer, ac.assemblyStart, ac.assemblyEnd || ac.assemblyStart, CFG.actualBarColors.assembly, 26, 22);
+
+                            // --- 3段目: 解体実績 + 解体進捗グラデーション + 報告マーカー y=50, h=24 ---
+                            if (isParent) {
+                                renderGradients(barsLayer, data.name, '', 'dismantle', 50, 24);
+                            }
+
+                            else if (parentSite) {
+                                renderGradients(barsLayer, parentSite.name, data.name, 'dismantle', 50, 24);
+                            }
+
+                            if (ac.dismantleStart) renderBar(barsLayer, ac.dismantleStart, ac.dismantleEnd || ac.dismantleStart, CFG.actualBarColors.dismantle, 50, 24);
+
+                            if (data.reportLog) renderMarkers(barsLayer, data.reportLog, 52);
+
+                            entry.appendChild(barsLayer);
+                            return entry;
+                        }
+
+                        /* ---- Alert Computation ---- */
+                        var ALERT_WARN_DAYS = 3;
+
+                        function computeAlerts(sites, progressData) {
+                            var today = new Date();
+                            today.setHours(0, 0, 0, 0);
+                            var alerts = {};
+
+                            sites.forEach(function (site) {
+                                var siteAlerts = [];
+                                var sched = site.schedule || {};
+                                var ml = site.milestones || {};
+
+                                function getLatestPct(type) {
+                                    var siteMap = progressData[site.name];
+                                    if (!siteMap || !siteMap['']) return 0;
+                                    var dates = Object.keys(siteMap['']).sort();
+                                    if (dates.length === 0) return 0;
+                                    var latest = siteMap[''][dates[dates.length - 1]];
+                                    return (latest && latest[type]) || 0;
+                                }
+
+                                function checkDate(dateStr) {
+                                    if (!dateStr) return null;
+                                    var d = new Date(dateStr);
+                                    d.setHours(0, 0, 0, 0);
+                                    var warn = new Date(d);
+                                    warn.setDate(warn.getDate() - ALERT_WARN_DAYS);
+                                    var diff = Math.floor((d - today) / (1000 * 60 * 60 * 24));
+                                    var level = null;
+                                    if (today >= d) level = 'danger';
+                                    else if (today >= warn) level = 'warning';
+                                    if (!level) return null;
+                                    var dateText = diff < 0 ? (Math.abs(diff) + '日超過') : (diff === 0 ? '当日' : ('あと' + diff + '日'));
+                                    return { level: level, dateText: dateText };
+                                }
+
+                                // 1. 組立進捗未完了
+                                var assemblyPct = getLatestPct('assembly');
+                                var aAlert = checkDate(sched.assemblyEnd);
+                                if (aAlert && assemblyPct < 100) {
+                                    var aPctRound = Math.round(assemblyPct);
+                                    siteAlerts.push({
+                                        type: 'assembly_incomplete', level: aAlert.level,
+                                        dateText: aAlert.dateText,
+                                        date: sched.assemblyEnd, progress: aPctRound,
+                                        message: '組立終了予定まで' + aAlert.dateText + '（進捗 ' + aPctRound + '%）'
+                                    });
+                                }
+
+                                // 2. 解体進捗未完了
+                                var dismantlePct = getLatestPct('dismantle');
+                                var dAlert = checkDate(sched.dismantleEnd);
+                                if (dAlert && dismantlePct < 100) {
+                                    var dPctRound = Math.round(dismantlePct);
+                                    siteAlerts.push({
+                                        type: 'dismantle_incomplete', level: dAlert.level,
+                                        dateText: dAlert.dateText,
+                                        date: sched.dismantleEnd, progress: dPctRound,
+                                        message: '解体終了予定まで' + dAlert.dateText + '（進捗 ' + dPctRound + '%）'
+                                    });
+                                }
+
+                                // 3. 送り出し教育未実施（表示スロット④）
+                                var sAlert = checkDate(ml.sendOut);
+                                var sendOutPhase = (CFG && CFG.alertPhaseSendOut) || 4;
+                                var phaseSendOutDone = site.phaseDetails && site.phaseDetails[sendOutPhase] && site.phaseDetails[sendOutPhase].date;
+                                if (sAlert && !phaseSendOutDone) {
+                                    siteAlerts.push({
+                                        type: 'sendout_education', level: sAlert.level,
+                                        dateText: sAlert.dateText,
+                                        date: ml.sendOut, message: '送出教育予定まで' + sAlert.dateText + '（未実施）'
+                                    });
+                                }
+
+                                // 4. 解体前教育未実施（表示スロット⑤）
+                                var pAlert = checkDate(ml.preEducation);
+                                var preEdPhase = (CFG && CFG.alertPhasePreEducation) || 5;
+                                var phasePreEdDone = site.phaseDetails && site.phaseDetails[preEdPhase] && site.phaseDetails[preEdPhase].date;
+                                if (pAlert && !phasePreEdDone) {
+                                    siteAlerts.push({
+                                        type: 'pre_education', level: pAlert.level,
+                                        dateText: pAlert.dateText,
+                                        date: ml.preEducation, message: '解体前教育予定まで' + pAlert.dateText + '（未実施）'
+                                    });
+                                }
+
+                                if (siteAlerts.length > 0) alerts[site.name] = siteAlerts;
+                            });
+                            return alerts;
+                        }
+
+                        /* ---- 検索フィルター適用済みの現場リストを返す ---- */
+                        function getVisibleSites() {
+                            var list = DATA.sites || [];
+                            if (currentSearchQuery) {
+                                var q = currentSearchQuery.toLowerCase();
+                                list = list.filter(function (site) {
+                                    return site.name && site.name.toLowerCase().indexOf(q) >= 0;
+                                });
+                            }
+                            // 完工仕分けフィルタ（画面上のみ）
+                            if (currentStatusFilter === 'active') {
+                                list = list.filter(function (site) { return !completedSites[site.name]; });
+                            } else if (currentStatusFilter === 'completed') {
+                                list = list.filter(function (site) { return !!completedSites[site.name]; });
+                            }
+                            return list;
+                        }
+
+                        /* ---- Render All Sites ---- */
+                        function renderSites() {
+                            var leftFrag = document.createDocumentFragment();
+                            var ganttFrag = document.createDocumentFragment();
+
+                            getVisibleSites().forEach(function (site) {
+                                // 元のDATA.sites上のインデックスを使用（折り畳み・クリックイベントが参照するため）
+                                var si = DATA.sites.indexOf(site);
+                                leftFrag.appendChild(createLeftEntry(site, si, true));
+                                ganttFrag.appendChild(createGanttEntry(site, si, true));
+
+                                // 棟/工区行の挿入
+                                var bp = DATA.buildingProgress && DATA.buildingProgress[site.name];
+                                var renderedZones = {};
+                                if (bp) {
+                                    if (bp.buildings && bp.buildings.length > 0) {
+                                        // 棟ありの現場
+                                        bp.buildings.forEach(function (bName) {
+                                            var bData = bp[bName];
+                                            if (!bData) return;
+                                            // 棟行
+                                            leftFrag.appendChild(createBuildingLeftEntry(bName, 'building'));
+                                            ganttFrag.appendChild(createBuildingGanttEntry(site.name, bName, '', 'building'));
+                                            // 棟内の工区行
+                                            (bData.zones || []).forEach(function (zName) {
+                                                leftFrag.appendChild(createBuildingLeftEntry(zName, 'zone'));
+                                                ganttFrag.appendChild(createBuildingGanttEntry(site.name, bName, zName, 'zone'));
+                                                renderedZones[zName] = true;
+                                            });
+                                        });
+                                    } else if (bp.zones && bp.zones.length > 0) {
+                                        // 棟なしの現場 → 工区のみ
+                                        bp.zones.forEach(function (zName) {
+                                            leftFrag.appendChild(createBuildingLeftEntry(zName, 'zone', true));
+                                            ganttFrag.appendChild(createBuildingGanttEntry(site.name, '', zName, 'zone'));
+                                            renderedZones[zName] = true;
+                                        });
+                                    }
+                                }
+
+                                // 既存の子行（案件シートの工区行、棟/工区で表示済みのものはスキップ）
+                                site.children.forEach(function (child, ci) {
+                                    if (renderedZones[child.name]) return;
+                                    var le = createLeftEntry(child, si, false, ci, site);
+                                    le.classList.add('site-children-' + si);
+                                    leftFrag.appendChild(le);
+
+                                    var ge = createGanttEntry(child, si, false, ci, site);
+                                    ge.classList.add('site-children-' + si);
+                                    ganttFrag.appendChild(ge);
+                                });
+                            });
+
+                            leftBody.appendChild(leftFrag);
+                            ganttContainer.appendChild(ganttFrag);
+                        }
+
+                        /* ---- Today Marker ---- */
+                        function renderTodayMarker() {
+                            var off = dayOffset(todayISO());
+                            if (off < 0 || off >= TIMELINE.days) return;
+                            var line = document.createElement('div');
+                            line.className = 'today-line';
+                            line.id = 'todayLine';
+                            line.style.left = (off * DAY_WIDTH + Math.floor(DAY_WIDTH / 2)) + 'px';
+                            ganttContainer.appendChild(line);
+                        }
+
+                        function scrollToToday() {
+                            var off = dayOffset(todayISO());
+                            if (off < 0 || off >= TIMELINE.days) return;
+                            rightBody.scrollLeft = Math.max(0, GANTT_LABEL_WIDTH + off * DAY_WIDTH - rightBody.clientWidth / 2);
+                        }
+
+                        /* ---- Scroll Sync ---- */
+                        /* ---- Scroll Sync ---- */
+                        function initScrollSync() {
+                            var ignoreLeft = false;
+                            var ignoreRight = false;
+
+                            rightBody.addEventListener('scroll', function () {
+                                var top = rightBody.scrollTop;
+                                var left = rightBody.scrollLeft;
+
+                                if (rightHeader.scrollLeft !== left) {
+                                    rightHeader.scrollLeft = left;
+                                }
+
+                                if (ignoreRight) {
+                                    ignoreRight = false;
+                                    return;
+                                }
+
+                                if (leftBody.scrollTop !== top) {
+                                    ignoreLeft = true;
+                                    leftBody.scrollTop = top;
+                                }
+                            }, { passive: true });
+
+                            leftBody.addEventListener('scroll', function () {
+                                var top = leftBody.scrollTop;
+
+                                if (ignoreLeft) {
+                                    ignoreLeft = false;
+                                    return;
+                                }
+
+                                if (rightBody.scrollTop !== top) {
+                                    ignoreRight = true;
+                                    rightBody.scrollTop = top;
+                                }
+                            }, { passive: true });
+                        }
+
+                        /* ---- Render Gantt Background ---- */
+                        function renderGanttBackground() {
+                            var bg = document.createElement('div');
+                            bg.className = 'gantt-bg';
+
+                            for (var i = 0; i < TIMELINE.days; i++) {
+                                var dd = new Date(TIMELINE_START); dd.setDate(dd.getDate() + i);
+                                var dow = dd.getDay();
+
+                                var m = dd.getMonth() + 1;
+                                var d = dd.getDate();
+                                var iso = dd.getFullYear() + '-' + (m < 10 ? '0' + m : m) + '-' + (d < 10 ? '0' + d : d);
+
+                                var isHoliday = JP_HOLIDAYS.indexOf(iso) >= 0 || (CFG.HOLIDAYS && CFG.HOLIDAYS.indexOf(iso) >= 0);
+
+                                if (isHoliday || dow === 0 || dow === 6) {
+                                    var col = document.createElement('div');
+                                    col.className = 'gantt-bg-col';
+                                    col.style.left = (i * DAY_WIDTH) + 'px';
+                                    col.style.width = DAY_WIDTH + 'px';
+
+                                    if (isHoliday || dow === 0) {
+                                        col.classList.add('bg-holiday');
+                                    } else if (dow === 6) {
+                                        col.classList.add('bg-sat');
+                                    }
+                                    bg.appendChild(col);
+                                }
+                            }
+                            bg.style.width = TOTAL_WIDTH + 'px';
+                            ganttContainer.appendChild(bg);
+                        }
+
+                        /* ---- Full Render ---- */
+                        function fullRender() {
+                            leftBody.innerHTML = '';
+                            ganttContainer.innerHTML = '';
+
+                            GANTT_SCROLL_WIDTH = GANTT_LABEL_WIDTH + TOTAL_WIDTH;
+                            ganttContainer.style.setProperty('--gantt-label-w', GANTT_LABEL_WIDTH + 'px');
+                            ganttContainer.style.width = GANTT_SCROLL_WIDTH + 'px';
+
+                            // Render background first
+                            renderGanttBackground();
+
+                            timelineMonths.innerHTML = '';
+                            timelineDays.innerHTML = '';
+
+                            timelineContent.style.width = TOTAL_WIDTH + 'px';
+                            var timelineRow = document.getElementById('ganttTimelineRow');
+                            if (timelineRow) {
+                                timelineRow.style.width = GANTT_SCROLL_WIDTH + 'px';
+                                timelineRow.style.setProperty('--gantt-label-w', GANTT_LABEL_WIDTH + 'px');
+                            }
+
+                            renderHeader();
+                            ALERTS = computeAlerts(DATA.sites, DATA.progressData);
+                            renderSites();
+                            renderTodayMarker();
+
+                            var sbw = rightBody.offsetWidth - rightBody.clientWidth;
+                            if (sbw > 0) rightHeader.style.paddingRight = sbw + 'px';
+
+                            Object.keys(collapsedSites).forEach(function (idx) {
+                                if (collapsedSites[idx]) App.toggleChildren(parseInt(idx));
+                            });
+
+                            if (window.App && App._updateBulkBtn) App._updateBulkBtn();
+                        }
+
+                        /* ========== App ========== */
+                        window.App = {
+                            toggleChildren: function (si) {
+                                var els = document.querySelectorAll('.site-children-' + si);
+                                if (!els.length) return;
+                                var hide = els[0].style.display !== 'none';
+                                for (var i = 0; i < els.length; i++) els[i].style.display = hide ? 'none' : '';
+                                var tog = document.querySelector('.collapse-toggle[data-idx="' + si + '"]');
+                                if (tog) tog.textContent = hide ? '\u25B8' : '\u25BE';
+                                collapsedSites[si] = hide;
+                            }
+
+                            ,
+                            openCorrectionStats: function () {
+                                var url = (CFG && CFG.correctionWebAppUrl)
+                                    ? String(CFG.correctionWebAppUrl).trim()
+                                    : '';
+                                if (!url) {
+                                    alert('是正集計URLが設定されていません');
+                                    return;
+                                }
+                                window.open(url, '_blank');
+                            }
+
+                            ,
+                            refresh: function () {
+                                document.getElementById('loadingOverlay').style.display = 'flex';
+                                siteDetailCache = {}; // Clear details cache on refresh
+
+                                google.script.run.withSuccessHandler(function (d) {
+                                    try {
+                                        loadData(d);
+                                        // Keep current sort if possible, or reset to default?
+                                        // Let's reset logic but keep dropdown value if we want?
+                                        // For now, let's just render. The dropdown might still show selected value.
+                                        // If dropdown shows value other than default, we should re-apply sort.
+                                        var val = document.querySelector('.sort-select').value;
+                                        if (val && val !== 'default') App.sort(val);
+                                        else fullRender();
+
+                                        App.toast('データを更新しました');
+                                    } catch (e) {
+                                        console.error('Render error:', e);
+                                        alert('描画エラーが発生しました: ' + e.message);
+                                    } finally {
+                                        document.getElementById('loadingOverlay').style.display = 'none';
+                                    }
+
+                                }).withFailureHandler(function (e) {
+                                    document.getElementById('loadingOverlay').style.display = 'none';
+                                    alert('サーバーエラー: ' + e.message);
+                                }).refreshDashboardData();
+                            }
+
+                            ,
+                            search: function (query) {
+                                currentSearchQuery = (query || '').trim();
+                                var clearBtn = document.getElementById('searchClear');
+                                var countEl = document.getElementById('searchCount');
+                                if (clearBtn) clearBtn.style.display = currentSearchQuery ? '' : 'none';
+                                fullRender();
+                                if (currentSearchQuery && DATA && DATA.sites) {
+                                    var visible = getVisibleSites().length;
+                                    var total = DATA.sites.length;
+                                    if (countEl) {
+                                        countEl.style.display = '';
+                                        countEl.textContent = visible + ' / ' + total + ' 件';
+                                    }
+                                } else {
+                                    if (countEl) countEl.style.display = 'none';
+                                }
+                            }
+
+                            ,
+                            sort: function (criteria) {
+                                if (!DATA || !DATA.sites) return;
+                                var sites = DATA.sites;
+
+                                // 安全報告(reportLog)から最新日付を取得
+                                var getLatestSafetyReport = function (s) {
+                                    if (!s.reportLog || typeof s.reportLog !== 'object') return '';
+                                    var max = '';
+                                    var phases = Object.keys(s.reportLog);
+                                    for (var i = 0; i < phases.length; i++) {
+                                        var dates = s.reportLog[phases[i]];
+                                        if (!dates || !dates.length) continue;
+                                        for (var j = 0; j < dates.length; j++) {
+                                            if (dates[j] && dates[j] > max) max = dates[j];
+                                        }
+                                    }
+                                    return max;
+                                };
+
+                                sites.sort(function (a, b) {
+                                    if (criteria === 'updateDesc') {
+                                        // 就業前報告順 (終業前報告)
+                                        var da = a.lastReportDate || '';
+                                        var db = b.lastReportDate || '';
+                                        if (da > db) return -1;
+                                        if (da < db) return 1;
+                                        return 0;
+                                    }
+
+                                    if (criteria === 'safetyDesc') {
+                                        // 報告状況順 (安全・現場調査など)
+                                        var da = getLatestSafetyReport(a);
+                                        var db = getLatestSafetyReport(b);
+                                        if (da > db) return -1;
+                                        if (da < db) return 1;
+                                        return 0;
+                                    }
+
+                                    if (criteria === 'nameAsc') {
+                                        return a.name.localeCompare(b.name, 'ja');
+                                    }
+
+                                    return a.originalIndex - b.originalIndex;
+                                });
+
+                                fullRender();
+                            }
+
+                            ,
+                            toast: function (msg) {
+                                var t = document.getElementById('toast');
+                                t.textContent = '✓ ' + msg;
+                                t.classList.add('show');
+
+                                setTimeout(function () {
+                                    t.classList.remove('show');
+                                }
+
+                                    , 2500);
+                            }
+
+                            ,
+                            /* ---- 完工仕分け（画面上のみ・保存なし） ---- */
+                            setStatusFilter: function (status) {
+                                currentStatusFilter = status;
+                                // ビューをまたいだ選択は混乱の元なので切替時にクリア
+                                selectedSites = {};
+                                var btns = document.querySelectorAll('#statusFilter button');
+                                for (var i = 0; i < btns.length; i++) {
+                                    btns[i].classList.toggle('active', btns[i].getAttribute('data-status') === status);
+                                }
+                                App._updateBulkBtn();
+                                fullRender();
+                            }
+
+                            ,
+                            toggleComplete: function (siteName) {
+                                if (completedSites[siteName]) {
+                                    delete completedSites[siteName];
+                                    App.toast('「' + siteName + '」を施工中に戻しました');
+                                } else {
+                                    completedSites[siteName] = true;
+                                    delete selectedSites[siteName];
+                                    App.toast('「' + siteName + '」を完工にしました');
+                                }
+                                saveCompletedSites();
+                                App._updateBulkBtn();
+                                fullRender();
+                            }
+
+                            ,
+                            toggleSelect: function (siteName, checked) {
+                                if (checked) selectedSites[siteName] = true;
+                                else delete selectedSites[siteName];
+                                App._updateBulkBtn();
+                            }
+
+                            ,
+                            bulkComplete: function () {
+                                var names = Object.keys(selectedSites);
+                                if (names.length === 0) return;
+                                if (currentStatusFilter === 'completed') {
+                                    // 完工ページ：選択を施工中に戻す
+                                    names.forEach(function (n) { delete completedSites[n]; });
+                                    selectedSites = {};
+                                    saveCompletedSites();
+                                    App._updateBulkBtn();
+                                    App.toast(names.length + '件を施工中に戻しました');
+                                } else {
+                                    // 全て / 施工中ページ：選択を完工にする
+                                    names.forEach(function (n) { completedSites[n] = true; });
+                                    selectedSites = {};
+                                    saveCompletedSites();
+                                    App._updateBulkBtn();
+                                    App.toast(names.length + '件を完工にしました');
+                                }
+                                fullRender();
+                            }
+
+                            ,
+                            _updateBulkBtn: function () {
+                                var btn = document.getElementById('bulkCompleteBtn');
+                                if (!btn) return;
+                                var count = Object.keys(selectedSites).length;
+                                var base = currentStatusFilter === 'completed' ? '選択を施工中に戻す' : '選択を完工';
+                                btn.disabled = count === 0;
+                                btn.textContent = count > 0 ? (base + ' (' + count + ')') : base;
+                            }
+                        }
+
+                            ;
+
+                        /* ========== ScheduleModal ========== */
+                        window.ScheduleModal = {
+                            show: function (si, ci) {
+                                var site = DATA.sites[si];
+                                var target = ci !== undefined ? site.children[ci] : site;
+
+                                var sc = target.schedule || {}
+
+                                    ;
+
+                                currentEdit = {
+                                    siteName: site.name, zoneName: ci !== undefined ? target.name : ''
+                                }
+
+                                    ;
+                                var info = document.getElementById('smInfo');
+                                info.innerHTML = '<strong>現場:</strong> ' + site.name + (ci !== undefined ? '<br><strong>工区:</strong> ' + target.name : '');
+                                document.getElementById('smAS').value = sc.assemblyStart || '';
+                                document.getElementById('smAE').value = sc.assemblyEnd || '';
+                                document.getElementById('smDS').value = sc.dismantleStart || '';
+                                document.getElementById('smDE').value = sc.dismantleEnd || '';
+                                if (CFG && CFG.readOnlyMode === true) {
+                                    document.getElementById('smSubmit').disabled = true;
+                                    document.getElementById('smSubmit').textContent = '閲覧専用';
+                                } else {
+                                    document.getElementById('smSubmit').disabled = false;
+                                    document.getElementById('smSubmit').textContent = '保存する';
+                                }
+                                document.getElementById('scheduleModal').style.display = 'flex';
+                            }
+
+                            ,
+                            hide: function () {
+                                document.getElementById('scheduleModal').style.display = 'none'; currentEdit = null;
+                            }
+
+                            ,
+                            submit: function () {
+                                if (CFG && CFG.readOnlyMode === true) {
+                                    alert('閲覧専用モードのため更新できません。');
+                                    return;
+                                }
+                                if (!currentEdit) return;
+                                var btn = document.getElementById('smSubmit');
+                                btn.disabled = true; btn.textContent = '保存中...';
+
+                                google.script.run.withSuccessHandler(function () {
+                                    ScheduleModal.hide(); App.toast('予定日を更新しました'); App.refresh();
+
+                                }).withFailureHandler(function (e) {
+                                    alert('エラー: ' + e.message); btn.disabled = false; btn.textContent = '保存する';
+
+                                }).updateScheduleFromDialog({
+
+                                    siteName: currentEdit.siteName, zoneName: currentEdit.zoneName,
+                                    updates: {
+                                        '組立開始予定日': document.getElementById('smAS').value,
+                                        '組立終了予定日': document.getElementById('smAE').value,
+                                        '解体開始予定日': document.getElementById('smDS').value,
+                                        '解体終了予定日': document.getElementById('smDE').value
+                                    }
+                                });
+                            }
+                        }
+
+                            ;
+
+                        /* ========== DetailPage ========== */
+                        window.DetailPage = {
+                            show: function (siteName) {
+                                // Check cache first
+                                if (siteDetailCache[siteName]) {
+                                    DetailPage.render(siteDetailCache[siteName], siteName);
+                                    document.getElementById('detailOverlay').classList.add('active');
+                                    return;
+                                }
+
+                                document.getElementById('detailSiteName').textContent = siteName;
+                                var body = document.getElementById('detailBody');
+                                body.innerHTML = '<div class="detail-empty"><div class="spinner" style="margin:0 auto 12px"></div>データ取得中...</div>';
+                                document.getElementById('detailOverlay').classList.add('active');
+
+                                google.script.run.withSuccessHandler(function (reports) {
+                                    siteDetailCache[siteName] = reports; // Cache the result
+                                    DetailPage.render(reports, siteName);
+
+                                }).withFailureHandler(function (e) {
+                                    body.innerHTML = '<div class="detail-empty">エラー: ' + e.message + '</div>';
+                                }).getProgressDetails(siteName);
+                            }
+
+                            ,
+                            hide: function () {
+                                document.getElementById('detailOverlay').classList.remove('active');
+                            }
+
+                            ,
+                            render: function (reports, siteName) {
+                                var body = document.getElementById('detailBody');
+                                body.innerHTML = '';
+
+                                if (!reports || reports.length === 0) {
+                                    body.innerHTML = '<div class="detail-empty">この現場の報告データはまだありません。</div>';
+                                    return;
+                                }
+
+                                reports.forEach(function (r, idx) {
+                                    var card = document.createElement('div');
+                                    card.className = 'report-card';
+
+                                    // Header
+                                    var header = document.createElement('div');
+                                    header.className = 'report-card-header';
+                                    header.innerHTML = '<span class="report-date">\ud83d\udcc5 ' + r.date + '</span>' + '<span class="report-meta">' + (r.reporter || '') + (r.workType ? ' / ' + r.workType : '') + '</span>';
+                                    card.appendChild(header);
+
+                                    var cardBody = document.createElement('div');
+                                    cardBody.className = 'report-card-body';
+
+                                    // Progress bars
+                                    var aPct = parseFloat(r.assemblyPct) || 0;
+                                    var dPct = parseFloat(r.dismantlePct) || 0;
+
+                                    if (aPct > 0 || dPct > 0) {
+                                        var pRow = document.createElement('div');
+                                        pRow.className = 'progress-row';
+
+                                        if (aPct > 0) {
+                                            pRow.innerHTML += '<div class="progress-item">' + '<div class="progress-label">組立進捗</div>' + '<div class="progress-bar-bg"><div class="progress-bar-fill assembly" style="width:' + Math.min(aPct, 100) + '%">' + Math.round(aPct) + '%</div></div></div>';
+                                        }
+
+                                        if (dPct > 0) {
+                                            pRow.innerHTML += '<div class="progress-item">' + '<div class="progress-label">解体進捗</div>' + '<div class="progress-bar-bg"><div class="progress-bar-fill dismantle" style="width:' + Math.min(dPct, 100) + '%">' + Math.round(dPct) + '%</div></div></div>';
+                                        }
+
+                                        cardBody.appendChild(pRow);
+                                    }
+
+                                    // Work description
+                                    if (r.todayWork) {
+                                        var work = document.createElement('div');
+                                        work.className = 'report-work';
+                                        work.innerHTML = (r.workType ? '<span class="report-work-type">' + r.workType + '</span>' : '') + r.todayWork;
+                                        cardBody.appendChild(work);
+                                    }
+
+                                    // Issue
+                                    if (r.issue || r.issueDetail) {
+                                        var issue = document.createElement('div');
+                                        issue.className = 'report-issue';
+                                        issue.innerHTML = '<div class="report-issue-title">\u26a0\ufe0f 問題事項</div>' + (r.issue || '') + (r.issueDetail ? '<br>' + r.issueDetail : '');
+                                        cardBody.appendChild(issue);
+                                    }
+
+                                    // Photos
+                                    if (r.images && r.images.length > 0) {
+                                        var photos = document.createElement('div');
+                                        photos.className = 'report-photos';
+
+                                        r.images.forEach(function (img, index) {
+                                            var wrap = document.createElement('div');
+                                            wrap.className = 'photo-thumb-wrap';
+                                            wrap.style.textAlign = 'center';
+                                            var thumb = document.createElement('img');
+                                            thumb.className = 'photo-thumb';
+                                            thumb.src = 'https://lh3.googleusercontent.com/d/' + img.id + '=s400';
+                                            thumb.alt = img.name || '';
+                                            thumb.loading = 'lazy';
+
+                                            thumb.onerror = function () {
+                                                this.onerror = null;
+                                                this.src = 'https://drive.google.com/thumbnail?id=' + img.id + '&sz=w400';
+                                            }
+
+                                                ;
+                                            thumb.style.cursor = 'zoom-in';
+
+                                            thumb.onclick = function () {
+                                                if (window.openLightbox) {
+                                                    openLightbox(r.images, index);
+                                                }
+                                            }
+
+                                                ; wrap.appendChild(thumb);
+
+                                            if (img.name) {
+                                                var lbl = document.createElement('div');
+                                                lbl.className = 'photo-label';
+                                                lbl.textContent = img.name.replace(/\.[^.]+$/, '');
+                                                wrap.appendChild(lbl);
+                                            }
+
+                                            photos.appendChild(wrap);
+                                        });
+                                        cardBody.appendChild(photos);
+                                    }
+
+
+
+                                    card.appendChild(cardBody);
+                                    body.appendChild(card);
+                                });
+                            }
+                        }
+
+                            ;
+
+                        /* ========== PhaseDetailModal ========== */
+                        var phaseDetailCache = {};
+                        window.PhaseDetailModal = {
+                            show: function (siteName, phaseNum) {
+                                var cacheKey = siteName + '_' + phaseNum;
+                                if (phaseDetailCache[cacheKey]) {
+                                    PhaseDetailModal.render(phaseDetailCache[cacheKey]);
+                                    document.getElementById('phaseDetailOverlay').classList.add('active');
+                                    return;
+                                }
+
+                                var phaseName = CFG.phases[phaseNum] || 'フェーズ' + phaseNum;
+                                document.getElementById('phaseDetailTitle').textContent = siteName + ' - ' + phaseName;
+                                var body = document.getElementById('phaseDetailBody');
+                                body.innerHTML = '<div class="detail-empty"><div class="spinner" style="margin:0 auto 12px"></div>データ取得中...</div>';
+                                document.getElementById('phaseDetailOverlay').classList.add('active');
+
+                                google.script.run.withSuccessHandler(function (data) {
+                                    phaseDetailCache[cacheKey] = data;
+                                    PhaseDetailModal.render(data);
+                                }).withFailureHandler(function (e) {
+                                    body.innerHTML = '<div class="detail-empty">エラー: ' + e.message + '</div>';
+                                }).getPhaseReportData(siteName, phaseNum);
+                            },
+                            hide: function () {
+                                document.getElementById('phaseDetailOverlay').classList.remove('active');
+                            },
+                            render: function (data) {
+                                var titleEl = document.getElementById('phaseDetailTitle');
+                                titleEl.textContent = (data.records.length > 0 ? Object.values(data.records[0]).join('').length > 0 ? '' : '' : '') + data.phaseName;
+
+                                // タイトルにレコード数を付与（現場名は最初のレコードから取る）
+                                var firstSiteName = '';
+                                if (data.records.length > 0) {
+                                    var headers = data.headers;
+                                    for (var h = 0; h < headers.length; h++) {
+                                        if (headers[h].indexOf('現場名') >= 0 || headers[h].indexOf('現場') >= 0) {
+                                            firstSiteName = data.records[0][headers[h]] || '';
+                                            break;
+                                        }
+                                    }
+                                }
+                                titleEl.textContent = (firstSiteName ? firstSiteName + ' - ' : '') + data.phaseName + '（' + data.records.length + '件）';
+
+                                var body = document.getElementById('phaseDetailBody');
+                                body.innerHTML = '';
+
+                                if (!data.records || data.records.length === 0) {
+                                    body.innerHTML = '<div class="detail-empty">この現場の報告データはまだありません。</div>';
+                                    return;
+                                }
+
+                                data.records.forEach(function (record, idx) {
+                                    var card = document.createElement('div');
+                                    card.className = 'report-card';
+
+                                    // ヘッダー（レコード番号）
+                                    var header = document.createElement('div');
+                                    header.className = 'report-card-header';
+                                    var dateVal = record['タイムスタンプ'] || record[data.headers[0]] || '';
+                                    header.innerHTML = '<span class="report-date">#' + (idx + 1) + (dateVal ? '　' + dateVal : '') + '</span>';
+                                    card.appendChild(header);
+
+                                    // テーブル形式で全フィールド表示
+                                    var cardBody = document.createElement('div');
+                                    cardBody.className = 'report-card-body';
+                                    cardBody.style.padding = '0';
+
+                                    var table = document.createElement('table');
+                                    table.className = 'phase-report-table';
+
+                                    data.headers.forEach(function (headerName) {
+                                        var val = record[headerName];
+                                        if (!val && val !== 0) return; // 空の値はスキップ
+
+                                        var tr = document.createElement('tr');
+                                        var th = document.createElement('th');
+                                        th.textContent = headerName;
+                                        var td = document.createElement('td');
+
+                                        var strVal = val.toString();
+                                        // URLの場合はリンクにする
+                                        if (strVal.match(/^https?:\/\//)) {
+                                            var link = document.createElement('a');
+                                            link.href = strVal;
+                                            link.target = '_blank';
+                                            link.textContent = 'リンクを開く';
+                                            link.style.color = '#1565C0';
+                                            td.appendChild(link);
+                                        } else {
+                                            td.textContent = strVal;
+                                        }
+
+                                        tr.appendChild(th);
+                                        tr.appendChild(td);
+                                        table.appendChild(tr);
+                                    });
+
+                                    cardBody.appendChild(table);
+                                    card.appendChild(cardBody);
+                                    body.appendChild(card);
+                                });
+                            }
+                        };
+
+                        /* ========== ScheduleViewer (工程表ビューア) ========== */
+                        var scheduleFileCache = {};
+                        window.ScheduleViewer = {
+                            show: function (siteName) {
+                                if (scheduleFileCache[siteName]) {
+                                    ScheduleViewer.render(scheduleFileCache[siteName], siteName);
+                                    return;
+                                }
+
+                                document.getElementById('scheduleSiteName').textContent = siteName;
+                                var body = document.getElementById('scheduleBody');
+                                body.innerHTML = '<div class="detail-empty"><div class="spinner" style="margin:0 auto 12px"></div>工程表を取得中...</div>';
+                                document.getElementById('scheduleOverlay').classList.add('active');
+
+                                google.script.run.withSuccessHandler(function (fileId) {
+                                    scheduleFileCache[siteName] = fileId;
+                                    ScheduleViewer.render(fileId, siteName);
+                                }).withFailureHandler(function (e) {
+                                    document.getElementById('scheduleBody').innerHTML =
+                                        '<div class="detail-empty">エラー: ' + e.message + '</div>';
+                                }).getScheduleFileId(siteName);
+                            },
+                            hide: function () {
+                                document.getElementById('scheduleOverlay').classList.remove('active');
+                                document.getElementById('scheduleBody').innerHTML = '';
+                            },
+                            render: function (fileId, siteName) {
+                                var body = document.getElementById('scheduleBody');
+                                if (!fileId) {
+                                    body.innerHTML = '<div class="detail-empty">この現場の工程表が見つかりません。</div>';
+                                    document.getElementById('scheduleSiteName').textContent = siteName;
+                                    document.getElementById('scheduleOverlay').classList.add('active');
+                                    return;
+                                }
+                                body.innerHTML = '<iframe src="https://drive.google.com/file/d/' + fileId +
+                                    '/preview"></iframe>';
+                                document.getElementById('scheduleSiteName').textContent = siteName + ' - 工程表';
+                                document.getElementById('scheduleOverlay').classList.add('active');
+                            }
+                        };
+
+                        /* ---- Custom Select Logic ---- */
+                        var CustomSelect = {
+                            init: function () {
+                                var wrapper = document.querySelector('.custom-select-wrapper');
+                                if (!wrapper) return;
+                                var trigger = wrapper.querySelector('.custom-select-trigger');
+                                var options = wrapper.querySelectorAll('.custom-option');
+                                var textSpan = document.getElementById('sortSelectText');
+
+                                // Toggle Open
+                                trigger.addEventListener('click', function (e) {
+                                    var sel = wrapper.querySelector('.custom-select');
+                                    sel.classList.toggle('open');
+                                    e.stopPropagation();
+                                });
+
+                                // Select Option
+                                options.forEach(function (opt) {
+                                    opt.addEventListener('click', function (e) {
+                                        var val = this.getAttribute('data-value');
+                                        var text = this.textContent;
+
+                                        // Update UI
+                                        if (textSpan) textSpan.textContent = text;
+                                        wrapper.querySelector('.custom-select').classList.remove('open');
+
+                                        // Update Selected Class
+                                        options.forEach(function (o) { o.classList.remove('selected'); });
+                                        this.classList.add('selected');
+
+                                        // Sync to hidden input
+                                        var hidden = document.getElementById('sortSelectValue');
+                                        if (hidden) hidden.value = val;
+
+                                        // Trigger App Sort
+                                        if (App && App.sort) {
+                                            App.sort(val);
+                                        }
+                                        e.stopPropagation();
+                                    });
+                                });
+
+                                // Click Outside to Close
+                                document.addEventListener('click', function (e) {
+                                    if (!wrapper.contains(e.target)) {
+                                        var cs = wrapper.querySelector('.custom-select');
+                                        if (cs) cs.classList.remove('open');
+                                    }
+                                });
+                            }
+                        };
+
+                        /* ---- Lightbox Logic ---- */
+                        var currentLightboxImages = [];
+                        var currentLightboxIndex = 0;
+
+                        function openLightbox(images, index) {
+                            currentLightboxImages = images || [];
+                            currentLightboxIndex = index || 0;
+
+                            var lb = document.getElementById('lightbox');
+                            if (!lb) {
+                                lb = document.createElement('div');
+                                lb.id = 'lightbox';
+                                lb.className = 'lightbox';
+                                lb.innerHTML =
+                                    '<div class="lightbox-close">&times;</div>' +
+                                    '<div class="lightbox-nav lightbox-prev">\u276E</div>' +
+                                    '<div class="lightbox-nav lightbox-next">\u276F</div>' +
+                                    '<img id="lightbox-img">' +
+                                    '<div class="lightbox-caption" id="lightbox-caption"></div>' +
+                                    '<div class="lightbox-counter" id="lightbox-counter"></div>';
+
+                                // Event: Close
+                                lb.querySelector('.lightbox-close').onclick = closeLightbox;
+                                lb.onclick = function (e) { if (e.target === lb) closeLightbox(); };
+
+                                // Event: Nav
+                                lb.querySelector('.lightbox-prev').onclick = function (e) { e.stopPropagation(); navigateLightbox(-1); };
+                                lb.querySelector('.lightbox-next').onclick = function (e) { e.stopPropagation(); navigateLightbox(1); };
+
+                                document.body.appendChild(lb);
+
+                                // Keyboard support
+                                document.addEventListener('keydown', function (e) {
+                                    var l = document.getElementById('lightbox');
+                                    if (!l || !l.classList.contains('visible')) return;
+                                    if (e.key === 'ArrowLeft') navigateLightbox(-1);
+                                    if (e.key === 'ArrowRight') navigateLightbox(1);
+                                    if (e.key === 'Escape') closeLightbox();
+                                });
+                            }
+
+                            updateLightboxImage();
+                            preloadAdjacentImages();
+                            lb.classList.add('visible');
+                        }
+
+                        window.openLightbox = openLightbox;
+
+                        function closeLightbox() {
+                            var lb = document.getElementById('lightbox');
+                            if (lb) lb.classList.remove('visible');
+                        }
+
+                        function navigateLightbox(dir) {
+                            var newIndex = currentLightboxIndex + dir;
+                            if (newIndex >= 0 && newIndex < currentLightboxImages.length) {
+                                currentLightboxIndex = newIndex;
+                                updateLightboxImage();
+                                preloadAdjacentImages();
+                            }
+                        }
+
+                        function getLightboxUrl(img) {
+                            return 'https://lh3.googleusercontent.com/d/' + img.id + '=w1200-h1200';
+                        }
+
+                        function updateLightboxImage() {
+                            var img = currentLightboxImages[currentLightboxIndex];
+                            if (!img) return;
+
+                            var bigImg = document.getElementById('lightbox-img');
+                            var url = getLightboxUrl(img);
+
+                            // Fade out, swap, fade in
+                            bigImg.style.opacity = '0.3';
+                            var loader = new Image();
+                            loader.onload = function () {
+                                bigImg.src = url;
+                                bigImg.style.opacity = '1';
+                            };
+                            loader.src = url;
+
+                            // If already cached, show immediately
+                            if (loader.complete) {
+                                bigImg.src = url;
+                                bigImg.style.opacity = '1';
+                            }
+
+                            // Update counter
+                            var counter = document.getElementById('lightbox-counter');
+                            if (counter) {
+                                counter.textContent = (currentLightboxIndex + 1) + ' / ' + currentLightboxImages.length;
+                            }
+
+                            // Update caption
+                            var caption = document.getElementById('lightbox-caption');
+                            if (caption) {
+                                caption.textContent = img.name ? img.name.replace(/\.[^.]+$/, '') : '';
+                            }
+
+                            // Update Nav Buttons
+                            var prevBtn = document.querySelector('.lightbox-prev');
+                            var nextBtn = document.querySelector('.lightbox-next');
+                            if (prevBtn) {
+                                if (currentLightboxIndex === 0) prevBtn.classList.add('disabled');
+                                else prevBtn.classList.remove('disabled');
+                            }
+                            if (nextBtn) {
+                                if (currentLightboxIndex === currentLightboxImages.length - 1) nextBtn.classList.add('disabled');
+                                else nextBtn.classList.remove('disabled');
+                            }
+                        }
+
+                        function preloadAdjacentImages() {
+                            // Preload next and previous images for faster navigation
+                            var indices = [currentLightboxIndex - 1, currentLightboxIndex + 1];
+                            indices.forEach(function (idx) {
+                                if (idx >= 0 && idx < currentLightboxImages.length) {
+                                    var preloader = new Image();
+                                    preloader.src = getLightboxUrl(currentLightboxImages[idx]);
+                                }
+                            });
+                        }
+
+                        /* ========== Init ========== */
+                        document.addEventListener('DOMContentLoaded', function () {
+                            leftBody = document.getElementById('leftBody');
+                            rightBody = document.getElementById('rightBody');
+                            rightHeader = document.getElementById('rightHeader');
+                            ganttContainer = document.getElementById('ganttContainer');
+                            timelineContent = document.getElementById('timelineContent');
+                            timelineMonths = document.getElementById('timelineMonths');
+                            timelineDays = document.getElementById('timelineDays');
+
+                            CustomSelect.init();
+
+                            // Mascot Speech Bubble
+                            (function () {
+                                var mascot = document.getElementById('tobiMascot');
+                                var bubble = document.getElementById('mascotBubble');
+                                if (!mascot || !bubble) return;
+
+                                var messages = [
+                                    '今日も安全第一でいこう！🦺',
+                                    'ご安全に！💪',
+                                    '進捗はどうだい？📊',
+                                    'ヨシ！確認OK！✅',
+                                    'KY活動、忘れずにね！📋',
+                                    '足場の点検は済んだ？🔍',
+                                    '熱中症に気をつけて！☀️',
+                                    '整理整頓で事故防止！🧹',
+                                    '声かけ合って安全作業！📢',
+                                    'ヘルメット、あごひもヨシ！⛑️',
+                                    '今日もお疲れさま！🌟',
+                                    '報告・連絡・相談！📞'
+                                ];
+                                var lastIdx = -1;
+
+                                mascot.addEventListener('mouseenter', function () {
+                                    var idx;
+                                    do { idx = Math.floor(Math.random() * messages.length); } while (idx === lastIdx && messages.length > 1);
+                                    lastIdx = idx;
+                                    bubble.textContent = messages[idx];
+                                    bubble.classList.add('visible');
+                                });
+
+                                mascot.addEventListener('mouseleave', function () {
+                                    bubble.classList.remove('visible');
+                                });
+                            })();
+
+                            loadData(BOOTSTRAP);
+                            fullRender();
+                            initScrollSync();
+                            setTimeout(scrollToToday, 100);
+                        });
+
+                    })();
+                </script>
+
+                <!-- =====================================================================
+                     印刷 / PDF 出力（既存の表示ロジック・ガント計算・データ取得は不変）
+
+                     ■ 方針
+                       - 表示中のDOMをそのまま印刷する。CSSは @media print のみで切替。
+                       - ガントは横長になるため、ページは何ページに分割されてもよい
+                         （@page の高さで縦方向に自動ページ分割される）。
+
+                     ■ 2モード
+                       1) mode = 'all'（全期間）
+                          - ガント全幅(ganttContainer.scrollWidth)をそのまま用紙幅にする横長出力。
+                       2) mode = 'custom'（期間を指定）＝A3横フィット
+                          - ユーザーが選んだ開始日〜終了日を、GanttPrintMeta（タイムライン基準）
+                            から「開始px / 窓幅px」へ換算する（計算ロジックは参照のみ・不変）。
+                          - 印刷時CSSで、時間軸ヘッダーとガント本体を transform: translateX(-開始px)
+                            でずらし、右パネルを窓幅にして overflow:hidden でその範囲だけ見せる。
+                          - 用紙はA3横固定。左パネル幅＋窓幅を A3 の印刷可能幅へ zoom で縮小フィット。
+                            zoom はレイアウトに反映されるため、改ページも縮小後サイズで計算される。
+
+                     ■ 行のズレについて
+                       左パネルとガントは行高さが一致(80px)しており、印刷時は同じ .main 内で
+                       縦に流れて改ページされるため、行は揃う。万一の途中切れ防止に
+                       break-inside: avoid を付与済み。
+                ===================================================================== -->
+                <script>
+                    window.PrintManager = (function () {
+                        var PX_PER_MM = 96 / 25.4;     // CSSピクセル → mm 換算（約3.78px/mm）
+                        var LEFT_PANEL_PRINT_W = 500;  // 印刷時の左パネル幅（@media print と一致）
+                        var GANTT_LABEL_PRINT_W = 72;  // ガント左端ラベル列（画面と同幅）
+                        var MAX_MM = 5000;             // ブラウザの用紙寸法上限(約5080mm)に対する保険
+                        var PAGE_H_MM = 200;           // 縦方向のページ高さ（複数ページ分割の単位）
+                        var mql = null;
+
+                        function meta() { return window.GanttPrintMeta || null; }
+
+                        function el(id) { return document.getElementById(id); }
+
+                        // 'YYYY-MM-DD' → タイムライン先頭からの日数オフセット
+                        function dateToOffset(dateStr) {
+                            var m = meta(); if (!m || !dateStr) return null;
+                            var start = new Date(m.startDate + 'T00:00:00');
+                            var d = new Date(dateStr + 'T00:00:00');
+                            if (isNaN(d.getTime())) return null;
+                            return Math.floor((d - start) / 86400000);
+                        }
+
+                        // 期間指定から { startPx, widthPx } を算出（タイムライン範囲にクランプ）
+                        function windowFromRange(fromStr, toStr) {
+                            var m = meta(); if (!m) return null;
+                            var dw = m.dayWidth, total = m.days;
+                            var fo = dateToOffset(fromStr);
+                            var to = dateToOffset(toStr);
+                            if (fo === null || to === null) return null;
+                            if (to < fo) { var t = fo; fo = to; to = t; }
+                            fo = Math.max(0, Math.min(fo, total - 1));
+                            to = Math.max(0, Math.min(to, total - 1));
+                            var startPx = fo * dw;
+                            var widthPx = (to - fo + 1) * dw; // 終了日も含める
+                            return { startPx: startPx, widthPx: widthPx };
+                        }
+
+                        // A3横の用紙・余白（mm）
+                        var A3_W_MM = 420, A3_H_MM = 297, A3_MARGIN_MM = 6;
+
+                        // 印刷用CSS（@page と窓切り）を生成して printPageStyle に注入
+                        function buildAndInject(win) {
+                            var styleEl = el('printPageStyle');
+                            if (!styleEl) return;
+
+                            // --- 全期間：従来どおり内容幅に合わせた横長用紙（A3に収めると読めないため） ---
+                            if (!win) {
+                                var gc = el('ganttContainer');
+                                var ganttW = gc ? Math.ceil(gc.scrollWidth) : 1000;
+                                var widthMm = Math.ceil((LEFT_PANEL_PRINT_W + ganttW + 24) / PX_PER_MM);
+                                if (!widthMm || widthMm < 297) widthMm = 297;
+                                if (widthMm > MAX_MM) widthMm = MAX_MM;
+                                styleEl.textContent =
+                                    '@media print{@page{size:' + widthMm + 'mm ' + PAGE_H_MM + 'mm;margin:6mm;}}';
+                                return;
+                            }
+
+                            // --- 期間指定：A3横に「きっちり」収める ---
+                            // 用紙はA3横固定。左パネル＋選択期間ガントの合計幅を、A3の印刷可能幅へ
+                            // zoom で縮小フィットする（zoomはレイアウトに反映されるので改ページも縮小後で計算される）。
+                            var printableWpx = (A3_W_MM - A3_MARGIN_MM * 2) * PX_PER_MM;
+                            var contentWpx = LEFT_PANEL_PRINT_W + GANTT_LABEL_PRINT_W + win.widthPx;
+                            var zoom = printableWpx / contentWpx;
+                            if (!isFinite(zoom) || zoom <= 0) zoom = 1;
+                            if (zoom > 1) zoom = 1; // 短い期間は拡大せず左寄せ（横に余白）
+
+                            var panelW = GANTT_LABEL_PRINT_W + win.widthPx;
+                            var css = '@media print{';
+                            css += '@page{size:A3 landscape;margin:' + A3_MARGIN_MM + 'mm;}';
+                            // 指定期間だけを見せる：日付ヘッダー・バー領域のみ左へずらし（ラベル列は固定）
+                            css += '#timelineContent,.gantt-bars-layer,.gantt-bg,.gantt-container > .today-line{transform:translateX(-' + win.startPx + 'px) !important;}';
+                            css += '.right-panel,.right-body,.right-header{width:' + panelW + 'px !important;min-width:0 !important;max-width:' + panelW + 'px !important;overflow:hidden !important;}';
+                            // 横フィット（A3幅に収める）
+                            css += '.main{zoom:' + zoom + ';}';
+                            css += '}';
+                            styleEl.textContent = css;
+                        }
+
+                        // 後始末：注入したstyle・bodyクラスを必ず元に戻す（画面に痕跡を残さない）
+                        function cleanup() {
+                            document.body.classList.remove('printing');
+                            var styleEl = el('printPageStyle');
+                            if (styleEl) styleEl.textContent = '';
+                            window.removeEventListener('afterprint', cleanup);
+                            if (mql && mql.removeListener) { mql.removeListener(onMqlChange); mql = null; }
+                        }
+                        function onMqlChange(e) { if (!e.matches) cleanup(); }
+
+                        function doPrint(win) {
+                            try { buildAndInject(win); }
+                            catch (e) { /* 失敗時はブラウザ既定の用紙で印刷 */ }
+                            document.body.classList.add('printing');
+                            window.addEventListener('afterprint', cleanup);
+                            try {
+                                if (window.matchMedia) {
+                                    mql = window.matchMedia('print');
+                                    if (mql.addListener) mql.addListener(onMqlChange);
+                                }
+                            } catch (e) { /* matchMedia非対応は無視 */ }
+                            setTimeout(function () { window.print(); }, 80);
+                        }
+
+                        // 画面で見えている日付範囲（右パネルのスクロール位置）を返す
+                        function visibleRangeDates() {
+                            var m = meta(); var rb = el('rightBody');
+                            if (!m || !rb) return null;
+                            var dw = m.dayWidth;
+                            var fromIdx = Math.floor(rb.scrollLeft / dw);
+                            var toIdx = Math.floor((rb.scrollLeft + rb.clientWidth) / dw) - 1;
+                            fromIdx = Math.max(0, fromIdx);
+                            toIdx = Math.min(m.days - 1, Math.max(fromIdx, toIdx));
+                            return { from: offsetToDateStr(fromIdx), to: offsetToDateStr(toIdx) };
+                        }
+                        function offsetToDateStr(off) {
+                            var m = meta(); if (!m) return '';
+                            var d = new Date(m.startDate + 'T00:00:00');
+                            d.setDate(d.getDate() + off);
+                            var y = d.getFullYear(), mo = ('0' + (d.getMonth() + 1)).slice(-2), da = ('0' + d.getDate()).slice(-2);
+                            return y + '-' + mo + '-' + da;
+                        }
+
+                        return {
+                            open: function () {
+                                var modal = el('printModal');
+                                if (!modal) { doPrint(null); return; } // モーダルが無ければ全期間で印刷
+                                // 既定値：全期間。日付入力にはタイムライン範囲を初期セット
+                                var m = meta();
+                                if (m) {
+                                    if (el('printFrom') && !el('printFrom').value) el('printFrom').value = offsetToDateStr(0);
+                                    if (el('printTo') && !el('printTo').value) el('printTo').value = offsetToDateStr(m.days - 1);
+                                }
+                                modal.style.display = 'flex';
+                            },
+                            hide: function () { var modal = el('printModal'); if (modal) modal.style.display = 'none'; },
+                            onRangeModeChange: function () {
+                                var custom = document.querySelector('input[name="printRange"]:checked');
+                                var fields = el('printRangeFields');
+                                if (fields) fields.style.display = (custom && custom.value === 'custom') ? 'block' : 'none';
+                            },
+                            setQuickRange: function (kind) {
+                                var m = meta(); if (!m) return;
+                                var today = new Date(); today.setHours(0, 0, 0, 0);
+                                var from, to;
+                                if (kind === 'view') {
+                                    var r = visibleRangeDates();
+                                    if (r) { if (el('printFrom')) el('printFrom').value = r.from; if (el('printTo')) el('printTo').value = r.to; }
+                                    return;
+                                } else if (kind === 'thisMonth') {
+                                    from = new Date(today.getFullYear(), today.getMonth(), 1);
+                                    to = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+                                } else if (kind === '2months') {
+                                    from = new Date(today.getFullYear(), today.getMonth(), 1);
+                                    to = new Date(today.getFullYear(), today.getMonth() + 2, 0);
+                                }
+                                function fmt(d) { return d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + ('0' + d.getDate()).slice(-2); }
+                                if (el('printFrom')) el('printFrom').value = fmt(from);
+                                if (el('printTo')) el('printTo').value = fmt(to);
+                            },
+                            run: function () {
+                                var mode = document.querySelector('input[name="printRange"]:checked');
+                                mode = mode ? mode.value : 'all';
+                                var win = null;
+                                if (mode === 'custom') {
+                                    var f = el('printFrom') ? el('printFrom').value : '';
+                                    var t = el('printTo') ? el('printTo').value : '';
+                                    win = windowFromRange(f, t);
+                                    if (!win || win.widthPx <= 0) { alert('印刷する期間を正しく指定してください。'); return; }
+                                }
+                                this.hide();
+                                doPrint(win);
+                            },
+                            // 旧API互換（直接全期間印刷）
+                            print: function () { doPrint(null); }
+                        };
+                    })();
+                </script>
+</body>
+
+</html>

@@ -1,0 +1,14 @@
+"use client";
+
+import Link from "next/link";
+import { useState } from "react";
+
+export type BatchReturnItem = { key: string; ownership: "owned" | "leased"; productId: string; leaseBatchItemId: string | null; code: string | null; name: string; unit: string | null; quantity: number; detail: string | null };
+export function BatchReturnForm({ action, siteId, siteName, items, error }: { action: (formData: FormData) => void | Promise<void>; siteId: string; siteName: string; items: BatchReturnItem[]; error?: string }) {
+  const [quantities, setQuantities] = useState<Record<string, string>>({});
+  const selected = items.flatMap((item) => {
+    const quantity = Number(quantities[item.key]);
+    return Number.isFinite(quantity) && quantity > 0 ? [{ ownership: item.ownership, product_id: item.productId, lease_batch_item_id: item.leaseBatchItemId, quantity }] : [];
+  });
+  return <div className="mx-auto max-w-4xl px-6 py-10"><Link href="/stock/returns" className="text-sm text-zinc-700 hover:underline">← 返却履歴</Link><h1 className="mt-4 text-2xl font-semibold text-zinc-900">センターへの返却登録</h1><p className="mt-2 text-zinc-700">現場在庫を減らし、センター在庫へ移します。リース品も同じ操作でセンターへ戻します。</p>{error && <p className="mt-4 rounded border border-red-200 bg-red-50 p-3 text-red-700">{error}</p>}<form action={action} className="mt-6"><input type="hidden" name="site_id" value={siteId}/><input type="hidden" name="items" value={JSON.stringify(selected)}/><h2 className="rounded-t-lg bg-zinc-900 px-4 py-3 font-semibold text-white">{siteName}</h2><div className="overflow-x-auto rounded-b-lg border border-zinc-200 bg-white"><table className="w-full min-w-[720px] text-sm"><thead className="bg-zinc-50 text-zinc-700"><tr><th className="p-3 text-left">商品</th><th className="p-3 text-left">区分</th><th className="p-3 text-right">現場在庫</th><th className="p-3 text-right">返却数</th></tr></thead><tbody>{items.map((item)=><tr key={item.key} className="border-t"><td className="p-3 font-medium text-zinc-900">{item.code ? `${item.code} — ` : ""}{item.name}<div className="text-xs font-normal text-zinc-600">{item.detail ?? ""}</div></td><td className="p-3 text-zinc-700">{item.ownership === "owned" ? "自社" : "リース"}</td><td className="p-3 text-right tabular-nums">{item.quantity} {item.unit ?? ""}</td><td className="p-3 text-right"><input type="number" min="0" max={item.quantity} step="any" value={quantities[item.key] ?? ""} onChange={(e)=>setQuantities({...quantities,[item.key]:e.target.value})} className="w-28 rounded border border-zinc-300 px-2 py-1 text-right text-zinc-900"/></td></tr>)}</tbody></table></div><label className="mt-5 block text-sm font-medium text-zinc-800">メモ（任意）<textarea name="memo" rows={3} className="mt-1 w-full rounded border border-zinc-300 p-2 text-zinc-900"/></label><button disabled={selected.length===0} className="mt-5 rounded-lg bg-zinc-900 px-5 py-3 font-medium text-white disabled:opacity-40">選択した資材をセンターへ返却</button></form></div>;
+}

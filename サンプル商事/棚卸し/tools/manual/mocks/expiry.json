@@ -1,0 +1,25 @@
+{
+  "getExpiryAlerts": {
+    "thresholdDays": 365,
+    "items": [
+      {
+        "clinic": "PV",
+        "productId": "P002",
+        "name": "サンプル麻酔カートリッジ",
+        "stock": 12,
+        "expiry": "2026-09-30T00:00:00.000Z",
+        "daysLeft": 33,
+        "status": "まもなく期限"
+      },
+      {
+        "clinic": "PV",
+        "productId": "P004",
+        "name": "サンプル消毒液",
+        "stock": 3,
+        "expiry": "2026-08-20T00:00:00.000Z",
+        "daysLeft": -8,
+        "status": "期限切れ"
+      }
+    ]
+  }
+}

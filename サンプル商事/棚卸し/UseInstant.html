@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<base target="_top">
+<style>
+  :root{ --ink:#1a1a1a; --sub:#5a6270; --accent:#1e5aa8; --ok:#1e7a4d; --warn:#b3541e;
+         --trg:#7a4fbf; --err:#c0392b; --line:#d8dde5; }
+  *{box-sizing:border-box;}
+  body{margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;
+       font-family:"Yu Gothic",YuGothic,"Hiragino Kaku Gothic ProN","Meiryo",sans-serif;
+       color:var(--ink);background:#eef1f5;font-size:16px;padding:16px;}
+  .card{background:#fff;border-radius:14px;box-shadow:0 4px 20px rgba(0,0,0,.1);
+        padding:26px 22px;max-width:400px;width:100%;text-align:center;}
+  .big{font-size:52px;line-height:1;margin-bottom:10px;}
+  .name{font-size:20px;font-weight:800;margin:6px 0;word-break:break-all;line-height:1.4;}
+  .msg{font-size:16px;margin:10px 0;}
+  .stock{font-size:15px;color:var(--sub);margin-top:6px;}
+  .ok{color:var(--ok);} .warn{color:var(--warn);} .trg{color:var(--trg);} .err{color:var(--err);}
+  .clinicTag{display:inline-block;background:var(--accent);color:#fff;font-size:13px;
+             padding:3px 12px;border-radius:20px;margin-bottom:14px;}
+  .spin{color:var(--sub);}
+  button{cursor:pointer;font-size:16px;padding:12px 18px;border:none;border-radius:8px;
+         background:var(--accent);color:#fff;font-weight:700;margin-top:14px;width:100%;}
+  /* 確認ボタンは押し間違えないよう大きめにする（手袋・急ぎの操作を想定） */
+  button.confirm{font-size:19px;padding:18px 18px;margin-top:18px;}
+  button.trigger{background:var(--trg);}
+  button.retry{background:var(--err);}
+  button[disabled]{opacity:.55;cursor:default;}
+  select{font-size:16px;padding:10px;border:1px solid var(--line);border-radius:8px;width:100%;margin-top:10px;}
+  .sub{font-size:13px;color:var(--sub);margin-top:12px;}
+  .curStock{font-size:15px;color:var(--sub);margin-top:10px;}
+  .curStock b{font-size:26px;color:var(--ink);}
+  .stockInput{font-size:28px;font-weight:800;text-align:center;width:100%;padding:12px;
+              border:2px solid var(--accent);border-radius:9px;margin-top:12px;}
+  .pvNotice{background:#fff4d6;color:#754c00;border:1px solid #e4c46a;border-radius:8px;
+            padding:10px;margin:4px 0 14px;font-size:14px;font-weight:700;line-height:1.5;}
+  a{color:var(--accent);}
+</style>
+</head>
+<body>
+<div class="card" id="card">
+  <div class="spin" id="body">読み込み中…</div>
+</div>
+
+<script>
+  var PRODUCT_ID = '<?= initParams && initParams.productId ? initParams.productId : "" ?>';
+  var CLINIC_KEY = 'tanaoroshi_clinic';
+
+  // このページ表示ぶんの冪等トークン。確認画面を出した時点で1つ決め、
+  // 通信失敗後の「もう一度試す」でも同じ値を送る。
+  // こうすると、実は1回目が成功していた場合にサーバー側で二重登録として弾かれる。
+  // 別の1個を登録したいときはQRを読み直す＝新しいページ＝新しいトークンになる。
+  var TOKEN = genId();
+
+  var $ = function(id){ return document.getElementById(id); };
+  var body = $('body');
+
+  start();
+
+  function start(){
+    if(!PRODUCT_ID){ show('err', '⚠', 'QRが正しくありません', ''); return; }
+
+    var clinic = getSavedClinic();
+    if(!clinic){ askClinic(); return; }
+
+    loadForClinic(clinic);
+  }
+
+  function askClinic(){
+    body.innerHTML = '<div class="name">この端末の医院を設定</div>'
+      + '<div class="sub">初回のみ設定します。以降このスマホでは自動でこの医院になります。</div>'
+      + '<select id="clinicSel"><option value="">選択してください</option></select>'
+      + '<button id="saveClinic">この医院に設定して続行</button>';
+    google.script.run.withSuccessHandler(function(list){
+      var sel = $('clinicSel');
+      list.forEach(function(c){ var o=document.createElement('option'); o.value=c; o.textContent=c; sel.appendChild(o); });
+    }).getClinicList();
+    $('saveClinic').onclick = function(){
+      var c = $('clinicSel').value;
+      if(!c){ return; }
+      saveClinic(c);
+      loadForClinic(c);
+    };
+  }
+
+  /** 医院ホームで設定された、その医院専用のQR運用モードで分岐する。 */
+  function loadForClinic(clinic){
+    body.innerHTML = '<div class="clinicTag">'+esc(clinic)+'</div><div class="spin">QRモードを確認中…</div>';
+    google.script.run
+      .withSuccessHandler(function(res){
+        if(res && res.mode === '棚卸し入力') loadPvStock(clinic);
+        else loadInfo(clinic);
+      })
+      .withFailureHandler(function(err){ show('err', '⚠', 'QRモードを確認できませんでした', err.message, clinic); })
+      .getClinicQrMode(clinic);
+  }
+
+  function loadPvStock(clinic){
+    body.innerHTML = '<div class="clinicTag">'+esc(clinic)+'</div><div class="spin">現在庫を読み込み中…</div>';
+    google.script.run
+      .withSuccessHandler(function(info){ showPvStockInput(clinic, info); })
+      .withFailureHandler(function(err){ show('err', '⚠', '読み込めませんでした', err.message, clinic); })
+      .getSingleBulkStockInfo(clinic, PRODUCT_ID);
+  }
+
+  function showPvStockInput(clinic, info){
+    if(!info || !info.found){
+      show('err', '⚠', clinic+'の在庫にありません',
+        'この資材は'+clinic+'の在庫に登録されていません。管理者にご連絡ください。', clinic);
+      return;
+    }
+    if(info.mode !== '数量管理'){
+      show('err', '⚠', info.name,
+        'この資材は数量管理ではないため、現在庫を入力できません。', clinic);
+      return;
+    }
+
+    var html = '<div class="clinicTag">'+esc(clinic)+'</div>';
+    html += '<div class="pvNotice">'+esc(clinic)+' 棚卸し入力モード<br>数えた現在庫を入力してください</div>';
+    html += '<div class="big">📦</div>';
+    html += '<div class="name">'+esc(info.name)+'</div>';
+    html += '<div class="curStock">システム上の現在庫　<b>'+esc(info.stock)+'</b></div>';
+    html += '<input class="stockInput" id="pvStock" type="number" min="0" step="1" inputmode="numeric" placeholder="実数">';
+    html += '<button class="confirm" id="pvSaveBtn">この数で現在庫を確定する</button>';
+    html += '<div class="sub">在庫ゼロの場合は「0」を入力します。<br>確定するまで在庫は変わりません。</div>';
+    html += clinicLinkHtml();
+    body.innerHTML = html;
+
+    $('pvSaveBtn').onclick = function(){ savePvStock(clinic, info); };
+    bindClinicLink();
+    try{ $('pvStock').focus(); }catch(e){}
+  }
+
+  function savePvStock(clinic, info){
+    var input = $('pvStock');
+    var raw = input ? input.value.trim() : '';
+    var count = Number(raw);
+    if(raw === '' || !Number.isInteger(count) || count < 0){
+      alert('在庫数は0以上の整数で入力してください。');
+      return;
+    }
+    var btn = $('pvSaveBtn');
+    btn.disabled = true;
+    btn.textContent = '保存中…';
+    google.script.run
+      .withSuccessHandler(function(res){
+        if(res && res.duplicated){
+          show('ok', '✓', info.name, 'この在庫数は登録済みです。', clinic, '現在庫 '+count);
+          return;
+        }
+        show('ok', '✓', info.name, '現在庫を確定しました。', clinic,
+          '在庫 '+info.stock+' → '+count);
+      })
+      .withFailureHandler(function(err){
+        btn.disabled = false;
+        btn.textContent = 'この数で現在庫を確定する';
+        alert('保存できませんでした：'+err.message);
+      })
+      .saveSingleBulkStock(clinic, PRODUCT_ID, count, TOKEN);
+  }
+
+  /**
+   * QRを開いた直後の処理。ここでは在庫を一切変更せず、
+   * 何の資材か・今いくつあるかを読み取って確認画面を出すだけにする。
+   */
+  function loadInfo(clinic){
+    body.innerHTML = '<div class="clinicTag">'+esc(clinic)+'</div><div class="spin">読み込み中…</div>';
+    google.script.run
+      .withSuccessHandler(function(info){ showConfirm(clinic, info); })
+      .withFailureHandler(function(err){ show('err', '⚠', '読み込めませんでした', err.message, clinic); })
+      .getInstantUseInfo(clinic, PRODUCT_ID);
+  }
+
+  /** 確認画面。ボタンを押すまで在庫は動かない。 */
+  function showConfirm(clinic, info){
+    if(!info || !info.found){
+      show('err', '⚠', 'この医院の在庫にありません',
+        'この資材は ' + clinic + ' の在庫に登録されていません。管理者にご連絡ください。', clinic);
+      return;
+    }
+    if(info.mode !== '数量管理' && info.mode !== '発注トリガー管理'){
+      show('err', '⚠', info.name,
+        'この資材はまだ管理方式が設定されていないため登録できません。管理者にご連絡ください。', clinic);
+      return;
+    }
+
+    var isTrigger = info.mode === '発注トリガー管理';
+    var html = '<div class="clinicTag">'+esc(clinic)+'</div>';
+    html += '<div class="big '+(isTrigger?'trg':'')+'">'+(isTrigger?'🛒':'📦')+'</div>';
+    html += '<div class="name">'+esc(info.name)+'</div>';
+
+    if(isTrigger){
+      html += '<div class="msg">発注が必要なときに押してください。</div>';
+      html += '<button class="confirm trigger" id="goBtn">発注候補に追加する</button>';
+    }else{
+      html += '<div class="curStock">現在庫　<b>'+info.stock+'</b></div>';
+      html += '<button class="confirm" id="goBtn">使用登録する（1個 減らす）</button>';
+    }
+    html += '<div class="sub">このボタンを押すまで在庫は変わりません。<br>'
+          + '違う資材なら、そのまま閉じてください。</div>';
+    html += clinicLinkHtml();
+    body.innerHTML = html;
+
+    $('goBtn').onclick = function(){
+      this.disabled = true;                 // 連打による多重送信を防ぐ
+      this.textContent = '登録中…';
+      runUse(clinic);
+    };
+    bindClinicLink();
+  }
+
+  /** 実際に在庫を動かす。ボタンを押したときだけ呼ばれる。 */
+  function runUse(clinic){
+    google.script.run
+      .withSuccessHandler(function(res){ onDone(clinic, res); })
+      .withFailureHandler(function(err){ showRetry(clinic, err.message); })
+      .instantUse(clinic, PRODUCT_ID, TOKEN);
+  }
+
+  /**
+   * 通信失敗時。同じトークンで再送できるようにする。
+   * 1回目が実際には成功していた場合は、サーバー側が二重登録として弾くので安全。
+   */
+  function showRetry(clinic, message){
+    var html = '<div class="clinicTag">'+esc(clinic)+'</div>';
+    html += '<div class="big err">⚠</div>';
+    html += '<div class="name">登録できませんでした</div>';
+    html += '<div class="msg err">'+esc(message)+'</div>';
+    html += '<button class="confirm retry" id="retryBtn">もう一度試す</button>';
+    html += '<div class="sub">同じ操作として送り直すため、二重に減ることはありません。</div>';
+    body.innerHTML = html;
+    $('retryBtn').onclick = function(){
+      this.disabled = true;
+      this.textContent = '登録中…';
+      runUse(clinic);
+    };
+  }
+
+  function onDone(clinic, res){
+    try{ if(navigator.vibrate) navigator.vibrate(60); }catch(e){}
+
+    if(res.duplicated){ show('ok', '✓', '登録済み', res.message, clinic); return; }
+
+    if(res.kind === 'trigger'){
+      show('trg', '🛒', res.name, res.message, clinic);
+      return;
+    }
+    // 数量管理
+    var icon = res.negative ? '⚠' : '✓';
+    var cls = res.negative ? 'warn' : 'ok';
+    var stock = '在庫 ' + res.before + ' → ' + res.after + (res.negative ? '（マイナスです）' : '');
+    var msg = '1個 使用しました' + (res.orderCandidateAdded ? '　／　🛒 発注基準に達したため発注候補に追加しました' : '');
+    show(cls, icon, res.name, msg, clinic, stock);
+  }
+
+  function show(cls, icon, title, msg, clinic, stock){
+    var html = '';
+    if(clinic) html += '<div class="clinicTag">'+esc(clinic)+'</div>';
+    html += '<div class="big '+cls+'">'+icon+'</div>';
+    html += '<div class="name">'+esc(title)+'</div>';
+    if(msg) html += '<div class="msg '+cls+'">'+esc(msg)+'</div>';
+    if(stock) html += '<div class="stock">'+esc(stock)+'</div>';
+    html += '<div class="sub">続けて使う場合は、もう一度QRを読み取ってください。</div>';
+    if(clinic) html += clinicLinkHtml();
+    body.innerHTML = html;
+    bindClinicLink();
+  }
+
+  function clinicLinkHtml(){
+    return '<div class="sub"><a href="#" id="changeClinicLink">医院を変更する（共有端末の場合）</a></div>';
+  }
+
+  function bindClinicLink(){
+    var link = $('changeClinicLink');
+    if(!link) return;
+    link.onclick = function(e){
+      e.preventDefault();
+      if(!confirm('この端末の医院設定を変更しますか？\n共有端末の場合、次にこのQRを読む人にも影響します。')) return;
+      clearSavedClinic();
+      askClinic();
+    };
+  }
+
+  /** GASの表示環境によって片方が使えない場合に備え、端末設定を2か所へ保存する。 */
+  function getSavedClinic(){
+    var clinic = '';
+    try{ clinic = localStorage.getItem(CLINIC_KEY) || ''; }catch(e){}
+    if(clinic) return clinic;
+    try{
+      var m = document.cookie.match(new RegExp('(?:^|;\\s*)'+CLINIC_KEY+'=([^;]*)'));
+      if(m) clinic = decodeURIComponent(m[1] || '');
+    }catch(e){}
+    if(clinic){ try{ localStorage.setItem(CLINIC_KEY, clinic); }catch(e){} }
+    return clinic;
+  }
+
+  function saveClinic(clinic){
+    try{ localStorage.setItem(CLINIC_KEY, clinic); }catch(e){}
+    try{
+      document.cookie = CLINIC_KEY+'='+encodeURIComponent(clinic)
+        +'; Max-Age=315360000; Path=/; SameSite=Lax; Secure';
+    }catch(e){}
+  }
+
+  function clearSavedClinic(){
+    try{ localStorage.removeItem(CLINIC_KEY); }catch(e){}
+    try{ document.cookie = CLINIC_KEY+'=; Max-Age=0; Path=/; SameSite=Lax; Secure'; }catch(e){}
+  }
+
+  function genId(){
+    if(window.crypto && crypto.randomUUID) return crypto.randomUUID();
+    return 'p-' + Date.now() + '-' + Math.random().toString(16).slice(2);
+  }
+  function esc(s){
+    return String(s==null?'':s).replace(/[&<>"']/g,function(c){
+      return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];
+    });
+  }
+</script>
+</body>
+</html>

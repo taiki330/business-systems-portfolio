@@ -1,0 +1,17 @@
+# Apps Scriptに無関係な資料・ドキュメント類だけを除外する。
+# .js/.html/.json は clasp が既定で対象にするため、新しいスクリプトファイルを
+# 追加しても個別にここへ登録する必要はない。
+*.xlsx
+*.pdf
+*.txt
+*.md
+*.docx
+*.m4a
+
+# --- 開発用の資料・ツール（GASへは絶対に push しない） ---
+node_modules/**
+tools/**
+docs/**
+.claude/**
+package.json
+package-lock.json

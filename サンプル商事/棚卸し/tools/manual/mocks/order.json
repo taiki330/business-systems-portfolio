@@ -1,0 +1,46 @@
+{
+  "getOrderCandidates": {
+    "clinic": "サンプル歯科",
+    "candidates": [
+      {
+        "name": "サンプルグローブ Mサイズ",
+        "reason": "しきい値割れ",
+        "stock": 4,
+        "openQty": 0,
+        "kijun": 6,
+        "standardQty": 10,
+        "supplier": "サンプル商会"
+      },
+      {
+        "name": "サンプルコットンロール",
+        "reason": "しきい値割れ",
+        "stock": 0,
+        "openQty": 0,
+        "kijun": 5,
+        "standardQty": 20,
+        "supplier": "サンプル商会"
+      },
+      {
+        "name": "サンプルトレー使い捨て",
+        "reason": "しきい値割れ",
+        "stock": -1,
+        "openQty": 0,
+        "kijun": 4,
+        "standardQty": 10,
+        "supplier": "サンプル資材"
+      },
+      {
+        "name": "サンプル紙コップ",
+        "reason": "発注トリガー",
+        "trigger": "残り1袋になったら",
+        "supplier": "サンプル資材"
+      },
+      {
+        "name": "サンプルティッシュ",
+        "reason": "発注トリガー",
+        "trigger": "箱が空になったら",
+        "supplier": ""
+      }
+    ]
+  }
+}

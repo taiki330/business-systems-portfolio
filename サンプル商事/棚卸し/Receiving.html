@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<base target="_top">
+<style>
+  :root{ --line:#d8dde5; --ink:#1a1a1a; --sub:#5a6270; --accent:#1e5aa8;
+         --soft:#f4f6f9; --ok:#1e7a4d; --err:#c0392b; }
+  *{box-sizing:border-box;}
+  body{margin:0;font-family:"Yu Gothic",YuGothic,"Hiragino Kaku Gothic ProN","Meiryo",sans-serif;
+       color:var(--ink);background:#eef1f5;font-size:14px;}
+  header{position:sticky;top:0;z-index:10;background:#fff;border-bottom:2px solid var(--accent);
+         padding:12px 16px;box-shadow:0 1px 6px rgba(0,0,0,.06);}
+  h1{font-size:17px;margin:0 0 10px;}
+  .clinicTag{background:var(--accent);color:#fff;font-size:13px;padding:2px 10px;border-radius:4px;font-weight:700;}
+  .bar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;}
+  select,input,button{font-size:14px;padding:6px 10px;border:1px solid var(--line);border-radius:5px;background:#fff;}
+  button{cursor:pointer;background:var(--accent);color:#fff;border:none;font-weight:700;}
+  button.ghost{background:#fff;color:var(--accent);border:1px solid var(--accent);}
+  button.danger{background:#fff;color:var(--err);border:1px solid var(--err);}
+  button:disabled{opacity:.5;cursor:not-allowed;}
+  main{padding:12px 16px 40px;max-width:900px;margin:0 auto;}
+  section{background:#fff;border:1px solid var(--line);border-radius:8px;padding:14px;margin-bottom:16px;}
+  h2{font-size:14.5px;margin:0 0 10px;color:var(--accent);}
+  table{width:100%;border-collapse:collapse;}
+  th,td{border:1px solid var(--line);padding:6px 8px;text-align:left;vertical-align:middle;font-size:13px;}
+  th{background:var(--soft);white-space:nowrap;}
+  td.num{text-align:right;}
+  .qty{width:70px;text-align:right;}
+  .empty,.spin{padding:20px;text-align:center;color:var(--sub);}
+  .status-tag{font-size:11px;padding:1px 8px;border-radius:10px;background:var(--soft);color:var(--sub);}
+  .status-tag.partial{background:#fdf1e7;color:#b3541e;}
+  .toast{min-height:20px;font-size:13px;margin-top:8px;}
+  .toast.ok{color:var(--ok);} .toast.err{color:var(--err);}
+  .row{display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
+</style>
+</head>
+<body>
+<header>
+  <a id="homeBack" href="#" style="display:inline-block;margin-bottom:8px;font-size:13px;font-weight:700;color:var(--accent);text-decoration:none;">← 医院ホームに戻る</a>
+  <h1>入荷登録 <span class="clinicTag" id="clinicTag">医院未選択</span></h1>
+  <div class="bar">
+    <button id="loadBtn" class="ghost">再読み込み</button>
+  </div>
+</header>
+
+<main>
+  <section>
+    <h2>未入荷の発注</h2>
+    <div id="ordersWrap"><div class="spin">読み込み中…</div></div>
+  </section>
+
+  <section>
+    <h2>発注なし直接入荷（急遽購入した商品など）</h2>
+    <div class="row">
+      <select id="directProduct" style="min-width:220px;"><option value="">商品を選択</option></select>
+      <input type="number" id="directQty" class="qty" min="1" step="1" placeholder="数量">
+      <span id="directExpiryWrap" style="display:none;">使用期限：<input type="date" id="directExpiry"></span>
+      <button id="directBtn" class="ghost">直接入荷を登録</button>
+    </div>
+  </section>
+
+  <div class="toast" id="toast"></div>
+</main>
+
+<script>
+  var CLINIC_KEY = 'tanaoroshi_clinic';
+  var CLINIC = '<?= initParams && initParams.clinic ? initParams.clinic : "" ?>';
+  var LOAD_TIMEOUT_MS = 30000;
+  var $ = function(id){ return document.getElementById(id); };
+
+  // 医院はURL優先、無ければ端末記憶から（他の医院専用画面と同じ方式。切り替えUIは持たない）
+  if(!CLINIC){ try { CLINIC = localStorage.getItem(CLINIC_KEY) || ''; } catch(e){} }
+  else { try { localStorage.setItem(CLINIC_KEY, CLINIC); } catch(e){} }
+
+  $('loadBtn').onclick = load;
+  $('directBtn').onclick = submitDirect;
+
+  if(!CLINIC){
+    $('ordersWrap').innerHTML = '<div class="empty">医院が指定されていません。医院ホームから開いてください。</div>';
+  } else {
+    $('clinicTag').textContent = CLINIC;
+    load();
+  }
+
+  function load(){
+    if(!CLINIC) return;
+    loadOrders(CLINIC);
+    loadDirectProducts(CLINIC);
+  }
+
+  function loadOrders(clinic){
+    $('ordersWrap').innerHTML = '<div class="spin">読み込み中…</div>';
+    var finished = false;
+    var timer = setTimeout(function(){
+      if(finished) return;
+      finished = true;
+      $('ordersWrap').innerHTML = '<div class="empty">読み込みに時間がかかっています。<br>「再読み込み」を押してください。</div>';
+    }, LOAD_TIMEOUT_MS);
+    google.script.run
+      .withSuccessHandler(function(res){
+        if(finished) return;
+        finished = true; clearTimeout(timer);
+        renderOrders(res.orders || []);
+      })
+      .withFailureHandler(function(err){
+        if(finished) return;
+        finished = true; clearTimeout(timer);
+        $('ordersWrap').innerHTML = '<div class="empty">読み込みに失敗：'+esc(err.message)+'</div>';
+      })
+      .getOpenOrders(clinic);
+  }
+
+  function loadDirectProducts(clinic){
+    var sel = $('directProduct');
+    sel.innerHTML = '<option value="">商品一覧を読み込み中…</option>';
+    google.script.run
+      .withSuccessHandler(function(res){ renderDirectProducts(res.products || []); })
+      .withFailureHandler(function(err){
+        sel.innerHTML = '<option value="">商品の読み込みに失敗しました</option>';
+        toast('直接入荷の商品一覧を読み込めませんでした：'+err.message, 'err');
+      })
+      .getProductsForDirectReceipt(clinic);
+  }
+
+  function renderOrders(orders){
+    if(!orders.length){ $('ordersWrap').innerHTML = '<div class="empty">未入荷の発注はありません。</div>'; return; }
+    var html = '<table><thead><tr>'
+      + '<th>品名</th><th>状態</th><th>発注数量</th><th>入荷済</th><th>残り</th>'
+      + '<th>今回入荷数量</th><th>使用期限</th><th>発注先</th><th></th><th></th>'
+      + '</tr></thead><tbody>';
+    orders.forEach(function(o){
+      var tagCls = o.status === '一部入荷' ? 'partial' : '';
+      var isTrigger = o.mode === '発注トリガー管理';
+      // 発注トリガー管理商品は在庫数量の概念が無いため、数量入力は出さず
+      // 「入荷完了にする」ワンタップで発注状態のみ「入荷済み」にする。
+      var qtyCell = isTrigger
+        ? '<span style="color:#b3b8c0;">対象外</span>'
+        : '<input type="number" class="qty recvQty" min="1" max="'+o.remainingQty+'" step="1" value="'+o.remainingQty+'">';
+      var expiryCell = (!isTrigger && o.expiryManaged)
+        ? '<input type="date" class="expiryInput">'
+        : '<span style="color:#b3b8c0;">-</span>';
+      var btnLabel = isTrigger ? '入荷完了にする' : '入荷登録';
+      html += '<tr data-id="'+esc(o.orderId)+'" data-trigger="'+(isTrigger?'1':'0')+'">'
+        + '<td>'+esc(o.name)+'</td>'
+        + '<td><span class="status-tag '+tagCls+'">'+esc(o.status)+'</span></td>'
+        + '<td class="num">'+(isTrigger ? '-' : o.orderedQty)+'</td>'
+        + '<td class="num">'+(isTrigger ? '-' : o.receivedQty)+'</td>'
+        + '<td class="num">'+(isTrigger ? '-' : o.remainingQty)+'</td>'
+        + '<td>'+qtyCell+'</td>'
+        + '<td>'+expiryCell+'</td>'
+        + '<td>'+esc(o.supplier)+'</td>'
+        + '<td><button class="ghost recvBtn">'+btnLabel+'</button></td>'
+        + '<td><button class="danger cancelBtn">キャンセル</button></td>'
+        + '</tr>';
+    });
+    html += '</tbody></table>';
+    $('ordersWrap').innerHTML = html;
+    document.querySelectorAll('.recvBtn').forEach(function(btn){
+      btn.onclick = function(){ receiveOrder(btn.closest('tr')); };
+    });
+    document.querySelectorAll('.cancelBtn').forEach(function(btn){
+      btn.onclick = function(){ cancelOneOrder(btn.closest('tr')); };
+    });
+  }
+
+  function receiveOrder(tr){
+    var orderId = tr.getAttribute('data-id');
+    var isTrigger = tr.getAttribute('data-trigger') === '1';
+    var qty = 0;
+    var expiryInput = tr.querySelector('.expiryInput');
+    var expiryDate = expiryInput ? expiryInput.value : '';
+    if(isTrigger){
+      if(!confirm('この発注を入荷完了にします（在庫数量は変わりません）。よろしいですか？')) return;
+    } else {
+      qty = Number(tr.querySelector('.recvQty').value);
+      if(!(qty > 0)){ alert('入荷数量を入力してください。'); return; }
+      if(!confirm('入荷登録します（数量：'+qty+'）。よろしいですか？')) return;
+    }
+    toast('登録中…', '');
+    google.script.run
+      .withSuccessHandler(function(res){
+        var msg = isTrigger ? '入荷完了にしました。' : ('入荷登録しました（在庫 '+res.before+' → '+res.after+'）');
+        toast(msg, 'ok');
+        loadOrders(CLINIC);
+      })
+      .withFailureHandler(function(err){ toast('失敗：'+err.message, 'err'); })
+      .registerReceipt(CLINIC, orderId, qty, localStorage.getItem('tanaoroshi_registrant') || '', expiryDate);
+  }
+
+  function cancelOneOrder(tr){
+    var orderId = tr.getAttribute('data-id');
+    var reason = prompt('キャンセル理由を入力してください（任意）：', '');
+    if(reason === null) return; // キャンセル操作自体を中止
+    if(!confirm('この発注をキャンセルします。未入荷分は取り消されます。よろしいですか？')) return;
+    toast('処理中…', '');
+    google.script.run
+      .withSuccessHandler(function(res){
+        toast('キャンセルしました。', 'ok');
+        loadOrders(CLINIC);
+      })
+      .withFailureHandler(function(err){ toast('失敗：'+err.message, 'err'); })
+      .cancelOrder(CLINIC, orderId, reason || '', localStorage.getItem('tanaoroshi_registrant') || '');
+  }
+
+  var directProductExpiry = {}; // productId -> expiryManaged
+
+  function renderDirectProducts(products){
+    var sel = $('directProduct');
+    sel.innerHTML = '<option value="">商品を選択</option>';
+    directProductExpiry = {};
+    products.forEach(function(p){
+      var o = document.createElement('option');
+      o.value = p.productId;
+      o.textContent = p.name + '（現在庫 ' + p.stock + '）';
+      sel.appendChild(o);
+      directProductExpiry[p.productId] = !!p.expiryManaged;
+    });
+    syncDirectExpiryWrap();
+  }
+
+  $('directProduct').onchange = syncDirectExpiryWrap;
+  function syncDirectExpiryWrap(){
+    var pid = $('directProduct').value;
+    $('directExpiryWrap').style.display = (pid && directProductExpiry[pid]) ? 'inline' : 'none';
+  }
+
+  function submitDirect(){
+    var clinic = CLINIC;
+    var pid = $('directProduct').value;
+    var qty = Number($('directQty').value);
+    var expiryDate = $('directExpiry').value;
+    if(!clinic || !pid || !(qty > 0)){ alert('商品・数量を入力してください。'); return; }
+    if(!confirm('発注なし直接入荷を登録します。よろしいですか？')) return;
+    toast('登録中…', '');
+    google.script.run
+      .withSuccessHandler(function(res){
+        toast('直接入荷を登録しました（'+res.name+'：在庫 '+res.before+' → '+res.after+'）', 'ok');
+        $('directQty').value = '';
+        $('directExpiry').value = '';
+        loadDirectProducts(clinic);
+      })
+      .withFailureHandler(function(err){ toast('失敗：'+err.message, 'err'); })
+      .registerDirectReceipt(clinic, pid, qty, localStorage.getItem('tanaoroshi_registrant') || '', expiryDate);
+  }
+
+  function toast(msg, kind){
+    var t = $('toast'); t.textContent = msg || ''; t.className = 'toast ' + (kind || '');
+  }
+  function esc(s){
+    return String(s==null?'':s).replace(/[&<>"']/g,function(c){
+      return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];
+    });
+  }
+</script>
+<script>
+  // 「医院ホームに戻る」リンク：現在の医院（localStorage）＋実行URL（appUrl）でホームURLを組む
+  (function(){
+    var b = document.getElementById('homeBack');
+    if (!b) return;
+    var c = localStorage.getItem('tanaoroshi_clinic') || '';
+    var base = '<?= initParams && initParams.appUrl ? initParams.appUrl : "" ?>';
+    b.href = base + '?page=home' + (c ? '&clinic=' + encodeURIComponent(c) : '');
+  })();
+</script>
+</body>
+</html>

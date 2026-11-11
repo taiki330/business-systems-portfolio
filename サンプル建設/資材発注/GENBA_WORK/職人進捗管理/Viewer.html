@@ -1,0 +1,1252 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>現場報告一覧</title>
+  <style>
+    :root {
+      --bg: #f1f5f9;
+      --card: #fff;
+      --text: #0f172a;
+      --muted: #64748b;
+      --accent: #1d4ed8;
+      --border: #e2e8f0;
+      --radius: 14px;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Segoe UI", "Hiragino Sans", "Hiragino Kaku Gothic ProN", Meiryo, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      font-size: 16px;
+      line-height: 1.5;
+      min-height: 100dvh;
+      padding: 16px 14px 32px;
+    }
+    header {
+      margin-bottom: 18px;
+    }
+    h1 {
+      font-size: 1.25rem;
+      font-weight: 700;
+      margin: 0 0 6px;
+      letter-spacing: -0.02em;
+    }
+    .sub {
+      font-size: 0.9rem;
+      color: var(--muted);
+      margin: 0;
+    }
+    .badge {
+      display: inline-block;
+      margin-top: 10px;
+      padding: 6px 12px;
+      background: #e0e7ff;
+      color: #3730a3;
+      border-radius: 999px;
+      font-size: 0.8rem;
+      font-weight: 600;
+    }
+    .loading, .error, .empty {
+      text-align: center;
+      padding: 48px 16px;
+      color: var(--muted);
+    }
+    .error { color: #b91c1c; }
+    section {
+      margin-bottom: 22px;
+    }
+    .type-title {
+      font-size: 0.95rem;
+      font-weight: 700;
+      margin: 0 0 10px;
+      color: var(--accent);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .type-title span {
+      font-size: 0.75rem;
+      font-weight: 500;
+      color: var(--muted);
+    }
+    .card {
+      background: var(--card);
+      border-radius: var(--radius);
+      border: 1px solid var(--border);
+      padding: 14px 14px 12px;
+      margin-bottom: 10px;
+      box-shadow: 0 1px 2px rgba(15, 23, 42, 0.06);
+    }
+    .card-time {
+      font-size: 0.85rem;
+      color: var(--muted);
+      margin-bottom: 10px;
+      font-weight: 600;
+    }
+    dl {
+      margin: 0;
+      display: grid;
+      grid-template-columns: minmax(7em, 38%) 1fr;
+      gap: 6px 10px;
+      font-size: 0.88rem;
+    }
+    dt {
+      margin: 0;
+      color: var(--muted);
+      font-weight: 600;
+      word-break: break-all;
+    }
+    dd {
+      margin: 0;
+      word-break: break-word;
+    }
+    .hint {
+      background: #fff;
+      border: 1px dashed var(--border);
+      border-radius: var(--radius);
+      padding: 16px;
+      font-size: 0.9rem;
+      color: var(--muted);
+      line-height: 1.65;
+    }
+    .hint code {
+      display: block;
+      margin-top: 10px;
+      padding: 10px;
+      background: #f8fafc;
+      border-radius: 8px;
+      font-size: 0.78rem;
+      word-break: break-all;
+      color: #334155;
+    }
+    .photo-grid {
+      margin-top: 14px;
+      padding-top: 12px;
+      border-top: 1px solid var(--border);
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+    .photo-item {
+      flex: 1 1 calc(50% - 10px);
+      min-width: 138px;
+      max-width: 100%;
+      text-decoration: none;
+      color: inherit;
+    }
+    .photo-item img {
+      width: 100%;
+      height: auto;
+      border-radius: 10px;
+      display: block;
+      object-fit: cover;
+      aspect-ratio: 4 / 3;
+      background: #e2e8f0;
+      vertical-align: top;
+    }
+    .photo-cap {
+      display: block;
+      font-size: 0.72rem;
+      color: var(--muted);
+      margin-top: 6px;
+      line-height: 1.35;
+      word-break: break-word;
+    }
+    .folder-link {
+      margin-top: 10px;
+      font-size: 0.82rem;
+    }
+    .folder-link a {
+      color: var(--accent);
+      font-weight: 600;
+    }
+    .photo-more {
+      margin-top: 8px;
+    }
+    .photo-more summary {
+      cursor: pointer;
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--accent);
+      padding: 8px 0;
+      list-style: none;
+    }
+    .photo-more summary::-webkit-details-marker { display: none; }
+    .photo-trunc {
+      font-size: 0.75rem;
+      color: var(--muted);
+      margin: 8px 0 0;
+      line-height: 1.45;
+    }
+    .report-tabs {
+      display: flex;
+      flex-wrap: nowrap;
+      gap: 8px;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      padding: 8px 0 14px;
+      margin: 0 -4px 8px;
+      position: sticky;
+      top: 0;
+      z-index: 5;
+      background: linear-gradient(to bottom, var(--bg) 90%, transparent);
+    }
+    .report-tab {
+      flex: 0 0 auto;
+      border: 1px solid var(--border);
+      background: #fff;
+      border-radius: 999px;
+      padding: 10px 16px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--muted);
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+      font-family: inherit;
+    }
+    .report-tab.active {
+      background: var(--accent);
+      color: #fff;
+      border-color: var(--accent);
+    }
+    .viewer-section.hidden {
+      display: none !important;
+    }
+    .viewer-toolbar {
+      margin: 0 0 14px;
+      padding: 12px 14px;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: 0 1px 2px rgba(15, 23, 42, 0.05);
+    }
+    .viewer-toolbar-row {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 10px 16px;
+      margin-bottom: 8px;
+    }
+    .viewer-toolbar-row:last-child {
+      margin-bottom: 0;
+    }
+    .viewer-toolbar label {
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: var(--muted);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .viewer-toolbar select {
+      font: inherit;
+      font-size: 0.9rem;
+      padding: 8px 12px;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      background: #fff;
+      color: var(--text);
+      min-width: 9em;
+    }
+    .viewer-meta {
+      font-size: 0.78rem;
+      color: var(--muted);
+      line-height: 1.45;
+    }
+    .card-type-badge {
+      display: inline-block;
+      margin-bottom: 10px;
+      padding: 4px 10px;
+      background: #e0e7ff;
+      color: #3730a3;
+      border-radius: 999px;
+      font-size: 0.78rem;
+      font-weight: 700;
+    }
+    .load-more-wrap {
+      text-align: center;
+      padding: 20px 12px 8px;
+    }
+    .load-more-btn {
+      font: inherit;
+      font-size: 0.95rem;
+      font-weight: 700;
+      padding: 14px 28px;
+      border-radius: 999px;
+      border: 1px solid var(--accent);
+      background: #fff;
+      color: var(--accent);
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .load-more-btn:active {
+      background: #eff6ff;
+    }
+    .viewer-jump-row {
+      align-items: flex-end;
+    }
+    .viewer-jump-label input[type='date'] {
+      min-width: 11em;
+    }
+    .viewer-jump-btn {
+      font: inherit;
+      font-size: 0.9rem;
+      font-weight: 700;
+      padding: 10px 18px;
+      border-radius: 10px;
+      border: 1px solid var(--accent);
+      background: var(--accent);
+      color: #fff;
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .viewer-jump-btn:active {
+      filter: brightness(0.95);
+    }
+    .card.viewer-card-anchor {
+      scroll-margin-top: 100px;
+    }
+    .viewer-back-to-top {
+      position: fixed;
+      right: max(14px, env(safe-area-inset-right));
+      bottom: max(18px, env(safe-area-inset-bottom));
+      z-index: 40;
+      font: inherit;
+      font-size: 0.88rem;
+      font-weight: 700;
+      padding: 12px 16px;
+      border-radius: 999px;
+      border: 1px solid rgba(29, 78, 216, 0.35);
+      background: rgba(255, 255, 255, 0.96);
+      color: var(--accent);
+      box-shadow: 0 4px 20px rgba(15, 23, 42, 0.12);
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+      opacity: 0;
+      pointer-events: none;
+      transform: translateY(8px);
+      transition: opacity 0.22s ease, transform 0.22s ease;
+    }
+    .viewer-back-to-top.is-visible {
+      opacity: 1;
+      pointer-events: auto;
+      transform: translateY(0);
+    }
+    .viewer-back-to-top:active {
+      filter: brightness(0.97);
+    }
+    .viewer-wizard {
+      max-width: 420px;
+      margin: 0 auto;
+    }
+    .viewer-wizard label {
+      display: block;
+      font-size: 0.82rem;
+      font-weight: 700;
+      color: var(--muted);
+      margin: 16px 0 8px;
+    }
+    .viewer-wizard label:first-of-type {
+      margin-top: 0;
+    }
+    .viewer-wizard select {
+      width: 100%;
+      font: inherit;
+      font-size: 1rem;
+      padding: 12px 14px;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      background: #fff;
+      color: var(--text);
+    }
+    .viewer-wizard .viewer-team-go {
+      margin-top: 20px;
+      width: 100%;
+      font: inherit;
+      font-size: 1rem;
+      font-weight: 700;
+      padding: 14px 16px;
+      border-radius: 12px;
+      border: 1px solid var(--accent);
+      background: var(--accent);
+      color: #fff;
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .viewer-wizard .viewer-team-go:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+    }
+    .viewer-wizard .viewer-team-go:not(:disabled):active {
+      filter: brightness(0.95);
+    }
+  </style>
+</head>
+<body>
+  <div id="boot" data-payload="<?!= bootPayload ?>" style="display:none"></div>
+  <header id="hdr">
+    <h1>現場報告一覧</h1>
+    <p class="sub" id="siteLine">読み込み中…</p>
+  </header>
+  <div id="main"></div>
+  <button type="button" id="viewer-back-to-top" class="viewer-back-to-top" aria-label="ページの先頭へ戻る">
+    ↑ ページトップ
+  </button>
+
+  <script>
+    (function () {
+      function decodeBoot() {
+        try {
+          var raw = document.getElementById('boot').getAttribute('data-payload') || '';
+          if (!raw) {
+            return {
+              mode: 'help',
+              siteId: '',
+              siteName: '',
+              teamName: '',
+              building: '',
+              resolveError: ''
+            };
+          }
+          var o = JSON.parse(decodeURIComponent(raw));
+          if (!o.mode) {
+            o.mode = o.siteId ? 'site' : o.teamName ? 'team' : 'help';
+          }
+          o.siteId = o.siteId || '';
+          o.siteName = o.siteName || '';
+          o.teamName = o.teamName || '';
+          o.building = o.building || '';
+          o.resolveError = o.resolveError || '';
+          return o;
+        } catch (e) {
+          return {
+            mode: 'help',
+            siteId: '',
+            siteName: '',
+            teamName: '',
+            building: '',
+            resolveError: ''
+          };
+        }
+      }
+
+      /** サーバが team 等を渡せない場合でも、アドレスバーのクエリで補う */
+      function mergeBootFromUrlSearch(boot) {
+        try {
+          var sp = new URLSearchParams(window.location.search || '');
+          var ut = (sp.get('team') || sp.get('請負業者') || '').trim();
+          var ub = (sp.get('building') || '').trim();
+          if (ub && !String(boot.building || '').trim()) {
+            boot.building = ub;
+          }
+          if (ut) {
+            boot.teamName = ut;
+            if (!String(boot.siteId || '').trim() && !String(boot.resolveError || '').trim()) {
+              boot.mode = 'team';
+            }
+          }
+        } catch (e) {}
+        return boot;
+      }
+
+      function esc(s) {
+        return String(s == null ? '' : s)
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;')
+          .replace(/"/g, '&quot;');
+      }
+
+      function hideBackToTopBtn() {
+        var btn = document.getElementById('viewer-back-to-top');
+        if (btn) btn.classList.remove('is-visible');
+      }
+
+      /** 下の方までスクロールしたら表示（ページ下部付近 or 220px以上） */
+      function updateBackToTopBtn() {
+        var btn = document.getElementById('viewer-back-to-top');
+        if (!btn) return;
+        var st = window.pageYOffset || document.documentElement.scrollTop;
+        var sh = document.documentElement.scrollHeight;
+        var ih = window.innerHeight;
+        var nearBottom = st + ih >= sh - 160;
+        var show = st > 220 || nearBottom;
+        btn.classList.toggle('is-visible', show);
+      }
+
+      var backToTopScrollQueued = false;
+      window.addEventListener(
+        'scroll',
+        function () {
+          if (backToTopScrollQueued) return;
+          backToTopScrollQueued = true;
+          requestAnimationFrame(function () {
+            backToTopScrollQueued = false;
+            updateBackToTopBtn();
+          });
+        },
+        { passive: true }
+      );
+      window.addEventListener(
+        'resize',
+        function () {
+          updateBackToTopBtn();
+        },
+        { passive: true }
+      );
+      document.getElementById('viewer-back-to-top').addEventListener('click', function () {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      });
+
+      var PREFERRED_ORDER = [
+        '送信日時', 'Timestamp', 'タイムスタンプ',
+        '報告種別', 'ReportType',
+        '棟名', 'BuildingName',
+        '工事現場名', 'SiteName',
+        '報告者名', 'ReporterName',
+        '請負業者名', 'TeamName',
+        '施工業者名', 'CompanyName'
+      ];
+      var SKIP_KEYS = { ImagesJSON: 1, MetaJSON: 1, DriveFolderId: 1 };
+
+      function orderedKeys(fields) {
+        var seen = {};
+        var out = [];
+        PREFERRED_ORDER.forEach(function (k) {
+          if (fields[k] !== undefined && fields[k] !== '') {
+            out.push(k);
+            seen[k] = 1;
+          }
+        });
+        Object.keys(fields).forEach(function (k) {
+          if (seen[k] || SKIP_KEYS[k]) return;
+          out.push(k);
+        });
+        return out;
+      }
+
+      /** タブの並び（存在する種別だけ表示） */
+      var VIEWER_TAB_ORDER = ['始業前報告', '午後報告', '終業前報告', '中間報告'];
+      /** 最初から img を置く枚数（それ以降は折りたたみで遅延表示＝読み込み軽減） */
+      var PHOTOS_FIRST = 6;
+
+      var viewerFilter = 'all';
+      /** 種別タブ + 並び + 表示モード + 段階表示 */
+      var viewerSortDesc = true;
+      var viewerViewMode = 'byType';
+      var viewerDisplayLimit = 70;
+      /** 日付ジャンプ用（再描画後も保持） */
+      var viewerJumpDateValue = '';
+
+      function pad2(n) {
+        return n < 10 ? '0' + n : String(n);
+      }
+
+      /** 端末ローカルの暦日 YYYY-MM-DD */
+      function toLocalYmd(ms) {
+        if (!ms) return '';
+        var d = new Date(ms);
+        return d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate());
+      }
+
+      function getReportDateBounds(items) {
+        var min = Infinity;
+        var max = -Infinity;
+        (items || []).forEach(function (it) {
+          var ms = it.entry && it.entry.submittedAtMs ? it.entry.submittedAtMs : 0;
+          if (!ms) return;
+          if (ms < min) min = ms;
+          if (ms > max) max = ms;
+        });
+        if (!isFinite(min)) return { min: '', max: '' };
+        return { min: toLocalYmd(min), max: toLocalYmd(max) };
+      }
+
+      /** その日付の報告があれば先頭（一覧の並び順上）、なければ正午に最も近い時刻の1件 */
+      function findBestIndexForDate(items, ymd) {
+        if (!ymd || !items || !items.length) return -1;
+        var i;
+        for (i = 0; i < items.length; i++) {
+          var ms = items[i].entry && items[i].entry.submittedAtMs ? items[i].entry.submittedAtMs : 0;
+          if (!ms) continue;
+          if (toLocalYmd(ms) === ymd) return i;
+        }
+        var noon = new Date(ymd + 'T12:00:00').getTime();
+        var best = -1;
+        var bestDist = Infinity;
+        for (i = 0; i < items.length; i++) {
+          var m2 = items[i].entry && items[i].entry.submittedAtMs ? items[i].entry.submittedAtMs : 0;
+          if (!m2) continue;
+          var dist = Math.abs(m2 - noon);
+          if (dist < bestDist) {
+            bestDist = dist;
+            best = i;
+          }
+        }
+        return best;
+      }
+
+      function scrollToPickedDate() {
+        var inp = document.getElementById('viewer-jump-date');
+        var ymd = (inp && inp.value) || viewerJumpDateValue;
+        if (!ymd) return;
+        viewerJumpDateValue = ymd;
+        var data = window.__viewerData;
+        var items = window.__viewerItems;
+        if (!data || !items || !items.length) return;
+        var idx = findBestIndexForDate(items, ymd);
+        if (idx < 0) {
+          alert('その日付に近い報告が見つかりませんでした。');
+          return;
+        }
+        var need = idx + 1;
+        if (need > viewerDisplayLimit) {
+          viewerDisplayLimit = Math.min(need + 3, items.length);
+          rerenderViewerMain();
+        }
+        setTimeout(function () {
+          var card = document.getElementById('viewer-card-' + idx);
+          if (card) {
+            card.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          }
+        }, 0);
+      }
+
+      function renderPhotoImg(img) {
+        var view = esc(img.viewUrl || '');
+        var thumb = esc(img.thumbUrl || '');
+        var alt = esc(img.name || '');
+        return (
+          '<img loading="lazy" referrerpolicy="no-referrer" src="' +
+          view +
+          '" data-fb="' +
+          thumb +
+          '" alt="' +
+          alt +
+          '" onerror="var t=this;if(t.dataset.fb){t.onerror=null;t.src=t.dataset.fb;delete t.dataset.fb;}" />'
+        );
+      }
+
+      function renderPhotoAnchors(list) {
+        return list
+          .map(function (img) {
+            return (
+              '<a class="photo-item" href="' +
+              esc(img.url) +
+              '" target="_blank" rel="noopener noreferrer">' +
+              renderPhotoImg(img) +
+              '<span class="photo-cap">' +
+              esc(img.name) +
+              '</span></a>'
+            );
+          })
+          .join('');
+      }
+
+      function renderEntry(entry, opts) {
+        opts = opts || {};
+        var fields = entry.fields || {};
+        var keys = orderedKeys(fields);
+        var inner = keys
+          .map(function (k) {
+            return (
+              '<dt>' + esc(k) + '</dt><dd>' + esc(fields[k]) + '</dd>'
+            );
+          })
+          .join('');
+        var typeBadge =
+          opts.reportType
+            ? '<div class="card-type-badge">' + esc(opts.reportType) + '</div>'
+            : '';
+        var imgs = entry.images || [];
+        var first = imgs.slice(0, PHOTOS_FIRST);
+        var rest = imgs.slice(PHOTOS_FIRST);
+        var photos = '';
+        if (imgs.length > 0) {
+          photos =
+            '<div class="photo-grid">' + renderPhotoAnchors(first) + '</div>';
+          if (rest.length > 0) {
+            photos +=
+              '<details class="photo-more"><summary>残り ' +
+              rest.length +
+              ' 枚を表示（タップで開く）</summary><div class="photo-grid">' +
+              renderPhotoAnchors(rest) +
+              '</div></details>';
+          }
+        }
+        var trunc = '';
+        if (entry.imagesTruncated && entry.imagesTotal > imgs.length) {
+          trunc =
+            '<p class="photo-trunc">写真は全 ' +
+            entry.imagesTotal +
+            ' 枚のうち、この画面では ' +
+            imgs.length +
+            ' 枚まで表示しています。省略分は「フォルダを開く」からご確認ください。</p>';
+        }
+        var folder =
+          entry.folderUrl
+            ? '<div class="folder-link"><a href="' +
+              esc(entry.folderUrl) +
+              '" target="_blank" rel="noopener noreferrer">この報告の写真フォルダを開く</a></div>'
+            : '';
+        var anchorAttr = '';
+        if (opts.cardIndex !== undefined && opts.cardIndex !== null) {
+          var ymdAttr = toLocalYmd(entry.submittedAtMs || 0);
+          anchorAttr =
+            ' id="viewer-card-' +
+            String(opts.cardIndex) +
+            '" class="card viewer-card-anchor" data-ymd="' +
+            esc(ymdAttr) +
+            '"';
+        }
+        return (
+          (anchorAttr
+            ? '<div' + anchorAttr + '>'
+            : '<div class="card">') +
+          typeBadge +
+          '<dl>' +
+          inner +
+          '</dl>' +
+          photos +
+          trunc +
+          folder +
+          '</div>'
+        );
+      }
+
+      function getSortedEntriesForBlock(block, sortDesc) {
+        var arr = (block.entries || []).slice();
+        arr.sort(function (a, b) {
+          var da = a.submittedAtMs || 0;
+          var db = b.submittedAtMs || 0;
+          return sortDesc ? db - da : da - db;
+        });
+        return arr;
+      }
+
+      /**
+       * タブ・表示モードに応じた一覧（1件 = { reportType, sheetName, entry }）
+       */
+      function buildItemList(data) {
+        var reps = data.reports || [];
+        var out = [];
+        if (viewerViewMode === 'byDate') {
+          reps.forEach(function (block) {
+            var t = block.reportType;
+            if (viewerFilter !== 'all' && t !== viewerFilter) return;
+            (block.entries || []).forEach(function (entry) {
+              out.push({
+                reportType: t,
+                sheetName: block.sheetName,
+                entry: entry
+              });
+            });
+          });
+          out.sort(function (a, b) {
+            var da = a.entry.submittedAtMs || 0;
+            var db = b.entry.submittedAtMs || 0;
+            return viewerSortDesc ? db - da : da - db;
+          });
+          return out;
+        }
+        reps.forEach(function (block) {
+          var t = block.reportType;
+          if (viewerFilter !== 'all' && t !== viewerFilter) return;
+          var sorted = getSortedEntriesForBlock(block, viewerSortDesc);
+          sorted.forEach(function (entry) {
+            out.push({ reportType: t, sheetName: block.sheetName, entry: entry });
+          });
+        });
+        return out;
+      }
+
+      function renderToolbarHtml(data, items) {
+        items = items || [];
+        var days = (data && data.viewerLookbackDays) || 183;
+        var maxE = (data && data.maxEntriesPerReportType) || 220;
+        var scan = data && data.scanRowsPerSheet;
+        var meta =
+          '直近おおよそ ' +
+          days +
+          ' 日分を対象にしています。報告種別ごとに最大 ' +
+          maxE +
+          ' 件まで表示します。' +
+          (scan
+            ? ' ログシートは末尾から最大 ' + scan + ' 行を読み取ります（データ量が多いほど応答が重くなります）。'
+            : '');
+        var b = getReportDateBounds(items);
+        var dateAttrs =
+          'id="viewer-jump-date" title="日付を選ぶと、その日の報告の近くにスクロールします"';
+        if (b.min) dateAttrs += ' min="' + esc(b.min) + '"';
+        if (b.max) dateAttrs += ' max="' + esc(b.max) + '"';
+        return (
+          '<div class="viewer-toolbar">' +
+          '<div class="viewer-toolbar-row">' +
+          '<label>並び順<select id="viewer-sort" aria-label="並び順">' +
+          '<option value="desc">新しい日付順</option>' +
+          '<option value="asc">古い日付順</option>' +
+          '</select></label>' +
+          '<label>表示<select id="viewer-viewmode" aria-label="表示">' +
+          '<option value="byType">種別ごと</option>' +
+          '<option value="byDate">日付順（まとめて）</option>' +
+          '</select></label>' +
+          '</div>' +
+          '<div class="viewer-toolbar-row viewer-jump-row">' +
+          '<label>日付で移動<input type="date" ' +
+          dateAttrs +
+          ' aria-label="移動先の日付" /></label>' +
+          '<button type="button" class="viewer-jump-btn" id="viewer-jump-go">その日へ</button>' +
+          '</div>' +
+          '<p class="viewer-meta">' +
+          esc(meta) +
+          '</p>' +
+          '</div>'
+        );
+      }
+
+      function renderSectionsFromItems(items, totalCount) {
+        var slice = items.slice(0, viewerDisplayLimit);
+        var html = '';
+        if (viewerViewMode === 'byDate') {
+          slice.forEach(function (item, idx) {
+            html += renderEntry(item.entry, {
+              reportType: item.reportType,
+              cardIndex: idx
+            });
+          });
+          html =
+            '<section class="viewer-section" data-report-type="all">' +
+            html +
+            '</section>';
+        } else {
+          var curType = null;
+          slice.forEach(function (item, idx) {
+            if (item.reportType !== curType) {
+              if (curType !== null) html += '</section>';
+              curType = item.reportType;
+              html +=
+                '<section class="viewer-section" data-report-type="' +
+                esc(curType) +
+                '"><div class="type-title">' +
+                esc(curType) +
+                ' <span>(' +
+                esc(item.sheetName || '') +
+                ')</span></div>';
+            }
+            html += renderEntry(item.entry, { reportType: '', cardIndex: idx });
+          });
+          if (curType !== null) html += '</section>';
+        }
+        var more = '';
+        if (totalCount > viewerDisplayLimit) {
+          more =
+            '<div class="load-more-wrap">' +
+            '<button type="button" class="load-more-btn" id="viewer-load-more">' +
+            'さらに表示（' +
+            esc(String(viewerDisplayLimit)) +
+            ' / ' +
+            esc(String(totalCount)) +
+            ' 件）</button></div>';
+        }
+        return { html: html, more: more };
+      }
+
+      function buildTabOrder(reps) {
+        var seen = {};
+        var typesInData = [];
+        reps.forEach(function (r) {
+          var t = r.reportType;
+          if (t && !seen[t]) {
+            seen[t] = true;
+            typesInData.push(t);
+          }
+        });
+        var tabs = ['all'];
+        VIEWER_TAB_ORDER.forEach(function (t) {
+          if (typesInData.indexOf(t) >= 0) tabs.push(t);
+        });
+        typesInData.forEach(function (t) {
+          if (tabs.indexOf(t) < 0) tabs.push(t);
+        });
+        return tabs;
+      }
+
+      function renderTabs(tabs) {
+        return (
+          '<nav class="report-tabs" role="tablist" aria-label="報告種別">' +
+          tabs
+            .map(function (t) {
+              var label =
+                t === 'all'
+                  ? 'すべて'
+                  : t;
+              var active =
+                (t === 'all' && viewerFilter === 'all') ||
+                (t !== 'all' && viewerFilter === t);
+              return (
+                '<button type="button" class="report-tab' +
+                (active ? ' active' : '') +
+                '" data-filter="' +
+                esc(t) +
+                '" role="tab" aria-selected="' +
+                (active ? 'true' : 'false') +
+                '">' +
+                esc(label) +
+                '</button>'
+              );
+            })
+            .join('') +
+          '</nav>'
+        );
+      }
+
+      function syncToolbarControls() {
+        var s = document.getElementById('viewer-sort');
+        var v = document.getElementById('viewer-viewmode');
+        if (s) s.value = viewerSortDesc ? 'desc' : 'asc';
+        if (v) v.value = viewerViewMode;
+        var jd = document.getElementById('viewer-jump-date');
+        if (jd) {
+          var items = window.__viewerItems || [];
+          var b = getReportDateBounds(items);
+          if (b.min) jd.setAttribute('min', b.min);
+          else jd.removeAttribute('min');
+          if (b.max) jd.setAttribute('max', b.max);
+          else jd.removeAttribute('max');
+          jd.value = viewerJumpDateValue || '';
+          if (viewerJumpDateValue && b.min && viewerJumpDateValue < b.min) {
+            jd.value = b.min;
+            viewerJumpDateValue = b.min;
+          }
+          if (viewerJumpDateValue && b.max && viewerJumpDateValue > b.max) {
+            jd.value = b.max;
+            viewerJumpDateValue = b.max;
+          }
+        }
+      }
+
+      function rerenderViewerMain() {
+        var data = window.__viewerData;
+        var el = document.getElementById('main');
+        if (!data || !data.ok || !el) return;
+
+        var reps = data.reports || [];
+        if (!reps.length) {
+          window.__viewerItems = [];
+          el.innerHTML =
+            '<div class="empty">この条件の報告はまだありません。</div>';
+          updateBackToTopBtn();
+          return;
+        }
+
+        var tabs = buildTabOrder(reps);
+        var items = buildItemList(data);
+        window.__viewerItems = items;
+        if (!items.length) {
+          el.innerHTML =
+            renderTabs(tabs) +
+            renderToolbarHtml(data, items) +
+            '<div id="viewer-sections-wrap"><div class="empty">この種別の報告はありません。</div></div>';
+          syncToolbarControls();
+          updateBackToTopBtn();
+          return;
+        }
+
+        var sec = renderSectionsFromItems(items, items.length);
+        el.innerHTML =
+          renderTabs(tabs) +
+          renderToolbarHtml(data, items) +
+          '<div id="viewer-sections-wrap">' +
+          sec.html +
+          sec.more +
+          '</div>';
+
+        syncToolbarControls();
+        document.querySelectorAll('.report-tab').forEach(function (b) {
+          var f = b.getAttribute('data-filter');
+          var on =
+            (viewerFilter === 'all' && f === 'all') ||
+            (viewerFilter !== 'all' && f === viewerFilter);
+          b.classList.toggle('active', on);
+          b.setAttribute('aria-selected', on ? 'true' : 'false');
+        });
+        updateBackToTopBtn();
+      }
+
+      function render(data) {
+        var el = document.getElementById('main');
+        var siteLine = document.getElementById('siteLine');
+        if (!data || !data.ok) {
+          el.innerHTML =
+            '<div class="error">' +
+            esc((data && data.error) || 'データを取得できませんでした') +
+            '</div>';
+          siteLine.textContent = '';
+          hideBackToTopBtn();
+          return;
+        }
+
+        var line =
+          esc((data.siteName || '').trim()) +
+          ' <span style="color:#64748b;font-weight:400">(' +
+          esc(data.siteId) +
+          ')</span>';
+        if (data.buildingFilter) {
+          line +=
+            ' <span class="badge">棟: ' + esc(data.buildingFilter) + '</span>';
+        }
+        siteLine.innerHTML = line;
+
+        window.__viewerData = data;
+        viewerFilter = 'all';
+        viewerSortDesc = true;
+        viewerViewMode = 'byType';
+        viewerDisplayLimit = 70;
+        viewerJumpDateValue = '';
+
+        var reps = data.reports || [];
+        if (!reps.length) {
+          el.innerHTML =
+            '<div class="empty">この条件の報告はまだありません。</div>';
+          updateBackToTopBtn();
+          return;
+        }
+
+        rerenderViewerMain();
+
+        if (!el._viewerTabBound) {
+          el._viewerTabBound = true;
+          el.addEventListener('click', function (ev) {
+            var tab = ev.target.closest('.report-tab');
+            if (tab && el.contains(tab)) {
+              var f = tab.getAttribute('data-filter');
+              if (!f) return;
+              viewerFilter = f;
+              viewerDisplayLimit = 70;
+              rerenderViewerMain();
+              return;
+            }
+            if (ev.target.id === 'viewer-load-more') {
+              viewerDisplayLimit += 80;
+              rerenderViewerMain();
+              return;
+            }
+            if (ev.target.id === 'viewer-jump-go') {
+              scrollToPickedDate();
+              return;
+            }
+          });
+          el.addEventListener('change', function (ev) {
+            if (ev.target.id === 'viewer-sort') {
+              viewerSortDesc = ev.target.value === 'desc';
+              viewerDisplayLimit = 70;
+              rerenderViewerMain();
+            } else if (ev.target.id === 'viewer-viewmode') {
+              viewerViewMode = ev.target.value;
+              viewerDisplayLimit = 70;
+              rerenderViewerMain();
+            } else if (ev.target.id === 'viewer-jump-date') {
+              viewerJumpDateValue = ev.target.value || '';
+              if (viewerJumpDateValue) scrollToPickedDate();
+            }
+          });
+        }
+      }
+
+      function showHelp() {
+        var el = document.getElementById('main');
+        document.getElementById('siteLine').textContent =
+          'パラメータを指定してください';
+        el.innerHTML =
+          '<div class="hint"><strong>請負業者</strong>から選ぶ場合は <code>team=</code>（または <code>請負業者=</code>）に会社名を付けてください。旧リンクで <code>site=</code> のみにするのは <strong>現場ID・工事現場名用</strong> です。請負名だけのときは <code>site=</code> に誤ると、自動で「請負の選択」に振り替えます（<code>team=</code> の方がおすすめ）。<br />' +
+          '施工業者→工事現場の順に選び、表示ボタンで報告一覧を開きます。<br />' +
+          '<strong>現場を直接</strong>指定する場合のみ <code>site=</code> に <strong>現場ID（SITE-番号）</strong> または <strong>工事現場名</strong>（マスタと一致）を付けます。<br />' +
+          '棟だけ絞るときは <code>&amp;building=棟名</code> を追加できます。日本語は必ず <strong>URLエンコード</strong> してください。</div>' +
+          '<p class="hint" style="margin-top:12px">例（請負）：<code>…/exec?team=株式会社〇〇</code> または <code>…/exec?view=viewer&amp;team=株式会社〇〇</code></p>' +
+          '<p class="hint" style="margin-top:10px">例（現場直指定）：<code>…/exec?view=viewer&amp;site=SITE-001</code></p>';
+        hideBackToTopBtn();
+      }
+
+      function showResolveError(msg) {
+        var el = document.getElementById('main');
+        document.getElementById('siteLine').textContent = '現場を特定できませんでした';
+        el.innerHTML =
+          '<div class="error" style="text-align:left">' +
+          esc(msg || '現場一覧マスタに一致する現場がありません。') +
+          '</div>' +
+          '<p class="hint" style="margin-top:14px">共有URLの <code>site=</code> を、現場一覧の「現場ID」または「工事現場名」と一致するよう確認してください。</p>';
+        hideBackToTopBtn();
+      }
+
+      function companyLabel(name) {
+        var n = String(name || '').trim();
+        return n || '（施工業者名なし）';
+      }
+
+      function loadSiteReports(siteId, building) {
+        hideBackToTopBtn();
+        document.getElementById('main').innerHTML =
+          '<div class="loading">読み込み中…</div>';
+        google.script.run
+          .withSuccessHandler(render)
+          .withFailureHandler(function (err) {
+            hideBackToTopBtn();
+            document.getElementById('main').innerHTML =
+              '<div class="error">' +
+              esc(err && err.message ? err.message : String(err)) +
+              '</div>';
+          })
+          .getViewerSiteReports(siteId, building || '');
+      }
+
+      function startTeamWizard(boot) {
+        var hdr = document.getElementById('siteLine');
+        hdr.innerHTML =
+          '請負業者: <strong>' +
+          esc(boot.teamName || '') +
+          '</strong>' +
+          (boot.building
+            ? ' <span class="badge">棟: ' + esc(boot.building) + '</span>'
+            : '');
+        document.getElementById('main').innerHTML =
+          '<div class="loading">施工業者・現場一覧を読み込み中…</div>';
+
+        google.script.run
+          .withSuccessHandler(function (data) {
+            var main = document.getElementById('main');
+            if (!data || !data.ok) {
+              main.innerHTML =
+                '<div class="error">' +
+                esc((data && data.error) || '一覧を取得できませんでした') +
+                '</div>';
+              hideBackToTopBtn();
+              return;
+            }
+            var pairs = data.pairs || [];
+            if (!pairs.length) {
+              main.innerHTML =
+                '<div class="empty">この請負業者名に該当する報告ログが見つかりませんでした（直近のログ末尾から検索しています）。</div>';
+              hideBackToTopBtn();
+              return;
+            }
+
+            var companies = [];
+            var seenCo = {};
+            for (var i = 0; i < pairs.length; i += 1) {
+              var lbl = companyLabel(pairs[i].companyName);
+              if (!seenCo[lbl]) {
+                seenCo[lbl] = true;
+                companies.push(lbl);
+              }
+            }
+
+            var sb =
+              '<div class="card viewer-wizard">' +
+              '<label for="viewer-team-company">施工業者名</label>' +
+              '<select id="viewer-team-company" aria-label="施工業者名">';
+            for (var c = 0; c < companies.length; c += 1) {
+              sb +=
+                '<option value="' +
+                esc(companies[c]) +
+                '">' +
+                esc(companies[c]) +
+                '</option>';
+            }
+            sb +=
+              '</select>' +
+              '<label for="viewer-team-site">工事現場名</label>' +
+              '<select id="viewer-team-site" aria-label="工事現場名"></select>' +
+              '<button type="button" class="viewer-team-go" id="viewer-team-go" disabled>この現場の報告を表示</button>' +
+              '</div>';
+
+            main.innerHTML = sb;
+
+            function sitesForCompany(companyLbl) {
+              var out = [];
+              for (var j = 0; j < pairs.length; j += 1) {
+                if (companyLabel(pairs[j].companyName) === companyLbl) {
+                  out.push(pairs[j]);
+                }
+              }
+              return out;
+            }
+
+            function fillSites(companyLbl) {
+              var sel = document.getElementById('viewer-team-site');
+              var list = sitesForCompany(companyLbl);
+              var opts = '';
+              for (var s = 0; s < list.length; s += 1) {
+                var sid = list[s].siteId || '';
+                var sn = String(list[s].siteName || '').trim();
+                var label = sn ? sn + '（' + sid + '）' : sid;
+                opts +=
+                  '<option value="' +
+                  esc(sid) +
+                  '">' +
+                  esc(label) +
+                  '</option>';
+              }
+              sel.innerHTML = opts;
+              var go = document.getElementById('viewer-team-go');
+              go.disabled = !list.length || !sel.value;
+            }
+
+            var coSel = document.getElementById('viewer-team-company');
+            coSel.addEventListener('change', function () {
+              fillSites(coSel.value);
+            });
+            document
+              .getElementById('viewer-team-site')
+              .addEventListener('change', function () {
+                var goBtn = document.getElementById('viewer-team-go');
+                goBtn.disabled = !document.getElementById('viewer-team-site').value;
+              });
+
+            fillSites(coSel.value);
+
+            document
+              .getElementById('viewer-team-go')
+              .addEventListener('click', function () {
+                var sid = document.getElementById('viewer-team-site').value;
+                if (!sid) return;
+                loadSiteReports(sid, boot.building || '');
+              });
+
+            hideBackToTopBtn();
+          })
+          .withFailureHandler(function (err) {
+            document.getElementById('main').innerHTML =
+              '<div class="error">' +
+              esc(err && err.message ? err.message : String(err)) +
+              '</div>';
+            hideBackToTopBtn();
+          })
+          .getViewerTeamSites(boot.teamName || '');
+      }
+
+      var boot = mergeBootFromUrlSearch(decodeBoot());
+      if (boot.resolveError) {
+        showResolveError(boot.resolveError);
+        return;
+      }
+      if (boot.mode === 'team') {
+        if (!String(boot.teamName || '').trim()) {
+          showHelp();
+          return;
+        }
+        startTeamWizard(boot);
+        return;
+      }
+      if (!boot.siteId) {
+        showHelp();
+        return;
+      }
+
+      loadSiteReports(boot.siteId, boot.building || '');
+    })();
+  </script>
+</body>
+</html>

@@ -1,0 +1,29 @@
+{
+  "getHomeSummary": {
+    "clinic": "PV",
+    "clinicLabel": "サンプル商事（本部）",
+    "isHq": true,
+    "devices": {
+      "total": 24,
+      "inUse": 15,
+      "spare": 4,
+      "trouble": 5,
+      "lent": 1,
+      "borrowed": 0,
+      "flagged": 2
+    },
+    "openCaseCount": 5,
+    "toSendCount": 1,
+    "warrantyCount": 2,
+    "warrantyDays": 60,
+    "flaggedCount": 2,
+    "pool": {
+      "total": 4,
+      "threshold": 5,
+      "reached": false,
+      "notArrived": 1
+    },
+    "returnQueueCount": 1,
+    "orderedCount": 2
+  }
+}

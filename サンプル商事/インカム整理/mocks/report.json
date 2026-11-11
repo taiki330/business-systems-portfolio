@@ -1,0 +1,34 @@
+{
+  "getReportableDevices": [
+    {
+      "id": "D005",
+      "label": "5（MODEL-A / SN01004）",
+      "status": "使用中"
+    },
+    {
+      "id": "D006",
+      "label": "6（MODEL-A / SN01005）",
+      "status": "使用中"
+    },
+    {
+      "id": "D007",
+      "label": "7（MODEL-A / SN01006）",
+      "status": "使用中"
+    },
+    {
+      "id": "D008",
+      "label": "8（MODEL-A / SN01007）",
+      "status": "使用中"
+    },
+    {
+      "id": "D009",
+      "label": "9（MODEL-A / SN01008）",
+      "status": "予備"
+    },
+    {
+      "id": "D010",
+      "label": "10（MODEL-A / SN01009）",
+      "status": "予備"
+    }
+  ]
+}

@@ -1,0 +1,20 @@
+{
+  "getClinicList": [
+    {
+      "code": "PV",
+      "label": "サンプル商事（本部）"
+    },
+    {
+      "code": "NIS",
+      "label": "NIS"
+    },
+    {
+      "code": "KDC",
+      "label": "KDC"
+    },
+    {
+      "code": "MDC",
+      "label": "MDC"
+    }
+  ]
+}

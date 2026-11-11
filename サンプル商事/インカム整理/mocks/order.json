@@ -1,0 +1,33 @@
+{
+  "getOrderedCases": [
+    {
+      "id": "R010",
+      "clinic": "NIS",
+      "deviceId": "D011",
+      "label": "11（MODEL-A / SN01010）",
+      "symptom": "マイクが入らない（相手に声が届かない）",
+      "orderDate": "2026/10/30",
+      "faultDate": "2026/10/12",
+      "note": ""
+    },
+    {
+      "id": "R011",
+      "clinic": "MDC",
+      "deviceId": "D012",
+      "label": "12（MODEL-A / SN01011）",
+      "symptom": "音が聞こえない",
+      "orderDate": "2026/10/30",
+      "faultDate": "2026/10/14",
+      "note": ""
+    }
+  ],
+  "getReturnQueue": [
+    {
+      "id": "D004",
+      "clinic": "KDC",
+      "label": "4（MODEL-A / SN01003）",
+      "user": "スタッフD",
+      "lastRepair": "2026/11/08"
+    }
+  ]
+}

@@ -1,0 +1,51 @@
+{
+  "outDir": "docs/screenshots",
+  "viewport": {
+    "width": 1100,
+    "height": 800
+  },
+  "pages": [
+    {
+      "name": "home",
+      "html": "Home.html",
+      "initParams": {
+        "clinic": "PV"
+      }
+    },
+    {
+      "name": "devices",
+      "html": "Devices.html",
+      "initParams": {
+        "clinic": "PV"
+      }
+    },
+    {
+      "name": "report",
+      "html": "Report.html",
+      "initParams": {
+        "clinic": "PV"
+      }
+    },
+    {
+      "name": "pool",
+      "html": "RepairPool.html",
+      "initParams": {
+        "clinic": "PV"
+      }
+    },
+    {
+      "name": "order",
+      "html": "RepairOrder.html",
+      "initParams": {
+        "clinic": "PV"
+      }
+    },
+    {
+      "name": "history",
+      "html": "History.html",
+      "initParams": {
+        "clinic": "PV"
+      }
+    }
+  ]
+}

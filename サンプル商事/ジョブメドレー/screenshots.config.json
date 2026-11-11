@@ -1,0 +1,34 @@
+{
+  "outDir": "docs/screenshots",
+  "viewport": {
+    "width": 1100,
+    "height": 800
+  },
+  "pages": [
+    {
+      "name": "image",
+      "html": "Index.html",
+      "out": "1-image"
+    },
+    {
+      "name": "jobtext",
+      "html": "Index.html",
+      "out": "2-jobtext",
+      "actions": [
+        {
+          "click": ".tab[data-tab=jobtext]"
+        }
+      ]
+    },
+    {
+      "name": "scout",
+      "html": "Index.html",
+      "out": "3-scout",
+      "actions": [
+        {
+          "click": ".tab[data-tab=scout]"
+        }
+      ]
+    }
+  ]
+}

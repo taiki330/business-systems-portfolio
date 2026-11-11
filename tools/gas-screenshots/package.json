@@ -1,0 +1,10 @@
+{
+  "name": "gas-screenshots",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "GAS Web アプリ画面をダミーデータで撮影するツール",
+  "devDependencies": {
+    "playwright": "^1.62.1"
+  }
+}

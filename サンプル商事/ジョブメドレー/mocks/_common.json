@@ -1,0 +1,47 @@
+{
+  "getJobOptionsForWeb": [
+    {
+      "jobId": "JOB001",
+      "label": "JOB001｜サンプル歯科A｜歯科衛生士（正社員）"
+    },
+    {
+      "jobId": "JOB002",
+      "label": "JOB002｜サンプル歯科A｜歯科助手（パート）"
+    },
+    {
+      "jobId": "JOB003",
+      "label": "JOB003｜サンプル歯科B｜歯科衛生士（パート）"
+    }
+  ],
+  "getJobAxisOptionsForWeb": [
+    "働きやすさ",
+    "教育・研修",
+    "患者担当制",
+    "予防歯科",
+    "ワークライフバランス"
+  ],
+  "getPhotoOptionsForWeb": [
+    {
+      "photoId": "PHOTO001",
+      "label": "PHOTO001｜笑顔のスタッフ集合写真｜働きやすさ"
+    },
+    {
+      "photoId": "PHOTO002",
+      "label": "PHOTO002｜院内の明るい待合室｜清潔感"
+    }
+  ],
+  "getPhotoDetailForWeb": {
+    "photoId": "PHOTO001",
+    "content": "笑顔のスタッフ集合写真",
+    "photoType": "集合写真",
+    "impression": "明るく親しみやすい",
+    "appeal": "働きやすさ・チームワーク",
+    "note": "顔が小さく写っているため、トリミングに注意",
+    "previewUrl": "",
+    "imageUrl": "",
+    "openUrl": ""
+  },
+  "checkInstallStatusForWeb": {
+    "ok": true
+  }
+}

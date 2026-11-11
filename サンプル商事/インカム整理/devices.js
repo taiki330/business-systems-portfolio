@@ -75,7 +75,7 @@ function decorateDevice_(d, viewerClinic) {
   };
 }
 
-/** 一覧やプルダウンに出す短い呼び名。「①（DJ-PX31 / M020706B）」のような形。 */
+/** 一覧やプルダウンに出す短い呼び名。「①（MODEL-B / SN00001B）」のような形。 */
 function deviceLabel_(d) {
   var head = d.mno !== '' ? d.mno : (d.user !== '' ? d.user : d.id);
   var detail = [d.model, d.serial || d.serialRaw].filter(function (v) { return v !== ''; }).join(' / ');
@@ -255,7 +255,7 @@ function addDevice(clinic, input) {
   input = input || {};
 
   var model = toStr(input.model);
-  if (model === '') throw new Error('品番を入力してください（例: DJ-PX10S）。');
+  if (model === '') throw new Error('品番を入力してください（例: MODEL-A）。');
 
   var kind = toStr(input.kind) || '本体';
   if (DEVICE_KINDS.indexOf(kind) < 0) throw new Error('不明な種別です: ' + kind);

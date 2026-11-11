@@ -1,0 +1,91 @@
+{
+  "getRepairPool": {
+    "items": [
+      {
+        "id": "R001",
+        "clinic": "PV",
+        "status": "報告済",
+        "label": "1（MODEL-A / SN01000）",
+        "deviceId": "D001",
+        "symptom": "音が聞こえない",
+        "faultDate": "2026/10/20",
+        "reportDate": "2026/10/21",
+        "reporter": "スタッフA",
+        "note": "",
+        "flag": "",
+        "atHq": false
+      },
+      {
+        "id": "R002",
+        "clinic": "NIS",
+        "status": "本部集約済",
+        "label": "7（MODEL-A / SN01006）",
+        "deviceId": "D007",
+        "symptom": "充電できない",
+        "faultDate": "2026/10/25",
+        "reportDate": "2026/10/26",
+        "reporter": "スタッフG",
+        "note": "",
+        "flag": "",
+        "atHq": true
+      },
+      {
+        "id": "R003",
+        "clinic": "KDC",
+        "status": "本部集約済",
+        "label": "3（MODEL-A / SN01002）",
+        "deviceId": "D003",
+        "symptom": "雑音が入る",
+        "faultDate": "2026/11/01",
+        "reportDate": "2026/11/02",
+        "reporter": "スタッフC",
+        "note": "",
+        "flag": "",
+        "atHq": true
+      },
+      {
+        "id": "R004",
+        "clinic": "MDC",
+        "status": "本部集約済",
+        "label": "5（MODEL-A / SN01004）",
+        "deviceId": "D005",
+        "symptom": "電源が入らない",
+        "faultDate": "2026/11/05",
+        "reportDate": "2026/11/06",
+        "reporter": "スタッフE",
+        "note": "",
+        "flag": "",
+        "atHq": true
+      }
+    ],
+    "total": 4,
+    "threshold": 5,
+    "reached": false,
+    "byClinic": [
+      {
+        "clinic": "PV",
+        "count": 1,
+        "threshold": 5,
+        "reached": false
+      },
+      {
+        "clinic": "NIS",
+        "count": 1,
+        "threshold": 5,
+        "reached": false
+      },
+      {
+        "clinic": "KDC",
+        "count": 1,
+        "threshold": 5,
+        "reached": false
+      },
+      {
+        "clinic": "MDC",
+        "count": 1,
+        "threshold": 5,
+        "reached": false
+      }
+    ]
+  }
+}

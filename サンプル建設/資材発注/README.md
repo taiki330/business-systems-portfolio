@@ -3,7 +3,80 @@
 建設会社の仮設資材(足場など)の **在庫・出庫依頼・発注・リース・センター間移動** を一元管理する Web アプリです。
 従来は LINE と Excel で運用していた業務を置き換えるために、要件定義から実装・テストまで一人で担当しました。
 
-> 画面はお客様の業務データを含むため、スクリーンショットは載せていません。構成と設計は下記と `docs/` を参照してください。
+## 画面
+
+実際のアプリ(Next.js)を、**ダミーデータだけを返すモックの Supabase につないで起動し、そのまま撮影**した画面です。
+画面のコード・レイアウトは実物で、中身の商品名・現場名・数量はすべて架空です
+(仕組み: [`tools/mock-screens`](../../tools/mock-screens/) — 再現コマンド `node tools/mock-screens/run.mjs`)。
+ログイン中のロール(事務・現場・センター)によって、見える画面とメニューが変わります。
+
+### 事務(管理者)
+
+| ホーム(4 分類) | 在庫・入出庫メニュー |
+|---|---|
+| ![ホーム(4 分類)](docs/screenshots/admin-01-home.png) | ![在庫・入出庫メニュー](docs/screenshots/admin-02-menu-stock.png) |
+
+| センター在庫 | 現場在庫 |
+|---|---|
+| ![センター在庫](docs/screenshots/admin-03-stock.png) | ![現場在庫](docs/screenshots/admin-04-stock-sites.png) |
+
+| オーダー一覧 | オーダー詳細 |
+|---|---|
+| ![オーダー一覧](docs/screenshots/admin-05-orders.png) | ![オーダー詳細](docs/screenshots/admin-06-order-detail.png) |
+
+| 資材発注書(印刷) | 未返却資材一覧 |
+|---|---|
+| ![資材発注書(印刷)](docs/screenshots/admin-07-order-print.png) | ![未返却資材一覧](docs/screenshots/admin-08-outstanding.png) |
+
+| 現場進捗 | 在庫履歴 |
+|---|---|
+| ![現場進捗](docs/screenshots/admin-09-progress.png) | ![在庫履歴](docs/screenshots/admin-10-ledger.png) |
+
+| 返却履歴 | 返却期限・未返却リース |
+|---|---|
+| ![返却履歴](docs/screenshots/admin-11-returns.png) | ![返却期限・未返却リース](docs/screenshots/admin-12-lease-due.png) |
+
+| リース借用管理 | リース在庫内訳 |
+|---|---|
+| ![リース借用管理](docs/screenshots/admin-13-lease-batches.png) | ![リース在庫内訳](docs/screenshots/admin-14-lease-stock.png) |
+
+| 現場別 予定数量 | 分析ダッシュボード |
+|---|---|
+| ![現場別 予定数量](docs/screenshots/admin-15-plans.png) | ![分析ダッシュボード](docs/screenshots/admin-16-analytics.png) |
+
+| 現場別分析 | 商品マスタ |
+|---|---|
+| ![現場別分析](docs/screenshots/admin-17-analytics-sites.png) | ![商品マスタ](docs/screenshots/admin-18-products.png) |
+
+| 現場マスタ | ユーザー管理 |
+|---|---|
+| ![現場マスタ](docs/screenshots/admin-19-sites.png) | ![ユーザー管理](docs/screenshots/admin-20-users.png) |
+
+### 現場(業者)― 自分の現場の依頼と在庫だけが見えます
+
+| ホーム | 出庫依頼一覧 |
+|---|---|
+| ![ホーム](docs/screenshots/vendor-01-home.png) | ![出庫依頼一覧](docs/screenshots/vendor-02-requests.png) |
+
+| 出庫依頼の新規登録 | 出庫依頼の詳細 |
+|---|---|
+| ![出庫依頼の新規登録](docs/screenshots/vendor-03-request-new.png) | ![出庫依頼の詳細](docs/screenshots/vendor-04-request-detail.png) |
+
+| 自現場の在庫 |  |
+|---|---|
+| ![自現場の在庫](docs/screenshots/vendor-05-site-stock.png) |  |
+
+### センター ― 印刷と在庫確認が中心です
+
+| ホーム | オーダー確認・印刷 |
+|---|---|
+| ![ホーム](docs/screenshots/center-01-home.png) | ![オーダー確認・印刷](docs/screenshots/center-02-orders.png) |
+
+| センター在庫 |  |
+|---|---|
+| ![センター在庫](docs/screenshots/center-03-stock.png) |  |
+
+> ホーム画面の「接続状態」などはモックに接続した結果の表示です。
 
 ## システム構成
 

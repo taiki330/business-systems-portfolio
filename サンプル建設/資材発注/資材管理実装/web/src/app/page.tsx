@@ -29,13 +29,13 @@ export default async function Home() {
       ? "サンプル市Aセンター"
       : role === "vendor"
         ? "現場メニュー"
-        : "資材管理システム（開発中）";
+        : "資材管理システム";
   const description =
     role === "center"
       ? "オーダーの印刷と、センター・現場の在庫確認を行います。"
       : role === "vendor"
         ? "必要な操作を選んでください。"
-        : "Next.js + Supabase（PostgreSQL）";
+        : "仮設資材の在庫・出庫依頼・発注・リースを管理します。";
 
   return (
     <div className="min-h-full bg-zinc-50 px-4 py-10 font-sans sm:px-6 sm:py-16">

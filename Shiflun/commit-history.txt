@@ -1,0 +1,50 @@
+﻿2026-06-17  taiki  first commit
+2026-06-21  taiki  Phase2 ワーカー登録と人材一覧
+2026-06-21  taiki330  fix vercel commit author
+2026-06-21  taiki330  retry vercel deploy
+2026-06-21  taiki330  Phase3-B バイト本人プロフィール
+2026-06-21  taiki330  Phase3-C 店長認証保存
+2026-06-21  taiki330  Phase3-D 企業向け人材詳細
+2026-06-21  taiki330  Phase4 スカウト送信
+2026-06-21  taiki330  Phase5 勤務可能時間登録
+2026-06-21  taiki330  Phase5-C 日時検索
+2026-06-21  taiki330  Phase5-D 勤務希望ステータスと店長判定
+2026-06-21  taiki330  Phase5-E 複数日勤務希望登録
+2026-06-21  taiki330  Phase5-E 複数日勤務希望登録
+2026-06-26  be-aoing  Add files via upload
+2026-06-26  be-aoing  Add files via upload
+2026-06-27  aoiya  あ
+2026-06-28  TAIKI KAWAKAMI  Revise terms and conditions for ShiftLink service
+2026-06-28  TAIKI KAWAKAMI  Revise terms and conditions for ShiftLink service
+2026-06-28  aoiya  ２
+2026-06-28  TAIKI KAWAKAMI  Update 利用規約（ワーカー・店舗共通）V3.md
+2026-06-28  aoiya  １
+2026-06-28  aoiya  Merge branch 'main' of https://github.com/taiki330/shiftLink
+2026-06-28  TAIKI KAWAKAMI  Update 利用規約（ワーカー・店舗共通）V3.md
+2026-07-05  taiki330  Phase7完了・Phase6 LP実装
+2026-07-05  taiki330  merge: integrate remote ShiftLink updates and resolve conflicts
+2026-07-21  taiki330  Rename Helpull to Shiflun
+2026-08-03  aoiya  Rebrand to シフルン, add logo, Instagram auto-post, and update terms
+2026-08-07  aoiya  Implement worker shift status view and attendance clock-in
+2026-08-10  aoiya  Add presentation materials (slides + talk script)
+2026-09-02  aoiya  あ
+2026-09-23  aoiya  あ
+2026-09-24  taiki330  Add migration for matching, profiles, chat, and notifications
+2026-09-24  taiki330  Rework backend actions for matching, profiles, chat, and notifications
+2026-09-24  taiki330  Update worker-side UI for matching and profile changes
+2026-09-24  taiki330  Update company/manager-side UI for matching and store settings
+2026-09-24  taiki330  Add chat and notification features
+2026-09-24  taiki330  Add shared UI styles and matching/chat documentation
+2026-09-24  taiki330  Add tests for matching and store self-registration
+2026-09-24  aoiya  Add GPS/QR attendance, payouts, identity verification, and minor consent
+2026-09-29  aoiya  Rebrand UI from logo colors, add Shifurunyan mascot, restrict store selection
+2026-09-29  aoiya  Add staff chat tab, terms/privacy pages with consent, and store access fixes
+2026-10-01  taiki330  Add worker search filter UI and result list components
+2026-10-01  taiki330  Merge branch 'main' of https://github.com/taiki330/shiftLink
+2026-10-01  taiki330  Add manager profile nav and stop exposing other stores/workers
+2026-11-11  aoiya  Add separate agreement page for terms consent and switch terms to V4
+2026-11-11  aoiya  Add login (Supabase Auth) and row-level security for all tables
+2026-11-12  taiki330  Add account deletion, chat block/report, and contact form
+2026-11-14  aoiya  Drop leftover identity-documents policy before applying 016 in setup SQL
+2026-11-15  taiki330  Redesign all screens, add photos, and add native app features
+2026-11-15  taiki330  Add private worker data, store change, under-18 night rule, suspension

@@ -1,0 +1,369 @@
+<title>シフルン — トークスクリプト</title>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg:      #F5F7FB;
+  --surface: #FFFFFF;
+  --ink:     #17243A;
+  --muted:   #6B7A96;
+  --blue:    #1568D3;
+  --teal:    #00AAAA;
+  --border:  #DDE3F0;
+  --key-bg:  #EBF3FF;
+  --key-ink: #0D4FAA;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg:      #111827;
+    --surface: #1C2537;
+    --ink:     #EEF2FF;
+    --muted:   #8896B4;
+    --blue:    #4A9EFF;
+    --teal:    #2EC4C4;
+    --border:  #2A3750;
+    --key-bg:  #162240;
+    --key-ink: #7ABAFF;
+  }
+}
+
+:root[data-theme="dark"] {
+  --bg:      #111827;
+  --surface: #1C2537;
+  --ink:     #EEF2FF;
+  --muted:   #8896B4;
+  --blue:    #4A9EFF;
+  --teal:    #2EC4C4;
+  --border:  #2A3750;
+  --key-bg:  #162240;
+  --key-ink: #7ABAFF;
+}
+
+:root[data-theme="light"] {
+  --bg:      #F5F7FB;
+  --surface: #FFFFFF;
+  --ink:     #17243A;
+  --muted:   #6B7A96;
+  --blue:    #1568D3;
+  --teal:    #00AAAA;
+  --border:  #DDE3F0;
+  --key-bg:  #EBF3FF;
+  --key-ink: #0D4FAA;
+}
+
+html { scroll-behavior: smooth; }
+
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: -apple-system, 'Hiragino Sans', 'Hiragino Kaku Gothic ProN',
+               'Yu Gothic UI', 'Meiryo', sans-serif;
+  font-size: 16px;
+  line-height: 1.7;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ── Header ── */
+.page-header {
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  padding: 28px clamp(20px, 5vw, 64px);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+.page-header-inner {
+  max-width: 780px;
+  margin: 0 auto;
+  display: flex;
+  align-items: baseline;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.service-name {
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: .14em;
+  color: var(--blue);
+  text-transform: uppercase;
+}
+.doc-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--ink);
+}
+.total-time {
+  margin-left: auto;
+  font-size: 12px;
+  color: var(--muted);
+  letter-spacing: .04em;
+}
+
+/* ── Main ── */
+main {
+  max-width: 780px;
+  margin: 0 auto;
+  padding: clamp(24px, 5vw, 56px) clamp(20px, 5vw, 64px);
+  display: flex;
+  flex-direction: column;
+  gap: 40px;
+}
+
+/* ── Script section ── */
+.script-section {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.section-head {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 18px 24px;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg);
+}
+
+.slide-chip {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .1em;
+  color: var(--blue);
+  background: var(--key-bg);
+  border-radius: 6px;
+  padding: 3px 10px;
+  white-space: nowrap;
+}
+
+.section-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--ink);
+  flex: 1;
+  text-wrap: balance;
+}
+
+.time-badge {
+  font-size: 11px;
+  color: var(--muted);
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── Key message ── */
+.key-message {
+  margin: 20px 24px 0;
+  background: var(--key-bg);
+  border-left: 3px solid var(--blue);
+  border-radius: 0 8px 8px 0;
+  padding: 12px 16px;
+}
+.key-label {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: .14em;
+  color: var(--blue);
+  text-transform: uppercase;
+  margin-bottom: 4px;
+}
+.key-text {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--key-ink);
+  line-height: 1.6;
+}
+
+/* ── Script body ── */
+.script-body {
+  padding: 20px 24px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.script-p {
+  font-size: 16px;
+  line-height: 1.9;
+  color: var(--ink);
+}
+
+.script-p em {
+  font-style: normal;
+  font-weight: 700;
+  color: var(--blue);
+}
+
+.note {
+  font-size: 12px;
+  color: var(--muted);
+  border-top: 1px solid var(--border);
+  padding-top: 14px;
+  line-height: 1.7;
+}
+.note strong { color: var(--ink); font-weight: 600; }
+
+/* ── Footer ── */
+footer {
+  max-width: 780px;
+  margin: 0 auto;
+  padding: 0 clamp(20px, 5vw, 64px) 48px;
+  font-size: 12px;
+  color: var(--muted);
+  text-align: center;
+}
+</style>
+
+<header class="page-header">
+  <div class="page-header-inner">
+    <span class="service-name">Shiflun</span>
+    <span class="doc-title">プレゼンテーション — トークスクリプト</span>
+    <span class="total-time">総尺 約12分</span>
+  </div>
+</header>
+
+<main>
+
+  <!-- S1 -->
+  <section class="script-section">
+    <div class="section-head">
+      <span class="slide-chip">SLIDE 1</span>
+      <span class="section-title">タイトル</span>
+      <span class="time-badge">約1分</span>
+    </div>
+    <div class="key-message">
+      <div class="key-label">キーメッセージ</div>
+      <div class="key-text">一言で「何のサービスか」を伝え、聴衆の関心をつかむ</div>
+    </div>
+    <div class="script-body">
+      <p class="script-p">本日はお時間をいただきありがとうございます。私たちが開発しているサービス、<em>シフルン</em>についてご紹介させてください。</p>
+      <p class="script-p">シフルンは、<em>飲食業界に特化したシフト連動型のマッチングプラットフォーム</em>です。一言でいうと、「人手が足りない店」と「働きたいバイト」を、シフトの空き時間を使ってリアルタイムでつなぐサービスです。</p>
+      <p class="script-p">今日は、なぜこのサービスを作ったのか、そしてどのように飲食業界の課題を解決するのかをお話しします。</p>
+    </div>
+  </section>
+
+  <!-- S2 -->
+  <section class="script-section">
+    <div class="section-head">
+      <span class="slide-chip">SLIDE 2</span>
+      <span class="section-title">課題 — 飲食業界が直面する3つの壁</span>
+      <span class="time-badge">約2分30秒</span>
+    </div>
+    <div class="key-message">
+      <div class="key-label">キーメッセージ</div>
+      <div class="key-text">聴衆に「これは自分ごとだ」と感じてもらう。数字より現場のリアルな声で伝える</div>
+    </div>
+    <div class="script-body">
+      <p class="script-p">まず、飲食業界が直面している課題からお話しします。飲食店でアルバイトをした経験、または経営の経験がある方はいらっしゃいますか？</p>
+      <p class="script-p">実は飲食業界には、今も解決されていない大きな課題が3つあります。</p>
+      <p class="script-p"><em>1つ目は、シフト管理の非効率です。</em>多くの店では今もLINEや紙でシフトを管理しています。希望を集めて、集計して、表を作る。この作業に毎週2〜3時間かかっているという声は珍しくありません。</p>
+      <p class="script-p"><em>2つ目は、急な欠員への対応です。</em>前日のドタキャン、当日の体調不良。こういうとき店長ができるのは、連絡先リストを端から電話することだけです。それでも誰も来なければ、自分が入るか、営業を縮小するしかない。</p>
+      <p class="script-p"><em>3つ目は、スポットワークの信頼性問題です。</em>初めて来るバイトが本当に来るのか、スキルがあるのかわからない。この不安が、スポット採用に踏み切れない大きな理由になっています。</p>
+      <p class="script-p">それぞれは小さく見えますが、毎日積み重なることで、店長の時間と精神力を大きく奪っています。</p>
+    </div>
+  </section>
+
+  <!-- S3 -->
+  <section class="script-section">
+    <div class="section-head">
+      <span class="slide-chip">SLIDE 3</span>
+      <span class="section-title">解決策 — シフト希望に連動したマッチング</span>
+      <span class="time-badge">約2分</span>
+    </div>
+    <div class="key-message">
+      <div class="key-label">キーメッセージ</div>
+      <div class="key-text">「今働ける人」に絞ったことで、スピードと信頼性が同時に実現する</div>
+    </div>
+    <div class="script-body">
+      <p class="script-p">シフルンはこの問題を、<em>アプローチを変えること</em>で解決します。</p>
+      <p class="script-p">まずバイトがスマホからカレンダーで希望日と時間を登録します。次に店長が確認して、自分の店に入れるか判断します。「この日は人が足りている」という場合は、その空き時間を<em>他の店舗に開放</em>することができます。</p>
+      <p class="script-p">人手が足りない別の店舗がその情報を見てスカウトを送り、バイトが承諾すればマッチング成立です。</p>
+      <p class="script-p">重要なのは、このマッチングが<em>「その日確実に働ける人」だけに絞られている</em>ということです。一般的な求人サービスは応募から採用まで数日から数週間かかります。シフルンは<em>最短当日のマッチングが可能</em>です。</p>
+      <div class="note"><strong>補足（余裕があれば）：</strong>店長がシフトを開放する判断をするだけでいい。新しいオペレーションを増やすのではなく、今やっていることの延長線上に乗っている設計にこだわりました。</div>
+    </div>
+  </section>
+
+  <!-- S4 -->
+  <section class="script-section">
+    <div class="section-head">
+      <span class="slide-chip">SLIDE 4</span>
+      <span class="section-title">機能 — 両サイドに最適化された機能</span>
+      <span class="time-badge">約2分</span>
+    </div>
+    <div class="key-message">
+      <div class="key-label">キーメッセージ</div>
+      <div class="key-text">バイトは「使いやすい」、店舗は「管理が楽になる」の両立を具体的に見せる</div>
+    </div>
+    <div class="script-body">
+      <p class="script-p">実際に何ができるのか、バイトと店舗それぞれの視点でご説明します。</p>
+      <p class="script-p"><em>バイト側</em>では、カレンダーから複数の日をまとめて選んで一括でシフト希望を提出できます。今日のシフトが採用済みであれば、アプリから出勤打刻もできます。スカウトが届いたら条件を確認してワンタップで承諾。店長から認証バッジをもらうことで、実績を次のスカウトにつなげられます。</p>
+      <p class="script-p"><em>店舗側</em>では、月・週カレンダーでスタッフ全員のシフトを一元管理できます。参加申請が来たらアプリ内で承認、人手が足りない日は条件検索でバイトを探してスカウト送信まで完結します。</p>
+      <p class="script-p">今まで電話やLINEで行っていたやり取りが、<em>すべてシフルン上で完結</em>します。</p>
+    </div>
+  </section>
+
+  <!-- S5 -->
+  <section class="script-section">
+    <div class="section-head">
+      <span class="slide-chip">SLIDE 5</span>
+      <span class="section-title">差別化 — 他社にないシフルンだけの強み</span>
+      <span class="time-badge">約2分</span>
+    </div>
+    <div class="key-message">
+      <div class="key-label">キーメッセージ</div>
+      <div class="key-text">「なぜ既存サービスじゃダメなのか」に答える。技術的対策まで言及して信頼感を出す</div>
+    </div>
+    <div class="script-body">
+      <p class="script-p">「スポットバイトのサービスは他にもあるのでは？」という疑問を持たれるかもしれません。シフルンには、他のサービスにはない3つの強みがあります。</p>
+      <p class="script-p"><em>1つ目は、シフト希望と連動したマッチングです。</em>一般的なサービスはバイトが仕事を探して応募する形ですが、シフルンは逆です。バイトが空き時間を登録しておくと、店舗からスカウトが来る。しかも「その日働ける人」だけが対象なので、採用ミスマッチが起きにくい。</p>
+      <p class="script-p"><em>2つ目は、店長認証による実績の可視化です。</em>どこの店で何年働いたかが、店長の認証という形で信頼できる情報として見えます。履歴書より正確な「現場の評価」です。</p>
+      <p class="script-p"><em>3つ目は、eKYCによる引き抜き防止です。</em>シフルンを通じて知り合った後に直接雇用に移行した場合、同じ本人確認情報でのシステム再登録を自動でブロックします。プラットフォームの公平性を技術で守っています。</p>
+    </div>
+  </section>
+
+  <!-- S6 -->
+  <section class="script-section">
+    <div class="section-head">
+      <span class="slide-chip">SLIDE 6</span>
+      <span class="section-title">ビジネスモデル — バイトは無料、店舗は成果で払う</span>
+      <span class="time-badge">約1分30秒</span>
+    </div>
+    <div class="key-message">
+      <div class="key-label">キーメッセージ</div>
+      <div class="key-text">シンプルで納得感のある構造であることを示す。「採用できなければ払わなくていい」が刺さる</div>
+    </div>
+    <div class="script-body">
+      <p class="script-p">収益モデルはシンプルです。</p>
+      <p class="script-p"><em>バイト側は完全無料です。</em>登録からシフト提出、スカウト受信まですべて無料。バイトの数がサービスの価値の源泉なので、使いやすさを最優先にしています。</p>
+      <p class="script-p"><em>店舗側は成果報酬型です。</em>マッチングが成立したときだけ費用が発生します。採用できなかったのにコストがかかる、という無駄が一切ありません。加えてシフト管理機能は月額プランもご用意しています。</p>
+      <p class="script-p">小規模な個人店から複数店舗のチェーンまで、スタッフ数に応じたスケール設計になっています。</p>
+    </div>
+  </section>
+
+  <!-- S7 -->
+  <section class="script-section">
+    <div class="section-head">
+      <span class="slide-chip">SLIDE 7</span>
+      <span class="section-title">まとめ / CTA</span>
+      <span class="time-badge">約1分</span>
+    </div>
+    <div class="key-message">
+      <div class="key-label">キーメッセージ</div>
+      <div class="key-text">「何をしてほしいか」を一つに絞って明確に伝えて終わる</div>
+    </div>
+    <div class="script-body">
+      <p class="script-p">まとめます。飲食業界のシフト管理の非効率と人手不足は、長年解決されてきませんでした。シフルンはこれを、<em>バイトの空き時間情報を起点にしたリアルタイムマッチング</em>で解決します。</p>
+      <p class="script-p">バイトはより多くの働き口に出会え、店舗はよりスピーディーに人手を確保できる。業界全体がより効率よく、より働きやすくなることを目指しています。</p>
+      <p class="script-p">現在、<em>早期登録の店舗様を募集しています。</em>ぜひデモをご覧いただき、実際の操作感を体験していただければと思います。ご興味をお持ちの方は、プロフィールのリンクまたは本日の資料記載のURLからお問い合わせください。</p>
+      <p class="script-p">ご清聴ありがとうございました。</p>
+      <div class="note"><strong>Q&amp;A前のひと言（任意）：</strong>何かご質問があればぜひ。また、「飲食店経営者を知っている」「バイトを探している」という方がいればぜひご紹介ください。</div>
+    </div>
+  </section>
+
+</main>
+
+<footer>
+  シフルン プレゼンテーション用トークスクリプト — 総尺 約12分
+</footer>

@@ -1,0 +1,821 @@
+<title>シフルン — サービス紹介</title>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --blue: #1568D3;
+  --blue-light: #3A8AEF;
+  --teal: #00AAAA;
+  --orange: #F5A300;
+  --navy: #091729;
+  --navy-mid: #152545;
+  --ink: #0D2040;
+  --fog: #7A90B0;
+  --ice: #EBF3FF;
+  --white: #FAFCFF;
+  --slide-w: 100vw;
+  --slide-h: 100vh;
+}
+
+html, body {
+  width: 100%; height: 100%;
+  overflow: hidden;
+  background: var(--navy);
+  font-family: -apple-system, 'Hiragino Sans', 'Hiragino Kaku Gothic ProN', 'Yu Gothic UI', 'Meiryo', sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ── Deck / Slide ── */
+.deck {
+  position: relative;
+  width: 100vw; height: 100vh;
+  overflow: hidden;
+}
+
+.slide {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  padding: clamp(32px, 5vw, 72px) clamp(32px, 7vw, 100px);
+  opacity: 0;
+  transform: translateX(40px);
+  transition: opacity 0.45s cubic-bezier(.4,0,.2,1), transform 0.45s cubic-bezier(.4,0,.2,1);
+  pointer-events: none;
+  will-change: opacity, transform;
+}
+.slide.active {
+  opacity: 1;
+  transform: translateX(0);
+  pointer-events: auto;
+}
+.slide.exit {
+  opacity: 0;
+  transform: translateX(-40px);
+}
+
+/* ── Eyebrow label ── */
+.eyebrow {
+  font-size: clamp(10px, 1.1vw, 13px);
+  font-weight: 600;
+  letter-spacing: .18em;
+  text-transform: uppercase;
+  margin-bottom: clamp(16px, 2.5vh, 32px);
+}
+
+/* ── Slide 1: Title ── */
+.s-title {
+  background: linear-gradient(140deg, var(--navy) 0%, #0D2B5A 55%, #0A3870 100%);
+  justify-content: center;
+}
+.s-title .logo-text {
+  font-size: clamp(52px, 8.5vw, 108px);
+  font-weight: 800;
+  letter-spacing: -.02em;
+  line-height: 1;
+  background: linear-gradient(100deg, #4AABFF 0%, var(--teal) 60%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin-bottom: 6px;
+}
+.s-title .logo-sub {
+  font-size: clamp(16px, 2vw, 26px);
+  font-weight: 500;
+  color: rgba(255,255,255,.45);
+  letter-spacing: .25em;
+  margin-bottom: clamp(24px, 4vh, 52px);
+}
+.s-title .tagline {
+  font-size: clamp(18px, 2.4vw, 32px);
+  font-weight: 700;
+  color: rgba(255,255,255,.92);
+  line-height: 1.45;
+  text-wrap: balance;
+  max-width: 22em;
+  margin-bottom: clamp(12px, 2vh, 24px);
+}
+.s-title .service-type {
+  display: inline-block;
+  font-size: clamp(11px, 1.1vw, 14px);
+  font-weight: 500;
+  color: var(--teal);
+  border: 1px solid rgba(0,170,170,.4);
+  padding: 6px 16px;
+  border-radius: 100px;
+  letter-spacing: .08em;
+}
+.s-title .orange-dot {
+  display: inline-block;
+  width: clamp(10px, 1.4vw, 18px);
+  height: clamp(10px, 1.4vw, 18px);
+  background: var(--orange);
+  border-radius: 50%;
+  margin-left: 10px;
+  vertical-align: middle;
+  margin-bottom: 3px;
+}
+
+/* ── Light slides ── */
+.s-light {
+  background: var(--white);
+  color: var(--ink);
+}
+.s-light .eyebrow { color: var(--blue); }
+
+.s-dark {
+  background: var(--navy);
+  color: var(--white);
+}
+.s-dark .eyebrow { color: var(--teal); }
+
+/* ── Slide headings ── */
+.slide-title {
+  font-size: clamp(24px, 3.6vw, 52px);
+  font-weight: 800;
+  line-height: 1.2;
+  letter-spacing: -.02em;
+  text-wrap: balance;
+  margin-bottom: clamp(24px, 4vh, 52px);
+}
+
+/* ── Problem grid ── */
+.problem-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: clamp(16px, 2vw, 28px);
+  flex: 1;
+  align-items: stretch;
+}
+.problem-card {
+  background: #F0F5FF;
+  border: 1.5px solid #D6E8FF;
+  border-radius: 16px;
+  padding: clamp(20px, 2.5vw, 36px);
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  position: relative;
+  overflow: hidden;
+}
+.problem-card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 4px;
+  background: var(--blue);
+  border-radius: 16px 16px 0 0;
+}
+.problem-num {
+  font-size: clamp(32px, 4vw, 56px);
+  font-weight: 800;
+  color: var(--blue);
+  opacity: .18;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+.problem-title {
+  font-size: clamp(15px, 1.6vw, 22px);
+  font-weight: 700;
+  color: var(--ink);
+  line-height: 1.35;
+  text-wrap: balance;
+}
+.problem-desc {
+  font-size: clamp(12px, 1.1vw, 15px);
+  color: var(--fog);
+  line-height: 1.7;
+  flex: 1;
+}
+.problem-voice {
+  font-size: clamp(12px, 1.1vw, 14px);
+  color: var(--blue);
+  background: rgba(21,104,211,.07);
+  border-radius: 8px;
+  padding: 10px 14px;
+  line-height: 1.5;
+  font-style: italic;
+}
+
+/* ── Solution layout ── */
+.solution-body {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: clamp(20px, 3vw, 52px);
+  flex: 1;
+  align-items: center;
+}
+.solution-left .statement {
+  font-size: clamp(22px, 3vw, 44px);
+  font-weight: 800;
+  line-height: 1.3;
+  letter-spacing: -.02em;
+  text-wrap: balance;
+  color: var(--ink);
+  margin-bottom: clamp(20px, 3vh, 40px);
+}
+.solution-left .statement em {
+  color: var(--blue);
+  font-style: normal;
+}
+.solution-points { display: flex; flex-direction: column; gap: 14px; }
+.solution-pt {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+}
+.solution-pt .dot {
+  width: 28px; height: 28px;
+  min-width: 28px;
+  background: var(--blue);
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  color: white;
+  font-size: 12px;
+  font-weight: 700;
+  margin-top: 2px;
+}
+.solution-pt p {
+  font-size: clamp(13px, 1.2vw, 17px);
+  line-height: 1.6;
+  color: var(--ink);
+}
+.solution-pt strong { color: var(--blue); }
+
+/* Flow diagram */
+.flow {
+  background: var(--navy);
+  border-radius: 20px;
+  padding: clamp(24px, 3vw, 40px);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.flow-step {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 18px;
+  background: rgba(255,255,255,.06);
+  border-radius: 12px;
+  border: 1px solid rgba(255,255,255,.09);
+}
+.flow-step .icon {
+  font-size: clamp(18px, 2vw, 24px);
+  min-width: 36px;
+  text-align: center;
+}
+.flow-step p {
+  font-size: clamp(12px, 1.1vw, 15px);
+  color: rgba(255,255,255,.85);
+  line-height: 1.5;
+}
+.flow-step p strong { color: var(--teal); font-size: 1.05em; }
+.flow-arrow {
+  text-align: center;
+  color: var(--teal);
+  font-size: 18px;
+  opacity: .5;
+}
+
+/* ── Feature slides ── */
+.feature-body {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: clamp(16px, 2vw, 32px);
+  flex: 1;
+  align-items: start;
+}
+.feature-col {
+  display: flex;
+  flex-direction: column;
+  gap: clamp(12px, 1.5vh, 20px);
+}
+.feature-col-label {
+  font-size: clamp(11px, 1vw, 13px);
+  font-weight: 700;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: var(--fog);
+  border-bottom: 1px solid #D6E8FF;
+  padding-bottom: 10px;
+  margin-bottom: 4px;
+}
+.feature-item {
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+}
+.feature-item .fi-icon {
+  width: 36px; height: 36px; min-width: 36px;
+  border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 16px;
+}
+.fi-blue  { background: rgba(21,104,211,.12); }
+.fi-teal  { background: rgba(0,170,170,.12); }
+.feature-item .fi-text h4 {
+  font-size: clamp(13px, 1.15vw, 17px);
+  font-weight: 700;
+  color: var(--ink);
+  margin-bottom: 3px;
+}
+.feature-item .fi-text p {
+  font-size: clamp(11px, 1vw, 14px);
+  color: var(--fog);
+  line-height: 1.6;
+}
+
+/* ── Differentiator ── */
+.diff-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: clamp(16px, 2vw, 28px);
+  flex: 1;
+  align-items: stretch;
+}
+.diff-card {
+  background: rgba(255,255,255,.04);
+  border: 1px solid rgba(255,255,255,.1);
+  border-radius: 16px;
+  padding: clamp(20px, 2.5vw, 36px);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.diff-card .dc-num {
+  font-size: clamp(28px, 3.5vw, 48px);
+  font-weight: 800;
+  color: var(--teal);
+  opacity: .35;
+  font-variant-numeric: tabular-nums;
+}
+.diff-card h3 {
+  font-size: clamp(14px, 1.4vw, 20px);
+  font-weight: 700;
+  color: rgba(255,255,255,.92);
+  line-height: 1.3;
+  text-wrap: balance;
+}
+.diff-card p {
+  font-size: clamp(12px, 1vw, 14px);
+  color: rgba(255,255,255,.5);
+  line-height: 1.7;
+  flex: 1;
+}
+.diff-tag {
+  display: inline-block;
+  font-size: clamp(10px, .9vw, 12px);
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 100px;
+  letter-spacing: .06em;
+}
+.tag-blue { background: rgba(21,104,211,.25); color: #7ABAFF; }
+.tag-teal { background: rgba(0,170,170,.2); color: var(--teal); }
+.tag-orange { background: rgba(245,163,0,.2); color: #FFCF60; }
+
+/* ── Business model ── */
+.biz-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: clamp(20px, 3vw, 48px);
+  flex: 1;
+  align-items: stretch;
+}
+.biz-panel {
+  border-radius: 20px;
+  padding: clamp(24px, 3vw, 44px);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.biz-panel.free { background: var(--ice); border: 1.5px solid #C4DCFF; }
+.biz-panel.paid { background: var(--navy); border: 1.5px solid rgba(255,255,255,.1); }
+.biz-panel .bp-who {
+  font-size: clamp(11px, 1vw, 13px);
+  font-weight: 700;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+}
+.free .bp-who { color: var(--blue); }
+.paid .bp-who { color: var(--teal); }
+.biz-panel .bp-price {
+  font-size: clamp(28px, 3.5vw, 52px);
+  font-weight: 800;
+  letter-spacing: -.02em;
+  line-height: 1;
+}
+.free .bp-price { color: var(--ink); }
+.paid .bp-price { color: white; }
+.biz-panel ul { list-style: none; display: flex; flex-direction: column; gap: 10px; flex: 1; }
+.biz-panel li {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  font-size: clamp(12px, 1.1vw, 15px);
+  line-height: 1.55;
+}
+.biz-panel li::before {
+  content: '✓';
+  font-weight: 700;
+  margin-top: 1px;
+  flex-shrink: 0;
+}
+.free li { color: var(--ink); }
+.free li::before { color: var(--blue); }
+.paid li { color: rgba(255,255,255,.75); }
+.paid li::before { color: var(--teal); }
+
+/* ── CTA Slide ── */
+.s-cta {
+  background: linear-gradient(150deg, #0A1929 0%, #0D2B5A 50%, #0A1929 100%);
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+}
+.s-cta .cta-label {
+  font-size: clamp(11px, 1vw, 14px);
+  font-weight: 600;
+  letter-spacing: .2em;
+  text-transform: uppercase;
+  color: var(--teal);
+  margin-bottom: clamp(16px, 2.5vh, 28px);
+}
+.s-cta h2 {
+  font-size: clamp(28px, 4.5vw, 64px);
+  font-weight: 800;
+  letter-spacing: -.02em;
+  color: white;
+  line-height: 1.2;
+  text-wrap: balance;
+  margin-bottom: clamp(10px, 1.5vh, 18px);
+}
+.s-cta .sub {
+  font-size: clamp(14px, 1.4vw, 20px);
+  color: rgba(255,255,255,.5);
+  margin-bottom: clamp(24px, 4vh, 52px);
+  line-height: 1.6;
+}
+.cta-chips {
+  display: flex;
+  gap: 14px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+.cta-chip {
+  font-size: clamp(12px, 1.1vw, 15px);
+  font-weight: 600;
+  padding: 12px 28px;
+  border-radius: 100px;
+  letter-spacing: .02em;
+}
+.chip-primary { background: var(--blue); color: white; }
+.chip-outline { border: 1.5px solid rgba(255,255,255,.25); color: rgba(255,255,255,.75); }
+.s-cta .brand-bottom {
+  position: absolute;
+  bottom: clamp(20px, 3vh, 40px);
+  left: 50%; transform: translateX(-50%);
+  font-size: clamp(12px, 1vw, 14px);
+  color: rgba(255,255,255,.2);
+  letter-spacing: .12em;
+  white-space: nowrap;
+}
+
+/* ── Nav ── */
+.nav {
+  position: fixed;
+  bottom: clamp(16px, 3vh, 32px);
+  left: 0; right: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+  z-index: 100;
+  pointer-events: none;
+}
+.dots {
+  display: flex;
+  gap: 7px;
+  align-items: center;
+  pointer-events: auto;
+}
+.dot {
+  width: 7px; height: 7px;
+  border-radius: 50%;
+  background: rgba(255,255,255,.25);
+  cursor: pointer;
+  transition: all .3s ease;
+  border: none;
+  padding: 0;
+}
+.dot.on { background: white; width: 22px; border-radius: 4px; }
+.arrows {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  pointer-events: auto;
+}
+.arr {
+  width: 36px; height: 36px;
+  border-radius: 50%;
+  border: 1.5px solid rgba(255,255,255,.2);
+  background: rgba(255,255,255,.08);
+  backdrop-filter: blur(8px);
+  color: white;
+  font-size: 15px;
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: background .2s;
+}
+.arr:hover { background: rgba(255,255,255,.18); }
+.counter {
+  font-size: 12px;
+  color: rgba(255,255,255,.4);
+  font-variant-numeric: tabular-nums;
+  min-width: 36px;
+  text-align: center;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .slide { transition: opacity .15s; }
+}
+</style>
+
+<div class="deck" id="deck">
+
+  <!-- S1: Title -->
+  <div class="slide s-title active">
+    <div>
+      <div class="logo-text">Shiflun<span class="orange-dot"></span></div>
+      <div class="logo-sub">シフルン</div>
+      <p class="tagline">飲食業界の「人材」と「シフト」を、リデザインする</p>
+      <span class="service-type">業種特化型 · シフト連動型 マッチングプラットフォーム</span>
+    </div>
+  </div>
+
+  <!-- S2: Problem -->
+  <div class="slide s-light">
+    <p class="eyebrow">Problem / 課題</p>
+    <h2 class="slide-title">飲食業界が直面する、3つの壁</h2>
+    <div class="problem-grid">
+      <div class="problem-card">
+        <div class="problem-num">01</div>
+        <h3 class="problem-title">シフト管理の<br>非効率</h3>
+        <p class="problem-desc">LINEやメモ帳での管理が主流。集計ミス・重複・抜けが多発し、店長の時間を大量に奪っている。</p>
+        <div class="problem-voice">「毎週シフト集めるのに2〜3時間かかる…」</div>
+      </div>
+      <div class="problem-card" style="--b: var(--teal);">
+        <div class="problem-num" style="color:var(--teal)">02</div>
+        <h3 class="problem-title">急な欠員への<br>対応不能</h3>
+        <p class="problem-desc">ドタキャン・急な発熱。代替要員を探す手段がなく、結局店長が入るか営業を縮小するしかない。</p>
+        <div class="problem-voice" style="color:var(--teal);background:rgba(0,170,170,.07)">「呼べる人の連絡先を片っ端から当たるしか…」</div>
+      </div>
+      <div class="problem-card">
+        <div class="problem-num" style="color:var(--orange)">03</div>
+        <h3 class="problem-title">スポットワークの<br>信頼性の欠如</h3>
+        <p class="problem-desc">経験・スキル・過去の勤務実績が見えない。採用しても来なかった、使えなかったという事例が後を絶たない。</p>
+        <div class="problem-voice" style="color:var(--orange);background:rgba(245,163,0,.07)">「来るかどうかわからない人は怖くて雇えない」</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- S3: Solution -->
+  <div class="slide s-light">
+    <p class="eyebrow">Solution / 解決策</p>
+    <div class="solution-body">
+      <div class="solution-left">
+        <p class="statement">シフト希望に<em>連動した</em><br>マッチングで、<br>すべてが変わる。</p>
+        <div class="solution-points">
+          <div class="solution-pt">
+            <div class="dot">1</div>
+            <p>バイトがアプリで<strong>シフト希望を登録</strong>。カレンダーで複数日をまとめて提出できる。</p>
+          </div>
+          <div class="solution-pt">
+            <div class="dot">2</div>
+            <p>店長は一覧で確認・<strong>ワンクリック承認</strong>。月/週カレンダーで全員の状況を把握。</p>
+          </div>
+          <div class="solution-pt">
+            <div class="dot">3</div>
+            <p>人手が足りない日は、<strong>条件検索 → スカウト送信</strong>で最短当日にマッチング成立。</p>
+          </div>
+        </div>
+      </div>
+      <div class="flow">
+        <div class="flow-step">
+          <div class="icon">👤</div>
+          <p><strong>バイト</strong>がシフト希望をカレンダーで一括提出</p>
+        </div>
+        <div class="flow-arrow">↓</div>
+        <div class="flow-step">
+          <div class="icon">✅</div>
+          <p><strong>店長</strong>が確認・承認、または他店舗へ開放</p>
+        </div>
+        <div class="flow-arrow">↓</div>
+        <div class="flow-step">
+          <div class="icon">🔍</div>
+          <p><strong>他の店舗</strong>が条件検索でワーカーを発見</p>
+        </div>
+        <div class="flow-arrow">↓</div>
+        <div class="flow-step">
+          <div class="icon">📩</div>
+          <p><strong>スカウト</strong>送信 → バイトが承諾 → マッチング成立</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- S4: Features -->
+  <div class="slide s-light">
+    <p class="eyebrow">Features / 機能</p>
+    <h2 class="slide-title">両サイドに最適化された機能</h2>
+    <div class="feature-body">
+      <div class="feature-col">
+        <div class="feature-col-label">バイト向け</div>
+        <div class="feature-item">
+          <div class="fi-icon fi-blue">📅</div>
+          <div class="fi-text">
+            <h4>シフト希望の一括提出</h4>
+            <p>カレンダーで複数日を選択し、共通の時間を設定して一度に提出</p>
+          </div>
+        </div>
+        <div class="feature-item">
+          <div class="fi-icon fi-blue">📩</div>
+          <div class="fi-text">
+            <h4>スカウト受信・承諾</h4>
+            <p>店舗からのスカウトを受信し、条件を確認してワンタップで承諾</p>
+          </div>
+        </div>
+        <div class="feature-item">
+          <div class="fi-icon fi-blue">🏅</div>
+          <div class="fi-text">
+            <h4>店長認証バッジ</h4>
+            <p>勤務実績を店長に認証してもらい、プロフィールに信頼性を付与</p>
+          </div>
+        </div>
+        <div class="feature-item">
+          <div class="fi-icon fi-blue">⚙️</div>
+          <div class="fi-text">
+            <h4>店舗への参加申請</h4>
+            <p>店名を検索して申請送信。スキルや経歴も一緒に提出できる</p>
+          </div>
+        </div>
+      </div>
+      <div class="feature-col">
+        <div class="feature-col-label">店舗向け</div>
+        <div class="feature-item">
+          <div class="fi-icon fi-teal">🗓️</div>
+          <div class="fi-text">
+            <h4>月/週カレンダー管理</h4>
+            <p>全スタッフのシフトを月表示・週表示で一覧。名前と時間が一目で確認できる</p>
+          </div>
+        </div>
+        <div class="feature-item">
+          <div class="fi-icon fi-teal">👥</div>
+          <div class="fi-text">
+            <h4>参加申請の承認フロー</h4>
+            <p>バイトからの参加申請を確認・承認。プロフィール・スキルを事前に閲覧可能</p>
+          </div>
+        </div>
+        <div class="feature-item">
+          <div class="fi-icon fi-teal">🔍</div>
+          <div class="fi-text">
+            <h4>条件検索 + スカウト</h4>
+            <p>日付・時間・スキルで絞り込み、即戦力に直接スカウトを送信</p>
+          </div>
+        </div>
+        <div class="feature-item">
+          <div class="fi-icon fi-teal">🏪</div>
+          <div class="fi-text">
+            <h4>他店舗への人材開放</h4>
+            <p>自店のシフトに入らない日を他店に開放し、バイトの収入機会を確保</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- S5: Differentiators -->
+  <div class="slide s-dark">
+    <p class="eyebrow">Why Shiflun / 差別化</p>
+    <h2 class="slide-title" style="color:white">他サービスにない、シフルンだけの強み</h2>
+    <div class="diff-grid">
+      <div class="diff-card">
+        <div class="dc-num">01</div>
+        <h3>シフト希望に連動した<br>マッチング</h3>
+        <p>「その日働ける人」だけに絞ったスカウト。一般求人と違い、即日〜翌日の即戦力確保が可能。</p>
+        <span class="diff-tag tag-blue">他社にない機能</span>
+      </div>
+      <div class="diff-card">
+        <div class="dc-num">02</div>
+        <h3>店長認証で<br>実績を可視化</h3>
+        <p>履歴書より正確な「現場の評価」。どこで何年働いたかが認証ベースで確認できる。</p>
+        <span class="diff-tag tag-teal">信頼性の担保</span>
+      </div>
+      <div class="diff-card">
+        <div class="dc-num">03</div>
+        <h3>eKYCによる<br>引き抜き防止</h3>
+        <p>直接雇用に移行したバイトの再登録を本人確認情報で自動ブロック。フェアなエコシステムを維持。</p>
+        <span class="diff-tag tag-orange">技術的対策</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- S6: Business Model -->
+  <div class="slide s-light">
+    <p class="eyebrow">Business Model / 収益モデル</p>
+    <h2 class="slide-title">バイトは無料。店舗は成果で払う。</h2>
+    <div class="biz-grid">
+      <div class="biz-panel free">
+        <div class="bp-who">Worker / バイト</div>
+        <div class="bp-price">完全無料</div>
+        <ul>
+          <li>プロフィール・スキル登録</li>
+          <li>シフト希望の提出</li>
+          <li>スカウトの受信・承諾</li>
+          <li>店長認証の取得</li>
+          <li>複数店舗への参加申請</li>
+        </ul>
+      </div>
+      <div class="biz-panel paid">
+        <div class="bp-who">Store / 店舗</div>
+        <div class="bp-price" style="font-size:clamp(20px,2.2vw,32px);margin-bottom:6px">成果報酬型手数料</div>
+        <ul>
+          <li>マッチング成立ごとに手数料</li>
+          <li>シフト管理機能（月額プラン）</li>
+          <li>スタッフ数に応じたスケール料金</li>
+          <li>早期登録店舗は初月無料</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- S7: CTA -->
+  <div class="slide s-cta">
+    <div class="cta-label">Next Step</div>
+    <h2>飲食業界の<br>シフト課題、<br>一緒に解決しませんか。</h2>
+    <p class="sub">デモのご依頼・導入相談はお気軽にどうぞ</p>
+    <div class="cta-chips">
+      <div class="cta-chip chip-primary">デモを見る</div>
+      <div class="cta-chip chip-outline">お問い合わせ</div>
+    </div>
+    <div class="brand-bottom">Shiflun · シフルン</div>
+  </div>
+
+</div>
+
+<!-- Nav -->
+<nav class="nav">
+  <div class="dots" id="dots"></div>
+  <div class="arrows">
+    <button class="arr" id="prev">←</button>
+    <span class="counter" id="counter">1 / 7</span>
+    <button class="arr" id="next">→</button>
+  </div>
+</nav>
+
+<script>
+const slides = Array.from(document.querySelectorAll('.slide'));
+const dotsEl = document.getElementById('dots');
+const counter = document.getElementById('counter');
+let cur = 0;
+
+slides.forEach((_, i) => {
+  const d = document.createElement('button');
+  d.className = 'dot' + (i === 0 ? ' on' : '');
+  d.setAttribute('aria-label', `スライド ${i + 1}`);
+  d.onclick = () => go(i);
+  dotsEl.appendChild(d);
+});
+
+function go(n) {
+  if (n === cur) return;
+  const prev = slides[cur];
+  prev.classList.remove('active');
+  prev.classList.add('exit');
+  setTimeout(() => prev.classList.remove('exit'), 500);
+
+  cur = (n + slides.length) % slides.length;
+  slides[cur].classList.add('active');
+
+  document.querySelectorAll('.dot').forEach((d, i) => {
+    d.classList.toggle('on', i === cur);
+  });
+  counter.textContent = `${cur + 1} / ${slides.length}`;
+}
+
+document.getElementById('next').onclick = () => go(cur + 1);
+document.getElementById('prev').onclick = () => go(cur - 1);
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'ArrowRight' || e.key === ' ') { e.preventDefault(); go(cur + 1); }
+  if (e.key === 'ArrowLeft') { e.preventDefault(); go(cur - 1); }
+});
+
+// click anywhere on slide to advance
+document.getElementById('deck').addEventListener('click', e => {
+  if (!e.target.closest('.arr') && !e.target.closest('.dot')) go(cur + 1);
+});
+
+counter.textContent = `1 / ${slides.length}`;
+</script>

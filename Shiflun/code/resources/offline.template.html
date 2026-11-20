@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>接続できません | シフルン</title>
+<!--
+  アプリ（Capacitor）が本番サイトを読み込めなかったときに表示する、端末内のページ。
+  このファイルはひな形。`npm run cap:sync` が {{SERVER_URL}} を接続先のURLに置き換えて public/offline.html を作る。
+-->
+<style>
+  :root { color-scheme: light; }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center;
+    padding: calc(24px + env(safe-area-inset-top)) 24px calc(24px + env(safe-area-inset-bottom));
+    background: #f8f7f4; color: #1c1c1e; text-align: center;
+    font-family: "Hiragino Kaku Gothic ProN", "Hiragino Sans", "Noto Sans JP", system-ui, sans-serif;
+  }
+  img { width: 96px; height: auto; }
+  h1 { margin: 20px 0 0; font-size: 22px; font-weight: 900; }
+  p { margin: 10px 0 0; max-width: 320px; font-size: 15px; line-height: 1.7; color: #55575d; }
+  button {
+    margin-top: 28px; width: 100%; max-width: 320px; min-height: 52px; border: 0; border-radius: 8px;
+    background: #0b63e5; color: #fff; font: inherit; font-size: 16px; font-weight: 700;
+  }
+  button:active { background: #094fb8; }
+  #status { min-height: 24px; margin-top: 12px; font-size: 13px; }
+</style>
+</head>
+<body>
+  <img src="/mascot/shifurunyan-sorry.png" alt="">
+  <h1>インターネットに接続できません</h1>
+  <p>電波の良い場所に移動するか、Wi-Fi・モバイル通信の設定を確認してから、もう一度お試しください。</p>
+  <button type="button" id="retry">もう一度読み込む</button>
+  <p id="status" role="status"></p>
+<script>
+  var SERVER_URL = "{{SERVER_URL}}";
+  var button = document.getElementById("retry");
+  var status = document.getElementById("status");
+  function retry() {
+    if (!navigator.onLine) { status.textContent = "まだ接続できていません。"; return; }
+    status.textContent = "読み込んでいます…";
+    button.disabled = true;
+    window.location.replace(SERVER_URL);
+  }
+  button.addEventListener("click", retry);
+  // 通信が戻ったら自動で読み込み直す。
+  window.addEventListener("online", retry);
+</script>
+</body>
+</html>

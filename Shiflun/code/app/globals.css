@@ -1,0 +1,122 @@
+@import "tailwindcss";
+
+/*
+ * デザインの基本（2026-11 の作り直し）
+ *   - 地は少し温かい白、カードは白地に細い線。影とグラデーションは使わない。
+ *   - 色は「青（押せるもの）」と「黄（いま選んでいるもの・未対応の印）」の2つ。文字は黒に近い色。
+ *   - 角丸は小さめ（カード 12px、ボタンと入力欄 8px）。
+ * 青と黄は public/logo-icon.png の色をもとに、白文字・黒文字が読める濃さに調整している。
+ */
+@theme inline {
+  --font-sans: var(--font-brand-sans);
+
+  --color-ink: #1c1c1e;
+  --color-ink-soft: #55575d;
+  --color-paper: #f8f7f4;
+  --color-line: #e2e0da;
+  --color-chip: #eeede9;
+
+  --color-brand-blue: #0b63e5;
+  --color-brand-blue-dark: #094fb8;
+  --color-brand-blue-light: #e8f0fe;
+  --color-brand-yellow: #ffd65c;
+  --color-brand-yellow-light: #fff3c9;
+  --color-brand-yellow-dark: #6b4b00;
+
+  /* 以前の名前。使っている箇所が残っていても色がそろうよう、新しい色に合わせてある。 */
+  --color-brand-teal: #0b63e5;
+  --color-brand-teal-dark: #094fb8;
+  --color-brand-teal-light: #e8f0fe;
+  --color-brand-amber: #ffd65c;
+  --color-brand-amber-dark: #6b4b00;
+  --color-brand-amber-light: #fff3c9;
+}
+
+body {
+  font-family: var(--font-sans), "Hiragino Kaku Gothic ProN", sans-serif;
+}
+
+@layer components {
+/* 画面の枠：スマホ幅の1列。上の余白はヘッダー（AppHeader）が持つ。 */
+.app-page { @apply mx-auto flex w-full max-w-lg flex-1 flex-col px-4 pb-10; }
+
+/* 画面の見出し */
+.app-title { @apply text-[1.625rem] font-black leading-tight tracking-tight text-ink; }
+.app-section-title { @apply text-base font-bold text-ink; }
+/* 以前の見出し用マーカー（オレンジの点）は廃止。クラス名だけ残す。 */
+.app-heading-mark::before { content: none; }
+
+/* カード：白地に細い線 */
+.app-card { @apply rounded-xl border border-line bg-white p-4; }
+
+/* 入力欄 */
+.app-input {
+  @apply w-full rounded-lg border border-line bg-white px-3 py-3 text-base text-ink outline-none transition-colors
+    placeholder:text-slate-400 focus:border-brand-blue focus:ring-2 focus:ring-brand-blue-light disabled:bg-chip;
+}
+.app-label { @apply mb-2 block text-sm font-bold text-ink; }
+
+/* ボタン：青の塗り（いちばん押してほしいもの）と、白地に線（それ以外） */
+.app-primary {
+  @apply inline-flex min-h-12 items-center justify-center gap-2 rounded-lg bg-brand-blue px-5 py-3 text-base font-bold text-white
+    transition-colors hover:bg-brand-blue-dark disabled:cursor-not-allowed disabled:opacity-50;
+}
+.app-secondary {
+  @apply inline-flex min-h-12 items-center justify-center gap-2 rounded-lg border border-line bg-white px-4 py-3
+    text-sm font-bold text-ink transition-colors hover:bg-paper disabled:opacity-50;
+}
+
+/* 印：黄色は「未対応・いま注目」、灰色はただの分類 */
+.app-pill { @apply inline-flex items-center rounded-md bg-brand-yellow px-2 py-1 text-xs font-bold text-ink; }
+.app-tag { @apply inline-flex items-center rounded-md bg-chip px-2 py-1 text-xs font-medium text-ink; }
+.app-highlight { @apply inline-flex items-center rounded-md bg-brand-yellow-light px-2 py-1 text-sm font-bold text-ink; }
+
+/* お知らせ・エラー */
+.app-error { @apply rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm leading-relaxed text-rose-800; }
+.app-notice { @apply rounded-lg bg-brand-yellow-light px-4 py-3 text-sm leading-relaxed text-ink; }
+.app-success { @apply rounded-lg bg-brand-blue-light px-4 py-3 text-sm leading-relaxed text-ink; }
+
+/* タブ（未返信 / 承諾済み / 履歴 など） */
+.app-tabs { @apply flex border-b border-line; }
+.app-tab {
+  @apply relative flex min-h-12 flex-1 items-center justify-center gap-1.5 text-sm font-medium text-ink-soft
+    aria-selected:font-bold aria-selected:text-ink aria-[current=page]:font-bold aria-[current=page]:text-ink;
+}
+.app-tab[aria-selected="true"]::after, .app-tab[aria-current="page"]::after {
+  content: "";
+  position: absolute;
+  inset: auto 0 -1px 0;
+  height: 3px;
+  border-radius: 3px 3px 0 0;
+  background: var(--color-brand-yellow);
+}
+
+/* 写真の枠（写真がないときは頭文字を出す） */
+.app-photo { @apply flex shrink-0 items-center justify-center overflow-hidden rounded-lg bg-chip text-xl font-black text-ink-soft; }
+.app-photo > img { @apply size-full object-cover; }
+}
+
+button, a, input, select, textarea { @apply focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-blue; }
+
+/* 画面の切り替え：ごく短く */
+@keyframes page-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.animate-page-in { animation: page-in 0.22s ease-out both; }
+
+@keyframes rise-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.animate-rise-in { animation: rise-in 0.22s ease-out both; }
+
+@keyframes bounce-soft {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-6px); }
+}
+.animate-bounce-soft { animation: bounce-soft 1.4s ease-in-out infinite; }
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-page-in, .animate-rise-in, .animate-bounce-soft { animation: none; }
+}

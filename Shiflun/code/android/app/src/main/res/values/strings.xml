@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Shiflun</string>
+    <string name="title_activity_main">Shiflun</string>
+    <string name="package_name">com.shiflun.app</string>
+    <string name="custom_url_scheme">com.shiflun.app</string>
+</resources>
